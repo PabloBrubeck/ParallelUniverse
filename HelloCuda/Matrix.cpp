@@ -73,10 +73,9 @@ void toColumn(double arr[n], double(&M)[n][1]){
 	}
 }
 
-int main(){
-	double vec[4] = { 1, -2, -3, 1 };
-	double A[4][1];
-	toColumn(vec, A);
+int notmain(){
+	
+	double A[4][1] = { {1}, {-2}, {-3}, {1} };
 	printMatrix(A);
 	printf("\n");
 
