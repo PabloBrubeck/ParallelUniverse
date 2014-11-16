@@ -15,34 +15,34 @@
 #define PI 3.1415926535898
 
 struct cuComplex {
-    float   r;
-    float   i;
-    __device__ cuComplex( float a, float b ) : r(a), i(b)  {}
-    __device__ float magnitude2( void ) {
+    double   r;
+    double   i;
+    __device__ cuComplex( double a, double b ) : r(a), i(b)  {}
+    __device__ double magnitude2( void ) {
         return r * r + i * i;
     }
-    __device__ cuComplex operator*(const cuComplex& a) {
-        return cuComplex(r*a.r - i*a.i, i*a.r + r*a.i);
+    __device__ cuComplex operator*(const cuComplex& z) {
+        return cuComplex(r*z.r - i*z.i, i*z.r + r*z.i);
     }
-    __device__ cuComplex operator+(const cuComplex& a) {
-        return cuComplex(r+a.r, i+a.i);
+    __device__ cuComplex operator+(const cuComplex& z) {
+        return cuComplex(r+z.r, i+z.i);
     }
 };
 
 __device__
-int julia(float jx, float jy) {
-	cuComplex c(jx,jy);
+int julia(double jx, double jy) {
+	cuComplex c(jx, jy);
 	cuComplex z(jx, jy);
 	int i=0;
 	do{
 		z=z*z+c;
 		i++;
-	}while(z.magnitude2()<50 && i<256);
+	}while(z.magnitude2()<4 && i<258);
 	return i;
 }
 
 __global__
-void kernel(unsigned char *ptr, const float h, const float k, const float zoom) {
+void kernel(unsigned char *ptr, const double h, const double k, const double zoom) {
 	// map from blockIdx to pixel position
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -52,15 +52,15 @@ void kernel(unsigned char *ptr, const float h, const float k, const float zoom) 
 	int offset=y*LENGTH+x;
 
 	// now calculate the value at that position
-	float range=min(HEIGHT,LENGTH)/2;
-	float jx=zoom*(x-h-LENGTH/2)/range;
-	float jy=zoom*(HEIGHT/2-y-k)/range;
+	double range=min(HEIGHT,LENGTH)/2;
+	double jx=zoom*(x-h-LENGTH/2)/range;
+	double jy=zoom*(HEIGHT/2-y-k)/range;
 	
 	int i=julia(jx, jy);
 	
-	float r=max(0, 256-4*abs(i-192));
-	float g=max(0, 256-4*abs(i-64));
-	float b=max(0, 256-4*i);
+	double r=max(0, 256-4*abs(i-192));
+	double g=max(0, 256-4*abs(i-64));
+	double b=max(0, 256-4*i);
 	ptr[offset*4 + 0] = (int)(r*r/255);
 	ptr[offset*4 + 1] = (int)(g*g/255);
 	ptr[offset*4 + 2] = (int)(b*b/255);
@@ -74,7 +74,7 @@ struct CPUBitmap {
     int x, y;
 	int h, k;
 	int htemp, ktemp;
-	float zoom;
+	double zoom;
 
     void *dataBlock;
     void (*bitmapExit)(void*);
@@ -95,8 +95,12 @@ struct CPUBitmap {
 		HANDLE_ERROR(cudaFree(dev_bitmap));
     }
 
-    unsigned char* get_ptr( void ) const   { return pixels; }
-    long image_size( void ) const { return x * y * 4; }
+    unsigned char* get_ptr( void ) const   { 
+		return pixels; 
+	}
+    long image_size( void ) const { 
+		return x * y * 4; 
+	}
 
     void display_and_exit( void(*e)(void*) = NULL ) {
         CPUBitmap**   bitmap = get_bitmap_ptr();
@@ -128,17 +132,18 @@ struct CPUBitmap {
 		CPUBitmap* bitmap = *(get_bitmap_ptr());
 		int xm=x-LENGTH/2;
         int ym=y-HEIGHT/2;
+		double scale=1.1f;
 		switch (key) {
 			case 'z':
-				bitmap->zoom/=1.02f;
-				bitmap->k=(int)((bitmap->k-ym)*1.02+ym+0.5);
-				bitmap->h=(int)((bitmap->h-xm)*1.02+xm+0.5);
+				bitmap->zoom/=scale;
+				bitmap->k=(int)((bitmap->k-ym)*scale+ym+0.5);
+				bitmap->h=(int)((bitmap->h-xm)*scale+xm+0.5);
 				Draw();
 				break;
 		    case 'x':
-				bitmap->zoom*=1.02f;
-				bitmap->k=(int)((bitmap->k-ym)/1.02+ym+0.5);
-				bitmap->h=(int)((bitmap->h-xm)/1.02+xm+0.5);
+				bitmap->zoom*=scale;
+				bitmap->k=(int)((bitmap->k-ym)/scale+ym+0.5);
+				bitmap->h=(int)((bitmap->h-xm)/scale+xm+0.5);
 				Draw();
 				break;
             case 27:
@@ -172,7 +177,7 @@ struct CPUBitmap {
 		size_t size=bitmap->image_size();
 
 		dim3 blockSize(32, 16);
-		dim3 gridSize((LENGTH-1)/blockSize.x+1, (HEIGHT-1)/blockSize.y+1);
+		dim3 gridSize((LENGTH+blockSize.x-1)/blockSize.x, (HEIGHT+blockSize.y-1)/blockSize.y);
 		kernel<<<gridSize, blockSize>>>(bitmap->dev_bitmap, bitmap->h, bitmap->k, bitmap->zoom);
 		HANDLE_ERROR(cudaMemcpy(bitmap->pixels, bitmap->dev_bitmap, size, cudaMemcpyDeviceToHost));
 		

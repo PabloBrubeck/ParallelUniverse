@@ -4,6 +4,17 @@
 #include <algorithm>
 #include <ctime>
 
+#define checkCudaErrors(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess) 
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
+
 #define MAXTHREADS 512
 
 using namespace std;
@@ -19,6 +30,15 @@ void printArray(unsigned int* arr, int n){
 		printf("%d ", arr[i]);
 	}
 	printf("\n");
+}
+void printFromDevice(unsigned int* d_array, int size){
+    unsigned int *h_temp=new unsigned int[size];
+    cudaMemcpy(h_temp, d_array, size*sizeof(unsigned int), cudaMemcpyDeviceToHost); 
+    for(int i=0; i<size; i++){
+        printf("%d ", h_temp[i]);
+    }
+    printf("\n");
+    delete[] h_temp;
 }
 
 __global__
@@ -45,7 +65,7 @@ void getMax(const float* const d_data, float *h_out, int n){
 	cudaMemcpy(d_in, d_data, n*sizeof(float), cudaMemcpyDeviceToDevice);
 	int dimGrid, dimBlock=MAXTHREADS;
 	do{
-		dimGrid=(n-1)/dimBlock+1;
+		dimGrid=(n+dimBlock-1)/dimBlock;
 		if(dimGrid==1){
 			dimBlock=n;
 		}
@@ -80,7 +100,7 @@ void getMin(const float* const d_data, float *h_out, int n){
 	cudaMemcpy(d_in, d_data, n*sizeof(float), cudaMemcpyDeviceToDevice);
 	int dimGrid, dimBlock=MAXTHREADS;
 	do{
-		dimGrid=(n-1)/dimBlock+1;
+		dimGrid=(n+dimBlock-1)/dimBlock;
 		if(dimGrid==1){
 			dimBlock=n;
 		}
@@ -103,20 +123,162 @@ void histogram(const float* const d_logLuminance, unsigned int* const d_cdf,  fl
 }
 
 __global__
-void scan(unsigned int* const d_cdf, const size_t numBins)
+void exclusiveSum(unsigned int* const d_in, const size_t lenght)
 {
     int gid=blockIdx.x*blockDim.x+threadIdx.x;
-    for(unsigned int s=1; s<numBins; s*=2){
-        if(gid>=s && gid<numBins){
-            d_cdf[gid]+=d_cdf[gid-s];
+    unsigned int s;
+	for(s=1; s<lenght; s<<=1){
+        if((gid+1)%(2*s)==0 && gid<lenght){
+            d_in[gid]+=d_in[gid-s];
+        }
+        __syncthreads();
+    }
+	if(gid==lenght-1){
+		d_in[gid]=0;
+	}
+	__syncthreads();
+	for(; s>0; s>>=1){
+        if((gid+1)%(2*s)==0 && gid<lenght){
+			unsigned int right=d_in[gid];
+            d_in[gid]+=d_in[gid-s];
+			d_in[gid-s]=right;
         }
         __syncthreads();
     }
 }
+__global__
+void displace(unsigned int* const d_in, const size_t lenght)
+{
+    int gid=blockIdx.x*blockDim.x+threadIdx.x;
+	unsigned int temp=gid>0? d_in[gid-1]:0;
+	__syncthreads();
+	if(gid<lenght){
+		d_in[gid]=temp;
+	}
+}
+__global__
+void inclusiveSum(unsigned int* const d_in, const size_t lenght)
+{
+    int tid=threadIdx.x;
+	int gid=blockIdx.x*blockDim.x+tid;
+    for(unsigned int s=1; s<lenght; s<<=1){
+        if(tid>=s && gid<lenght){
+            d_in[gid]+=d_in[gid-s];
+        }
+        __syncthreads();
+    }
+}
+__global__
+void getIncrements(unsigned int* const d_in, unsigned int* const d_inc, const int dimBlock)
+{
+    int tid=threadIdx.x;
+	int bid=dimBlock*tid-1;
+    d_inc[tid]=bid<0? 0: d_in[bid];
+}
+__global__
+void addIncrements(unsigned int* const d_in, unsigned int* const d_inc, const size_t lenght)
+{
+	int bid=blockIdx.x;
+	int gid=bid*blockDim.x+threadIdx.x;
+	if(gid<lenght){
+		d_in[gid]+=d_inc[bid];
+	}
+}
+
+void inclusiveScan(unsigned int* const d_in, const size_t lenght){
+	int dimBlock=min(MAXTHREADS, (int)lenght);
+    int dimGrid=(lenght+dimBlock-1)/dimBlock;
+	inclusiveSum<<<dimGrid, dimBlock>>>(d_in, lenght);
+	if(dimGrid>1){
+		unsigned int* d_inc;
+		cudaMalloc((void**)&d_inc, dimGrid);
+		getIncrements<<<1, dimGrid>>>(d_in, d_inc, dimBlock);
+		inclusiveScan(d_inc, dimGrid);
+		addIncrements<<<dimGrid, dimBlock>>>(d_in, d_inc, lenght);
+		cudaFree(d_inc);
+	}
+}
+void exclusiveScan(unsigned int* const d_in, const size_t lenght){
+	int dimBlock=MAXTHREADS;
+    int dimGrid=(lenght+dimBlock-1)/dimBlock;
+	inclusiveScan(d_in, lenght);
+	displace<<<dimGrid, dimBlock>>>(d_in, lenght);
+}
+
+__global__
+void getPredicate(unsigned int* const d_inputVals,
+			   unsigned int* const d_predicate,
+			   unsigned int* const d_pos0,
+			   unsigned int* const d_pos1,
+			   const size_t numElems,
+			   const int k)
+{
+    int gid=blockDim.x*blockIdx.x+threadIdx.x;
+	if(gid<numElems){
+        unsigned int n=d_inputVals[gid];  
+		short int thebit=(n&(1<<k))>>k;
+		d_predicate[gid]=thebit;
+		d_pos0[gid]=!thebit;
+		d_pos1[gid]=thebit;
+    }
+}
+
+__global__
+void radixSort(unsigned int* const d_inputVals,
+               unsigned int* const d_predicate,
+			   unsigned int* const d_pos0,
+			   unsigned int* const d_pos1,
+			   const size_t numElems)
+{
+	int gid=blockDim.x*blockIdx.x+threadIdx.x;
+	if(gid<numElems){
+		unsigned int pos;
+		if(d_predicate[gid]==0){
+			pos=gid>0? d_pos0[gid-1]: 0;
+		}else{
+			pos=d_pos0[numElems-1]+(gid>0? d_pos1[gid-1]: 0);
+		}
+		d_predicate[pos]=d_inputVals[gid];
+    }
+}
+
+void your_sort(unsigned int* const d_inputVals,
+               const size_t numElems)
+{
+    unsigned int *d_predicate, *d_pos0, *d_pos1;
+	checkCudaErrors(cudaMalloc((void**)&d_predicate, numElems*sizeof(unsigned int)));
+    checkCudaErrors(cudaMalloc((void**)&d_pos0, numElems*sizeof(unsigned int)));
+    checkCudaErrors(cudaMalloc((void**)&d_pos1, numElems*sizeof(unsigned int)));
+    int dimBlock=MAXTHREADS;
+    int dimGrid=(numElems+dimBlock-1)/dimBlock;
+    for(unsigned int i=0; i<8*sizeof(unsigned int); i++){
+		getPredicate<<<dimGrid, dimBlock>>>(d_inputVals, d_predicate, d_pos0, d_pos1, numElems, i);
+		inclusiveScan(d_pos0, numElems);
+		inclusiveScan(d_pos1, numElems);
+		radixSort<<<dimGrid, dimBlock>>>(d_inputVals, d_predicate, d_pos0, d_pos1, numElems);
+		checkCudaErrors(cudaMemcpy(d_inputVals, d_predicate, numElems*sizeof(unsigned int), cudaMemcpyDeviceToDevice));
+    }
+	cudaFree(d_predicate);
+	cudaFree(d_pos0);
+	cudaFree(d_pos1);
+}
+
 
 int main(){
 	//Input parameters
-	int n=98304, numBins=1024;
+	int n=6*256, numBins=64;
+	
+	//Generate a random host array of size n and copy it to device
+	unsigned int *d_input, *h_input=new unsigned int[n];
+	srand((unsigned long)time(NULL));
+	for(int i=0; i<n; i++){
+		h_input[i]=rand()%100;
+	}
+	cudaMalloc((void**)&d_input, n*sizeof(unsigned int));
+	cudaMemcpy(d_input, h_input, n*sizeof(unsigned int), cudaMemcpyHostToDevice);
+	
+	your_sort(d_input, n);
+	printFromDevice(d_input, n);
 
 	//Generate a random host array of size n and copy it to device
 	float *d_in, *h_in=new float[n];
@@ -141,16 +303,12 @@ int main(){
 	
 	//Fill in the histogram
 	int dimBlock=MAXTHREADS;
-	int dimGrid=(n-1)/dimBlock+1;
+    int dimGrid=(n+dimBlock-1)/dimBlock;
 	histogram<<<dimGrid, dimBlock>>>(d_in, d_hist, *h_min, range, n, numBins);
 
-	//Calculate the cumulative distribution function
-	scan<<<1, numBins>>>(d_hist, numBins);
-
-	//Copy the CDF array back to host for display
-	unsigned int *h_hist=new unsigned int[numBins];
-	cudaMemcpy(h_hist, d_hist, numBins*sizeof(unsigned int), cudaMemcpyDeviceToHost);
-	printArray(h_hist, numBins);
+	//Calculate and display the cumulative distribution function
+	exclusiveScan(d_hist, numBins);
+	printFromDevice(d_hist, numBins);
 	
 	//Free memory
 	cudaFree(d_in);
@@ -158,6 +316,5 @@ int main(){
 	delete h_min;
 	delete h_max;
 	delete[] h_in;
-	delete[] h_hist;
 	return 0;
 }
