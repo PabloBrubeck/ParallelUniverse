@@ -10,7 +10,7 @@
 #include "book.h"
 #include "gl_helper.h"
 
-#define LENGTH 1024
+#define WIDTH 1024
 #define HEIGHT 512
 #define PI 3.1415926535898
 
@@ -21,10 +21,12 @@ struct cuComplex {
     __device__ double magnitude2( void ) {
         return r * r + i * i;
     }
-    __device__ cuComplex operator*(const cuComplex& z) {
+    __device__ 
+    cuComplex operator*(const cuComplex& z) {
         return cuComplex(r*z.r - i*z.i, i*z.r + r*z.i);
     }
-    __device__ cuComplex operator+(const cuComplex& z) {
+    __device__
+    cuComplex operator+(const cuComplex& z) {
         return cuComplex(r+z.r, i+z.i);
     }
 };
@@ -46,14 +48,14 @@ void kernel(unsigned char *ptr, const double h, const double k, const double zoo
 	// map from blockIdx to pixel position
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
-	if(x>=LENGTH || y>=HEIGHT){
+	if(x>=WIDTH || y>=HEIGHT){
 		return;
 	}
-	int offset=y*LENGTH+x;
+	int offset=y*WIDTH+x;
 
 	// now calculate the value at that position
-	double range=min(HEIGHT,LENGTH)/2;
-	double jx=zoom*(x-h-LENGTH/2)/range;
+	double range=min(HEIGHT,WIDTH)/2;
+	double jx=zoom*(x-h-WIDTH/2)/range;
 	double jy=zoom*(HEIGHT/2-y-k)/range;
 	
 	int i=julia(jx, jy);
@@ -61,10 +63,10 @@ void kernel(unsigned char *ptr, const double h, const double k, const double zoo
 	double r=max(0, 256-4*abs(i-192));
 	double g=max(0, 256-4*abs(i-64));
 	double b=max(0, 256-4*i);
-	ptr[offset*4 + 0] = (int)(r*r/255);
-	ptr[offset*4 + 1] = (int)(g*g/255);
-	ptr[offset*4 + 2] = (int)(b*b/255);
-	ptr[offset*4 + 3] = 255;
+	ptr[4*offset+0]=(int)(r*r/255);
+	ptr[4*offset+1]=(int)(g*g/255);
+	ptr[4*offset+2]=(int)(b*b/255);
+	ptr[4*offset+3]=255;
 }
 
 struct CPUBitmap {
@@ -80,10 +82,9 @@ struct CPUBitmap {
     void (*bitmapExit)(void*);
 
     CPUBitmap( int width, int height) {
-		pixels = new unsigned char[width * height * 4];
+		pixels=new unsigned char[4*width*height];
 		x=width;
         y=height;
-		
 		HANDLE_ERROR(cudaMalloc((void**)&dev_bitmap, image_size()));
 		h=0;
 		k=0;
@@ -129,10 +130,10 @@ struct CPUBitmap {
 
     // static methods used for glut callbacks
     static void Key(unsigned char key, int x, int y) {
-		CPUBitmap* bitmap = *(get_bitmap_ptr());
-		int xm=x-LENGTH/2;
+		CPUBitmap *bitmap = *(get_bitmap_ptr());
+		int xm=x-WIDTH/2;
         int ym=y-HEIGHT/2;
-		double scale=1.1f;
+		double scale=1.1;
 		switch (key) {
 			case 'z':
 				bitmap->zoom/=scale;
@@ -177,7 +178,7 @@ struct CPUBitmap {
 		size_t size=bitmap->image_size();
 
 		dim3 blockSize(32, 16);
-		dim3 gridSize((LENGTH+blockSize.x-1)/blockSize.x, (HEIGHT+blockSize.y-1)/blockSize.y);
+		dim3 gridSize((WIDTH+blockSize.x-1)/blockSize.x, (HEIGHT+blockSize.y-1)/blockSize.y);
 		kernel<<<gridSize, blockSize>>>(bitmap->dev_bitmap, bitmap->h, bitmap->k, bitmap->zoom);
 		HANDLE_ERROR(cudaMemcpy(bitmap->pixels, bitmap->dev_bitmap, size, cudaMemcpyDeviceToHost));
 		
@@ -189,6 +190,6 @@ struct CPUBitmap {
 };
 
 int main( void ) {
-    CPUBitmap bitmap(LENGTH, HEIGHT);                              
+    CPUBitmap bitmap(WIDTH, HEIGHT);                              
     bitmap.display_and_exit();
 }
