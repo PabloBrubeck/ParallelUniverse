@@ -2,7 +2,7 @@
 #include "device_launch_parameters.h"
 #include <stdio.h>
 #include <algorithm>
-#include <ctime>
+#include <curand.h>
 
 #define MAXTHREADS 512u
 #define checkCudaErrors(ans) { gpuAssert((ans), __FILE__, __LINE__); }
@@ -135,43 +135,92 @@ void histogram(const float* const d_in, unsigned int* const d_cdf,  float h_min,
 		atomicAdd(&(d_cdf[bin]), 1);
 	}
 }
+
 __global__
-void displace(unsigned int* const d_in, const size_t lenght)
-{
-    int gid=blockIdx.x*blockDim.x+threadIdx.x;
-	unsigned int temp=gid>0? d_in[gid-1]:0;
-	__syncthreads();
-	if(gid<lenght){
-		d_in[gid]=temp;
+void addIncrements(unsigned int* const d_in, unsigned int* const d_sum, const size_t length, const int grid){
+	int gid=blockIdx.x*blockDim.x+threadIdx.x;
+	if(gid<length){
+		d_in[gid]+=d_sum[blockIdx.x*grid/gridDim.x];
 	}
 }
+__global__ 
+void exclusiveSum(unsigned int *d_out, unsigned int *d_in, unsigned int *d_sum, int n){  
+	extern __shared__ unsigned int temp[];
+	int tid=threadIdx.x;
+	int gid=blockDim.x*blockIdx.x+tid;
+	temp[2*tid]=(2*gid<n)? d_in[2*gid]: 0u;  
+	temp[2*tid+1]=(2*gid+1<n)? d_in[2*gid+1]: 0u;
+	unsigned int offset=1u;
+	unsigned int p=2u*blockDim.x;
+	//downsweep
+	for(unsigned d=p>>1; d>0; d>>=1){
+		__syncthreads();
+		if(tid<d){
+			int ai=offset*(2*tid+1)-1;
+			int bi=offset*(2*tid+2)-1;
+			temp[bi]+=temp[ai];
+		}
+		offset<<=1;
+	}
+	//clear the last element
+	if(tid==0){
+		d_sum[blockIdx.x]=temp[p-1];
+		temp[p-1]=0; 
+	} 
+	//upsweep
+	for(unsigned d=1; d<p; d<<=1){
+		offset>>=1;
+		__syncthreads();
+		if(tid<d){
+			int ai=offset*(2*tid+1)-1;  
+			int bi=offset*(2*tid+2)-1;
+			unsigned int t=temp[ai];  
+			temp[ai]=temp[bi];  
+			temp[bi]+=t;
+		}
+	}
+	__syncthreads();
+	//write results to device memory 
+	if(2*gid<n){
+		d_out[2*gid]=temp[2*tid];
+	}
+	if(2*gid+1<n){
+		d_out[2*gid+1]=temp[2*tid+1];
+	}
+}
+void exclusiveScan(unsigned int* const d_in, const size_t length){
+	unsigned int *d_sum;
+	int n=(length+1)/2;
+	int block=min(MAXTHREADS, nextPowerOf2(n));
+    int grid=(n+block-1)/block;
+	checkCudaErrors(cudaMalloc((void**)&d_sum, grid*sizeof(unsigned int)));
+	exclusiveSum<<<grid, block, 2*block*sizeof(unsigned int)>>>(d_in, d_in, d_sum, length);
+	if(grid>1){
+		exclusiveScan(d_sum, grid);
+		int b=min(MAXTHREADS, nextPowerOf2(length));
+		int g=(length+b-1)/b;
+		addIncrements<<<g, b>>>(d_in, d_sum, length, grid);
+	}
+	cudaFree(d_sum);
+}
+
 __global__
 void getIncrements(unsigned int* const d_in, unsigned int* const d_sum, const int grid, const int block)
 {
 	int bid=blockIdx.x*blockDim.x+threadIdx.x;
-	int gid=bid*block-1;
+	int gid=(bid+1)*block-1;
 	if(bid<grid){
-		d_sum[bid]=gid<0? 0: d_in[gid];
+		d_sum[bid]=d_in[gid];
 	}
 }
 __global__
-void addIncrements(unsigned int* const d_in, unsigned int* const d_sum, const size_t lenght)
-{
-	int bid=blockIdx.x;
-	int gid=bid*blockDim.x+threadIdx.x;
-	if(gid<lenght){
-		d_in[gid]+=d_sum[bid];
-	}
-}
-
-__global__
-void inclusiveSum(unsigned int* const d_in, const size_t lenght)
+void inclusiveSum(unsigned int* const d_in, const size_t length)
 {
     int tid=threadIdx.x;
 	int gid=blockIdx.x*blockDim.x+tid;
-    for(unsigned int s=1; s<lenght; s<<=1){
+    for(unsigned int s=1; s<length; s<<=1){
 		unsigned int t=d_in[gid];
-		if(tid>=s && gid<lenght){
+		if(tid>=s && gid<length){
             t+=d_in[gid-s];
         }
 		__syncthreads();
@@ -179,65 +228,32 @@ void inclusiveSum(unsigned int* const d_in, const size_t lenght)
 		__syncthreads();
     }
 }
-void inclusiveScan(unsigned int* const d_in, const size_t lenght){
-	int block=min(MAXTHREADS, nextPowerOf2(lenght));
-    int grid=(lenght+block-1)/block;
-	inclusiveSum<<<grid, block>>>(d_in, lenght);
+void inclusiveScan(unsigned int* const d_in, const size_t length){
+	int block=min(MAXTHREADS, nextPowerOf2(length));
+    int grid=(length+block-1)/block;
+	inclusiveSum<<<grid, block>>>(d_in, length);
 	if(grid>1){
 		unsigned int *d_sum;
 		checkCudaErrors(cudaMalloc((void**)&d_sum, grid*sizeof(unsigned int)));
 		int b=min(MAXTHREADS, nextPowerOf2(grid));
 		int g=(grid+b-1)/b;
 		getIncrements<<<g, b>>>(d_in, d_sum, grid, block);
-		inclusiveScan(d_sum, grid);
-		addIncrements<<<grid, block>>>(d_in, d_sum, lenght);
+		exclusiveScan(d_sum, grid);
+		addIncrements<<<grid, block>>>(d_in, d_sum, length, grid);
 		cudaFree(d_sum);
 	}
 }
 
-__global__
-void exclusiveSum(unsigned int* const d_in, const size_t lenght)
-{
-    int gid=blockIdx.x*blockDim.x+threadIdx.x;
-    unsigned int s;
-	for(s=1; s<lenght; s<<=1){
-        if((gid+1)%(2*s)==0 && gid<lenght){
-            d_in[gid]+=d_in[gid-s];
-        }
-        __syncthreads();
-    }
-	if(gid==lenght-1){
-		d_in[gid]=0;
-	}
-	__syncthreads();
-	for(; s>0; s>>=1){
-        if((gid+1)%(2*s)==0 && gid<lenght){
-			unsigned int right=d_in[gid];
-            d_in[gid]+=d_in[gid-s];
-			d_in[gid-s]=right;
-        }
-        __syncthreads();
-    }
-}
-void exclusiveScan(unsigned int* const d_in, const size_t lenght){
-	int block=min(MAXTHREADS, nextPowerOf2(lenght));
-    int grid=(lenght+block-1)/block;
-	inclusiveScan(d_in, lenght);
-	displace<<<grid, block>>>(d_in, lenght);
-}
-
 int main(){
 	//Input parameters
-	int n=1024*1024, numBins=1024;
+	int n=1000000, numBins=1024;
 	
-	//Generate a random host array of size n and copy it to device
-	float *d_in, *h_in=new float[n];
-	srand((unsigned long)time(NULL));
-	for(int i=0; i<n; i++){
-		h_in[i]=1-(float)(rand()%10001)/5000;
-	}
-	cudaMalloc((void**)&d_in, n*sizeof(float));
-	cudaMemcpy(d_in, h_in, n*sizeof(float), cudaMemcpyHostToDevice);
+	//Generate a random device array of size n
+	float *d_in;
+	checkCudaErrors(cudaMalloc((void**)&d_in, n*sizeof(unsigned int)));
+	curandGenerator_t generator;
+	curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_DEFAULT);
+	curandGenerateUniform(generator, d_in, n);
 
 	//Get maximimum and minimum
 	float *h_min=new float(), *h_max=new float();
@@ -265,6 +281,5 @@ int main(){
 	cudaFree(d_hist);
 	delete h_min;
 	delete h_max;
-	delete[] h_in;
 	return 0;
 }

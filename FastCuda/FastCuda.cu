@@ -1,9 +1,7 @@
-
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include <stdio.h>
 #include <algorithm>
-#include <ctime>
 #include <curand.h>
 
 #define MAXTHREADS 512u
@@ -11,21 +9,13 @@
 
 using namespace std;
 
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
-{
-   if (code != cudaSuccess) 
-   {
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true){
+   if (code != cudaSuccess){
       fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
       if (abort) exit(code);
    }
 }
 
-void printArray(float* arr, int n){
-	for(int i=0; i<n; i++){
-		printf("%.4f ", arr[i]);
-	}
-	printf("\n");
-}
 void printArray(unsigned int* arr, int n){
 	for(int i=0; i<n; i++){
 		printf("%u ", arr[i]);
@@ -35,12 +25,6 @@ void printArray(unsigned int* arr, int n){
 void printFromDevice(unsigned int* d_array, int length){
     unsigned int *h_temp=new unsigned int[length];
     cudaMemcpy(h_temp, d_array, length*sizeof(unsigned int), cudaMemcpyDeviceToHost); 
-    printArray(h_temp, length);
-    delete[] h_temp;
-}
-void printFromDevice(float* d_array, int length){
-    float *h_temp=new float[length];
-    cudaMemcpy(h_temp, d_array, length*sizeof(float), cudaMemcpyDeviceToHost); 
     printArray(h_temp, length);
     delete[] h_temp;
 }
@@ -58,81 +42,173 @@ unsigned int nextPowerOf2(unsigned int n){
 }
 
 __global__
-void reduceSum(unsigned int* d_in, unsigned int* d_out, const size_t elements)
-{   
-    int tid=threadIdx.x;
-    int gid=blockIdx.x*blockDim.x+tid;
-    extern __shared__ unsigned int shared[];
-	shared[tid]= gid<elements? d_in[gid]: 0;
-    __syncthreads();
-    for(unsigned int s=blockDim.x/2; s>0; s>>=1){
-        if(tid<s && gid<elements){
-            shared[tid]=shared[tid]+shared[tid+s];
-        }
-        __syncthreads();
-    }
-    if(tid==0){
-        d_out[blockIdx.x]=shared[0];
-    }
-}
-void getSum(unsigned int *d_in, unsigned int *d_out, int n, cudaStream_t stream){
-	int grid, block=MAXTHREADS;
-	do{
-		grid=(n+block-1)/block;
-		if(grid==1){
-			block=nextPowerOf2(n);
-		}
-		reduceSum<<<grid, block, block*sizeof(unsigned int), stream>>>(d_in, d_in, n);
-		n=grid;
-	}while(grid>1);
-	cudaMemcpy(d_out, d_in, sizeof(unsigned int), cudaMemcpyDeviceToDevice);
-}
-void partialSums(unsigned int *d_in, unsigned int *d_out, int length, int range){
-	int n=length/range;
-	for(int i=0; i<n; i++){
-		cudaStream_t stream;
-		cudaStreamCreate(&stream);
-		getSum(&(d_in[i*range]), &(d_out[i]), range, stream);
+void addIncrements(unsigned int* const d_in, unsigned int* const d_sum, const size_t length, const int grid){
+	int gid=blockIdx.x*blockDim.x+threadIdx.x;
+	if(gid<length){
+		d_in[gid]+=d_sum[blockIdx.x*grid/gridDim.x];
 	}
-	cudaDeviceSynchronize(); 
-	checkCudaErrors(cudaGetLastError());
+}
+__global__ 
+void exclusiveSum(unsigned int *d_out, unsigned int *d_in, unsigned int *d_sum, int n){  
+	extern __shared__ unsigned int temp[];
+	int tid=threadIdx.x;
+	int gid=blockDim.x*blockIdx.x+tid;
+	temp[2*tid]=(2*gid<n)? d_in[2*gid]: 0u;  
+	temp[2*tid+1]=(2*gid+1<n)? d_in[2*gid+1]: 0u;
+	unsigned int offset=1u;
+	unsigned int p=2u*blockDim.x;
+	//downsweep
+	for(unsigned d=p>>1; d>0; d>>=1){
+		__syncthreads();
+		if(tid<d){
+			int ai=offset*(2*tid+1)-1;
+			int bi=offset*(2*tid+2)-1;
+			temp[bi]+=temp[ai];
+		}
+		offset<<=1;
+	}
+	//clear the last element
+	if(tid==0){
+		d_sum[blockIdx.x]=temp[p-1];
+		temp[p-1]=0; 
+	} 
+	//upsweep
+	for(unsigned d=1; d<p; d<<=1){
+		offset>>=1;
+		__syncthreads();
+		if(tid<d){
+			int ai=offset*(2*tid+1)-1;  
+			int bi=offset*(2*tid+2)-1;
+			unsigned int t=temp[ai];  
+			temp[ai]=temp[bi];  
+			temp[bi]+=t;
+		}
+	}
+	__syncthreads();
+	//write results to device memory 
+	if(2*gid<n){
+		d_out[2*gid]=temp[2*tid];
+	}
+	if(2*gid+1<n){
+		d_out[2*gid+1]=temp[2*tid+1];
+	}
+}
+void exclusiveScan(unsigned int* const d_in, const size_t length){
+	unsigned int *d_sum;
+	int n=(length+1)/2;
+	int block=min(MAXTHREADS, nextPowerOf2(n));
+    int grid=(n+block-1)/block;
+	checkCudaErrors(cudaMalloc((void**)&d_sum, grid*sizeof(unsigned int)));
+	exclusiveSum<<<grid, block, 2*block*sizeof(unsigned int)>>>(d_in, d_in, d_sum, length);
+	if(grid>1){
+		exclusiveScan(d_sum, grid);
+		int b=min(MAXTHREADS, nextPowerOf2(length));
+		int g=(length+b-1)/b;
+		addIncrements<<<g, b>>>(d_in, d_sum, length, grid);
+	}
+	cudaFree(d_sum);
 }
 
 __global__
-void histogram(unsigned int* d_in, unsigned int* d_hist, int n){
+void getPredicate(unsigned int *d_in, unsigned int *d_scatter, size_t length, int radix, int shift){
+    int gid=blockDim.x*blockIdx.x+threadIdx.x;
+	if(gid<length){ 
+		int digit=(d_in[gid]>>shift)&(radix-1);
+		d_scatter[digit*length+gid]=1u;
+    }
+}
+__global__
+void radixScatter(unsigned int *d_in, unsigned int *d_out, unsigned int *d_scatter, size_t length, int radix, int shift){
 	int gid=blockDim.x*blockIdx.x+threadIdx.x;
-	if(gid<n){
-		int bin=(d_in[gid]/10)%100;
-		atomicAdd(&(d_hist[bin]), 1);
+	if(gid<length){
+		int digit=(d_in[gid]>>shift)&(radix-1);
+		int pos=d_scatter[digit*length+gid];
+		d_out[pos]=d_in[gid];
+    }
+}
+void radixSort(unsigned int *d_in, size_t length, int radix){
+	unsigned int *d_out, *d_scatter;
+	checkCudaErrors(cudaMalloc((void**)&d_out, length*sizeof(unsigned int)));
+    checkCudaErrors(cudaMalloc((void**)&d_scatter, radix*length*sizeof(unsigned int)));
+    int block=min(MAXTHREADS, nextPowerOf2(length));
+    int grid=(length+block-1)/block;
+	int jump=(int)log2(radix);
+    for(int i=0; i<8*sizeof(unsigned int); i+=jump){
+		checkCudaErrors(cudaMemset(d_scatter, 0u, radix*length*sizeof(unsigned int)));
+		getPredicate<<<grid, block>>>(d_in, d_scatter, length, radix, i);
+		exclusiveScan(d_scatter, radix*length);
+		radixScatter<<<grid, block>>>(d_in, d_out, d_scatter, length, radix, i);
+		checkCudaErrors(cudaMemcpy(d_in, d_out, length*sizeof(unsigned int), cudaMemcpyDeviceToDevice));
+    }
+	cudaFree(d_out);
+	cudaFree(d_scatter);
+}
+
+__global__
+void histogram(unsigned int* d_in, unsigned int* d_hist, int n, int numBins){
+	int epb=n/gridDim.x;
+	int ept=epb/blockDim.x;
+	int gid=blockIdx.x*epb+threadIdx.x*ept;
+	unsigned int val, old=d_in[gid], count=0;
+	for(int i=0; i<=ept; i++){
+		if(i<ept){
+			val=d_in[gid+i];
+		}if(val!=old || i==ept){
+			atomicAdd(&(d_hist[old]), i-count);
+			old=val;
+			count=i;
+		}
 	}
+}
+
+__global__
+void modMap(unsigned int* d_in, int n){
+	int gid=blockDim.x*blockIdx.x+threadIdx.x;
+	d_in[gid]%=n;
+}
+void randset(unsigned int* d_in, int m, size_t n){
+	curandGenerator_t generator;
+	curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_DEFAULT);
+	curandGenerate(generator, d_in, n);
+	modMap<<<(n+MAXTHREADS-1)/MAXTHREADS, MAXTHREADS>>>(d_in, m);
 }
 
 int main(){
 	//Input parameters
-	int n=1024*1024, numBins=100;
-	
-	//Generate a random host array of size n and copy it to device
-	unsigned int *d_in, *d_hist, *d_out;
-	checkCudaErrors(cudaMalloc((void**)&d_in, n*sizeof(unsigned int)));
-	checkCudaErrors(cudaMalloc((void**)&d_hist, numBins*sizeof(unsigned int)));
-	checkCudaErrors(cudaMemset(d_hist, 0, numBins*sizeof(unsigned int)));
-	curandGenerator_t gen;
-	curandCreateGenerator(&gen , CURAND_RNG_PSEUDO_MTGP32);
-	curandSetPseudoRandomGeneratorSeed(gen , 1234ULL);
-	curandGenerate(gen, d_in, n);
-	curandDestroyGenerator(gen);
-	
-	//Compute the fast histogram
-	int block=min(MAXTHREADS, nextPowerOf2(n));
-	int grid=(n+block-1)/block;
-	histogram<<<grid, block>>>(d_in, d_hist, n);
+	int n=1024*10000;
+	int radix=2;
+	int numBins=1024;
 
-	checkCudaErrors(cudaMalloc((void**)&d_out, 10*sizeof(unsigned int)));
-	partialSums(d_hist, d_out, numBins, 10);
-	printFromDevice(d_out, 10);
+	//Generate a random device array of size n
+	unsigned int *d_input;
+	checkCudaErrors(cudaMalloc((void**)&d_input, n*sizeof(unsigned int)));
+	randset(d_input, numBins, n);
+	
+	//Allocate a histogram on device
+	unsigned int *d_hist;	
+	cudaMalloc((void**)&d_hist, numBins*sizeof(unsigned int));
+	cudaMemset(d_hist, 0, numBins*sizeof(unsigned int));
+	
+	//Sort the array
+	radixSort(d_input, n, radix);
+	
+	//Set timer
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+	cudaEventRecord(start, 0);
+	
+	int grid=2;
+	histogram<<<grid, MAXTHREADS>>>(d_input, d_hist, n, numBins);
 
-	cudaFree(d_in);
+	cudaEventRecord(stop, 0);
+	cudaEventSynchronize(stop);
+	float time;
+	cudaEventElapsedTime(&time, start, stop);
+	printf("Time for the histogram: %f ms\n", time);
+
+	printFromDevice(d_hist, numBins);
+	cudaFree(d_input);
 	cudaFree(d_hist);
-	cudaFree(d_out);
-    return 0;
+	return 0;
 }

@@ -19,8 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{0FC5746D-CB24-4C88-B16E-66B9FF0416B0}</ProjectGuid>
-    <RootNamespace>HelloCuda</RootNamespace>
+    <ProjectGuid>{9CEB38CE-2201-499F-9D43-34CCE4480429}</ProjectGuid>
+    <RootNamespace>CosmicBallet</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -151,10 +151,14 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Matrix.cpp" />
+    <CudaCompile Include="kernel.cu" />
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="histogram.cu" />
+    <ClInclude Include="book.h" />
+    <ClInclude Include="cpu_anim.h" />
+    <ClInclude Include="cpu_bitmap.h" />
+    <ClInclude Include="gl_helper.h" />
+    <ClInclude Include="gpu_anim.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -42,91 +42,112 @@ unsigned int nextPowerOf2(unsigned int n){
 }
 
 __global__
-void getIncrements(unsigned int* const d_in, unsigned int* const d_sum, const int grid, const int block){
-	int bid=blockIdx.x*blockDim.x+threadIdx.x;
-	int gid=bid*block-1;
-	if(bid<grid){
-		d_sum[bid]=gid<0? 0: d_in[gid];
-	}
-}
-__global__
-void addIncrements(unsigned int* const d_in, unsigned int* const d_sum, const size_t length){
-	int bid=blockIdx.x;
-	int gid=bid*blockDim.x+threadIdx.x;
+void addIncrements(unsigned int* const d_in, unsigned int* const d_sum, const size_t length, const int grid){
+	int gid=blockIdx.x*blockDim.x+threadIdx.x;
 	if(gid<length){
-		d_in[gid]+=d_sum[bid];
+		d_in[gid]+=d_sum[blockIdx.x*grid/gridDim.x];
 	}
 }
-__global__
-void inclusiveSum(unsigned int* const d_in, const size_t length){
-    int tid=threadIdx.x;
-	int gid=blockIdx.x*blockDim.x+tid;
-    for(unsigned int s=1; s<length; s<<=1){
-		unsigned int t=d_in[gid];
-		if(tid>=s && gid<length){
-            t+=d_in[gid-s];
-        }
+__global__ 
+void exclusiveSum(unsigned int *d_out, unsigned int *d_in, unsigned int *d_sum, int n){  
+	extern __shared__ unsigned int temp[];
+	int tid=threadIdx.x;
+	int gid=blockDim.x*blockIdx.x+tid;
+	temp[2*tid]=(2*gid<n)? d_in[2*gid]: 0u;  
+	temp[2*tid+1]=(2*gid+1<n)? d_in[2*gid+1]: 0u;
+	unsigned int offset=1u;
+	unsigned int p=2u*blockDim.x;
+	//downsweep
+	for(unsigned d=p>>1; d>0; d>>=1){
 		__syncthreads();
-		d_in[gid]=t;
+		if(tid<d){
+			int ai=offset*(2*tid+1)-1;
+			int bi=offset*(2*tid+2)-1;
+			temp[bi]+=temp[ai];
+		}
+		offset<<=1;
+	}
+	//clear the last element
+	if(tid==0){
+		d_sum[blockIdx.x]=temp[p-1];
+		temp[p-1]=0; 
+	} 
+	//upsweep
+	for(unsigned d=1; d<p; d<<=1){
+		offset>>=1;
 		__syncthreads();
-    }
+		if(tid<d){
+			int ai=offset*(2*tid+1)-1;  
+			int bi=offset*(2*tid+2)-1;
+			unsigned int t=temp[ai];  
+			temp[ai]=temp[bi];  
+			temp[bi]+=t;
+		}
+	}
+	__syncthreads();
+	//write results to device memory 
+	if(2*gid<n){
+		d_out[2*gid]=temp[2*tid];
+	}
+	if(2*gid+1<n){
+		d_out[2*gid+1]=temp[2*tid+1];
+	}
 }
-void inclusiveScan(unsigned int* const d_in, const size_t length){
-	int block=min(MAXTHREADS, nextPowerOf2(length));
-    int grid=(length+block-1)/block;
-	inclusiveSum<<<grid, block>>>(d_in, length);
+void exclusiveScan(unsigned int* const d_in, const size_t length){
+	unsigned int *d_sum;
+	int n=(length+1)/2;
+	int block=min(MAXTHREADS, nextPowerOf2(n));
+    int grid=(n+block-1)/block;
+	checkCudaErrors(cudaMalloc((void**)&d_sum, grid*sizeof(unsigned int)));
+	exclusiveSum<<<grid, block, 2*block*sizeof(unsigned int)>>>(d_in, d_in, d_sum, length);
 	if(grid>1){
-		unsigned int *d_sum;
-		checkCudaErrors(cudaMalloc((void**)&d_sum, grid*sizeof(unsigned int)));
-		int b=min(MAXTHREADS, nextPowerOf2(grid));
-		int g=(grid+b-1)/b;
-		getIncrements<<<g, b>>>(d_in, d_sum, grid, block);
-		inclusiveScan(d_sum, grid);
-		addIncrements<<<grid, block>>>(d_in, d_sum, length);
-		cudaFree(d_sum);
+		exclusiveScan(d_sum, grid);
+		int b=min(MAXTHREADS, nextPowerOf2(length));
+		int g=(length+b-1)/b;
+		addIncrements<<<g, b>>>(d_in, d_sum, length, grid);
 	}
+	cudaFree(d_sum);
 }
 
 __global__
-void getPredicate(unsigned int* d_inputVals, unsigned int* d_scatter, size_t numElems, int radix, int shift){
+void getPredicate(unsigned int *d_in, unsigned int *d_scatter, size_t length, int radix, int shift){
     int gid=blockDim.x*blockIdx.x+threadIdx.x;
-	if(gid<numElems){ 
-		int digit=(d_inputVals[gid]>>shift)&(radix-1);
-		d_scatter[digit*numElems+gid]=1u;
+	if(gid<length){ 
+		int digit=(d_in[gid]>>shift)&(radix-1);
+		d_scatter[digit*length+gid]=1u;
     }
 }
 __global__
-void radixScatter(unsigned int* d_inputVals, unsigned int* d_outputVals, unsigned int* d_scatter, size_t numElems, int radix, int shift){
+void radixScatter(unsigned int *d_in, unsigned int *d_out, unsigned int *d_scatter, size_t length, int radix, int shift){
 	int gid=blockDim.x*blockIdx.x+threadIdx.x;
-	if(gid<numElems){
-		int digit=(d_inputVals[gid]>>shift)&(radix-1);
-		int i=digit*numElems+gid-1;
-		int pos=i<0? 0: d_scatter[i];
-		d_outputVals[pos]=d_inputVals[gid];
+	if(gid<length){
+		int digit=(d_in[gid]>>shift)&(radix-1);
+		int pos=d_scatter[digit*length+gid];
+		d_out[pos]=d_in[gid];
     }
 }
-void radixSort(unsigned int* d_inputVals, size_t numElems, int radix){
-	unsigned int *d_outputVals, *d_scatter;
-	checkCudaErrors(cudaMalloc((void**)&d_outputVals, numElems*sizeof(unsigned int)));
-    checkCudaErrors(cudaMalloc((void**)&d_scatter, radix*numElems*sizeof(unsigned int)));
-    int block=min(MAXTHREADS, nextPowerOf2(numElems));
-    int grid=(numElems+block-1)/block;
+void radixSort(unsigned int *d_in, size_t length, int radix){
+	unsigned int *d_out, *d_scatter;
+	checkCudaErrors(cudaMalloc((void**)&d_out, length*sizeof(unsigned int)));
+    checkCudaErrors(cudaMalloc((void**)&d_scatter, radix*length*sizeof(unsigned int)));
+    int block=min(MAXTHREADS, nextPowerOf2(length));
+    int grid=(length+block-1)/block;
 	int jump=(int)log2(radix);
     for(int i=0; i<8*sizeof(unsigned int); i+=jump){
-		checkCudaErrors(cudaMemset(d_scatter, 0u, radix*numElems*sizeof(unsigned int)));
-		getPredicate<<<grid, block>>>(d_inputVals, d_scatter, numElems, radix, i);
-		inclusiveScan(d_scatter, radix*numElems);
-		radixScatter<<<grid, block>>>(d_inputVals, d_outputVals, d_scatter, numElems, radix, i);
-		checkCudaErrors(cudaMemcpy(d_inputVals, d_outputVals, numElems*sizeof(unsigned int), cudaMemcpyDeviceToDevice));
+		checkCudaErrors(cudaMemset(d_scatter, 0u, radix*length*sizeof(unsigned int)));
+		getPredicate<<<grid, block>>>(d_in, d_scatter, length, radix, i);
+		exclusiveScan(d_scatter, radix*length);
+		radixScatter<<<grid, block>>>(d_in, d_out, d_scatter, length, radix, i);
+		checkCudaErrors(cudaMemcpy(d_in, d_out, length*sizeof(unsigned int), cudaMemcpyDeviceToDevice));
     }
-	cudaFree(d_outputVals);
+	cudaFree(d_out);
 	cudaFree(d_scatter);
 }
 
 int main(){
 	//Input parameters
 	int n=1024*1024;
-	int radix=4;
+	int radix=2;
 
 	//Generate a random device array of size n
 	unsigned int *d_input;
@@ -135,10 +156,12 @@ int main(){
 	curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_DEFAULT);
 	curandGenerate(generator, d_input, n);
 
+	//Set timer
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 	cudaEventRecord(start, 0);
+
 	//Perfom the radix sort
 	radixSort(d_input, n, radix);
 

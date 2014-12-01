@@ -1,6 +1,7 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
+#include <curand.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
@@ -181,9 +182,6 @@ struct CPUBitmap {
 		dim3 gridSize((WIDTH+blockSize.x-1)/blockSize.x, (HEIGHT+blockSize.y-1)/blockSize.y);
 		kernel<<<gridSize, blockSize>>>(bitmap->dev_bitmap, bitmap->h, bitmap->k, bitmap->zoom);
 		HANDLE_ERROR(cudaMemcpy(bitmap->pixels, bitmap->dev_bitmap, size, cudaMemcpyDeviceToHost));
-		
-        glClearColor(0.0, 0.0, 0.0, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT);
         glDrawPixels(bitmap->x, bitmap->y, GL_RGBA, GL_UNSIGNED_BYTE, bitmap->pixels);
         glFlush();
     }
