@@ -56,8 +56,7 @@ unsigned int nextPowerOf2(unsigned int n){
 }
 
 __global__
-void reduceMax(const float* const d_in, float* d_out, const size_t elements)
-{   
+void reduceMax(const float* const d_in, float* d_out, const size_t elements){   
     int tid=threadIdx.x;
     int gid=blockIdx.x*blockDim.x+tid;
     extern __shared__ float shared[];
