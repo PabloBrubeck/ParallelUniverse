@@ -48,7 +48,7 @@ void addIncrements(unsigned int* const d_in, unsigned int* const d_sum, const si
 		d_in[gid]+=d_sum[blockIdx.x*grid/gridDim.x];
 	}
 }
-__global__ 
+__global__
 void exclusiveSum(unsigned int *d_out, unsigned int *d_in, unsigned int *d_sum, int n){  
 	extern __shared__ unsigned int temp[];
 	int tid=threadIdx.x;

@@ -30,7 +30,7 @@ unsigned int nextPowerOf2(unsigned int n){
 }
 
 __device__
-static float G=0.1f;
+static float G=1000.0f;
 __device__
 float invsqrt(float x){
 	long i;
@@ -107,65 +107,95 @@ float getMax(float *d_in, int n){
 }
 
 __global__
-void interact(float *mass, float3 *d_pos, float3 *d_acc, const int n){
-	extern __shared__ float3 temp[];
+void setZero(float3 *d_acc, const int n){
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	if(i<n){
+		d_acc[i]=make_float3(0.0f, 0.0f, 0.0f);
+	}
+}
+__global__
+void intialState(float* d_mass, float3 *d_pos, float3 *d_vel, float3 *d_acc, const int n){
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	if(i<n){
+		float radius=32+(64.0f*i)/n;
+		float angle=16*(6.2832f*i)/n;
+		float c=cos(angle);
+		float s=sin(angle);
+		d_pos[i]=make_float3(radius*c+256, radius*s+256, 0.0f);
+		d_vel[i]=make_float3(s, -c, 0.0f)/(invsqrt(G*n/128.0f));
+		d_acc[i]=make_float3(0.0f, 0.0f, 0.0f);
+		d_mass[i]=1.0f;
+	}
+}
+__global__
+void potential(float *mass, float3 *d_pos, float *d_pot, const int n){
+	extern __shared__ float s_pot[];
 	int tid=threadIdx.x;
 	int i=blockIdx.x;
 	int j=blockIdx.y*blockDim.x+tid;
 	if(j>=n || i==j){
-		temp[tid]=make_float3(0.0f, 0.0f, 0.0f);
+		s_pot[tid]=0.0f;
 	}else{
-		float3 r=d_pos[j]-d_pos[i];
-		float rr=magnitude2(r);
-		temp[tid]=r*invsqrt(rr)*(G*mass[j]/rr);
+		float3 r=d_pos[i]-d_pos[j];
+		s_pot[tid]=-G*mass[i]*mass[j]*invsqrt(magnitude2(r));
 	}
     __syncthreads();
-	//Reduction
     for(unsigned int s=blockDim.x/2; s>0; s>>=1){
         if(tid<s){
-            temp[tid]=temp[tid]+temp[tid+s];
+            s_pot[tid]=s_pot[tid]+s_pot[tid+s];
         }
         __syncthreads();
     }
-    if(tid==0){
-		atomicAdd(&(d_acc[i].x), temp[0].x);
-		atomicAdd(&(d_acc[i].y), temp[0].y);
-		atomicAdd(&(d_acc[i].z), temp[0].z);
+	if(tid==0){
+		atomicAdd(&(d_pot[i]), s_pot[0]);
+    }
+}
+
+__global__
+void interact(float *mass, float3 *d_pos, float3 *d_acc, const int n){
+	extern __shared__ float3 s_acc[];
+	int tid=threadIdx.x;
+	int i=blockIdx.x;
+	int j=blockIdx.y*blockDim.x+tid;
+	if(j>=n || i==j){
+		s_acc[tid]=make_float3(0.0f, 0.0f, 0.0f);
+	}else{
+		float3 r=d_pos[j]-d_pos[i];
+		float r2=magnitude2(r)+1;
+		s_acc[tid]=r*(invsqrt(r2)*G*mass[j]/r2);
+	}
+    __syncthreads();
+    for(unsigned int s=blockDim.x/2; s>0; s>>=1){
+        if(tid<s){
+            s_acc[tid]=s_acc[tid]+s_acc[tid+s];
+        }
+        __syncthreads();
+    }
+	if(tid==0){
+		atomicAdd(&(d_acc[i].x), s_acc[0].x);
+		atomicAdd(&(d_acc[i].y), s_acc[0].y);
+		atomicAdd(&(d_acc[i].z), s_acc[0].z);
     }
 }
 __global__
 void move(unsigned char *d_bitmap, float *mass, float3 *d_pos, float3 *d_vel, float3 *d_acc, float dt, const int n) {
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
-	if(i>=n){
-		return;
-	}
-	d_vel[i]=d_vel[i]+d_acc[i]*dt;
-	d_pos[i]=d_pos[i]+d_vel[i]*dt;
-	int x=(int)d_pos[i].x;
-	int y=(int)d_pos[i].y;
-	if(x>=0 && x<WIDTH && y>=0 && y<HEIGHT){
-		unsigned int m=255;
-		int offset=y*WIDTH+x;
-		d_bitmap[4*offset+0]=m;
-		d_bitmap[4*offset+1]=m;
-		d_bitmap[4*offset+2]=m;
-		d_bitmap[4*offset+3]=255;
+	if(i<n){
+		d_vel[i]=d_vel[i]+d_acc[i]*dt;
+		d_pos[i]=d_pos[i]+d_vel[i]*dt;
+		int x=(int)d_pos[i].x;
+		int y=(int)d_pos[i].y;
+		if(x>=0 && x<WIDTH && y>=0 && y<HEIGHT){
+			unsigned int m=255;
+			int offset=WIDTH*y+x;
+			d_bitmap[4*offset+0]=m;
+			d_bitmap[4*offset+1]=m;
+			d_bitmap[4*offset+2]=m;
+			d_bitmap[4*offset+3]=255;
+		}
 	}
 }
 
-__global__
-void setParams(float* d_mass, float3 *d_pos, float3 *d_vel, float3 *d_acc, const int n){
-	int i=blockIdx.x*blockDim.x+threadIdx.x;
-	if(i<n){
-		float3 r=d_pos[i]-make_float3(256, 256, 256);
-		float3 theta=make_float3(r.y, -r.x, 0);
-		theta=theta*invsqrt(magnitude2(theta));
-		//d_vel[i]=theta*invsqrt(2097152.0f/(G*n*magnitude2(r)));
-		d_vel[i]=make_float3(0.0f, 0.0f, 0.0f);
-		d_acc[i]=make_float3(0.0f, 0.0f, 0.0f);
-		d_mass[i]=1;
-	}
-}
 void randset(float* d_in, size_t n, float m, float s){
 	curandGenerator_t generator;
 	curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_DEFAULT);
@@ -176,6 +206,7 @@ void randset(float* d_in, size_t n, float m, float s){
 struct CPUBitmap {
 	unsigned char *pixels;
     int x, y;
+	bool exit=false;
 
     void *dataBlock;
     void (*bitmapExit)(void*);
@@ -213,11 +244,16 @@ struct CPUBitmap {
         glutInitWindowSize(x, y);
         glutCreateWindow("bitmap");
         glutDisplayFunc(Draw);
+		//glutWindowStatusFunc();
         glutMainLoop();
     }
     
     // static method used for glut callbacks
-    static void Draw(void){
+    static void Close(void){
+		CPUBitmap* bitmap=*(get_bitmap_ptr());
+		bitmap->exit=true;
+	}
+	static void Draw(void){
 		CPUBitmap* bitmap=*(get_bitmap_ptr());
 		size_t size=bitmap->image_size();
 
@@ -236,24 +272,31 @@ struct CPUBitmap {
 
 		int block1D=MAXTHREADS;
 		int grid1D=divideCeil(n, block1D);
+		int bytes=block1D*sizeof(float3);
 		dim3 block2D(MAXTHREADS);
 		dim3 grid2D(n, divideCeil(n, MAXTHREADS));
-		int bytes=MAXTHREADS*sizeof(float3);
 		
-		randset((float*)d_pos, 3*n, 256, 32);
-		setParams<<<grid1D, block1D>>>(d_mass, d_pos, d_vel, d_acc, n);
+		int memory=size+n*(3*sizeof(float3)+2*sizeof(float));
+		printf("Currently using %d bytes of device global memory\n", memory);
+		
+		intialState<<<grid1D, block1D>>>(d_mass, d_pos, d_vel, d_acc, n);
+		int i=0;
 		do{
 			HANDLE_ERROR(cudaMemsetAsync(d_bitmap, 0, size));
+			setZero<<<grid1D, block1D>>>(d_acc, n);
 			interact<<<grid2D, block2D, bytes>>>(d_mass, d_pos, d_acc, n);
 
 			mapMagnitude2<<<grid1D, block1D>>>(d_acc, d_aux, n);
-			dt=dvmax/sqrt(getMax(d_aux, n));
+			float amax=sqrt(getMax(d_aux, n));
+			dt=dvmax/amax;
 			cudaDeviceSynchronize();
 
 			move<<<grid1D, block1D>>>(d_bitmap, d_mass, d_pos, d_vel, d_acc, dt, n);
+			
 			HANDLE_ERROR(cudaMemcpy(bitmap->pixels, d_bitmap, size, cudaMemcpyDeviceToHost));
 			glDrawPixels(bitmap->x, bitmap->y, GL_RGBA, GL_UNSIGNED_BYTE, bitmap->pixels);
 			glFlush();
+			i++;
 		}while(true);
     }
 };
