@@ -16,19 +16,18 @@
 #define PI 3.1415926535898
 
 struct cuComplex {
-    double   r;
-    double   i;
-    __device__ cuComplex( double a, double b ) : r(a), i(b)  {}
+    double   re, im;
+    __device__ cuComplex( double a, double b ) : re(a), im(b)  {}
     __device__ double magnitude2( void ) {
-        return r * r + i * i;
+        return re*re+im*im;
     }
     __device__ 
     cuComplex operator*(const cuComplex& z) {
-        return cuComplex(r*z.r - i*z.i, i*z.r + r*z.i);
+        return cuComplex(re*z.re-im*z.im, im*z.re+re*z.im);
     }
     __device__
     cuComplex operator+(const cuComplex& z) {
-        return cuComplex(r+z.r, i+z.i);
+        return cuComplex(re+z.re, im+z.im);
     }
 };
 

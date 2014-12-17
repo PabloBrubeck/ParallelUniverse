@@ -1,6 +1,5 @@
 // simpleGLmain.cpp (Rob Farber)
 
-// includes
 #include <GL/glew.h>
 #include <cuda_runtime.h>
 #include <helper_cuda.h>
@@ -8,6 +7,7 @@
 #include <helper_timer.h>
 #include <cuda_gl_interop.h>
 #include <rendercheck_gl.h>
+
 
 // The user must create the following routines:
 // CUDA methods
@@ -22,7 +22,7 @@ extern void mouse(int button, int state, int x, int y);
 extern void motion(int x, int y);
 
 // GLUT specific variables
-unsigned int window_width = 512;
+unsigned int window_width  = 512;
 unsigned int window_height = 512;
 
 // Timer for FPS calculations
@@ -30,18 +30,16 @@ StopWatchInterface *timer = NULL;
 int fpsCount = 0;
 int fpsLimit = 100;
 
-// Forward declarations of GL functionality
-cudaError_t initGL(int argc, char** argv);
-
 // Simple method to display the Frames Per Second in the window title
 void computeFPS(){
 	fpsCount++;
-	if (fpsCount==fpsLimit){
+	if(fpsCount==fpsLimit){
 		char fps[256];
-		float ifps = 1.f / (sdkGetAverageTimerValue(&timer) / 1000.f);
-		sprintf(fps, "Cuda GL Interop Wrapper: %3.1f fps ", ifps);
+		float time=sdkGetAverageTimerValue(&timer);
+		float ifps=1000.f/sdkGetAverageTimerValue(&timer);
+		sprintf_s(fps, "Cuda GL Interop Wrapper: %3.1f fps ", ifps);
 		glutSetWindowTitle(fps);
-		fpsCount = 0;
+		fpsCount=0;
 		sdkResetTimer(&timer);
 	}
 }
@@ -53,16 +51,54 @@ void fpsDisplay(){
 	computeFPS();
 }
 
+bool initGL(int argc, char **argv){
+	// Steps 1-2: create a window and GL context (also register callbacks)
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
+	glutInitWindowSize(window_width, window_height);
+	glutCreateWindow("Cuda GL Interop Demo (adapted from NVIDIA's simpleGL");
+	glutDisplayFunc(fpsDisplay);
+	glutKeyboardFunc(keyboard);
+	glutMotionFunc(motion);
+
+	// check for necessary OpenGL extensions
+	glewInit();
+	if (!glewIsSupported("GL_VERSION_2_0 ")) {
+		fprintf(stderr, "ERROR: Support for necessary OpenGL extensions missing.");
+		fflush(stderr);
+		return false;
+	}
+
+	// Step 3: Setup our viewport and viewing modes
+	glViewport(0, 0, window_width, window_height);
+
+	// default initialization
+	glClearColor(0.0, 0.0, 0.0, 1.0);
+	glDisable(GL_DEPTH_TEST);
+
+	// set view matrix
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+	// projection
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(60.0, (GLfloat)window_width / (GLfloat) window_height,
+		0.10, 10.0); // This is the only line that differs from PixelMain.cpp
+	
+	return true;
+}
+
 // Main program
 int main(int argc, char** argv){
 	sdkCreateTimer(&timer);
 
-	if(initGL(argc, argv)!=cudaSuccess){
+	if(!initGL(argc, argv)){
 		return EXIT_FAILURE;
 	}
 
 	initCuda(argc, argv);
-	//sdkCheckErrorGL(__FILE__, __LINE__)
+	//SDK_CHECK_ERROR_GL();
 	
 	// register callbacks
 	glutDisplayFunc(fpsDisplay);
@@ -77,40 +113,4 @@ int main(int argc, char** argv){
 	sdkDeleteTimer(&timer);
 	cudaThreadExit();
 	exit(EXIT_SUCCESS);
-}
-
-cudaError_t initGL(int argc, char **argv)
-{
-	//Steps 1-2: create a window and GL context (also register callbacks)
-	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
-	glutInitWindowSize(window_width, window_height);
-	glutCreateWindow("Cuda GL Interop Demo (adapted from NVIDIA's simpleGL");
-	glutDisplayFunc(fpsDisplay);
-	glutKeyboardFunc(keyboard);
-	glutMotionFunc(motion);
-
-	// check for necessary OpenGL extensions
-	glewInit();
-	if (!glewIsSupported("GL_VERSION_2_0 ")) {
-		fprintf(stderr, "ERROR: Support for necessary OpenGL extensions missing.");
-		return cudaErrorUnknown;
-	}
-
-	// Step 3: Setup our viewport and viewing modes
-	glViewport(0, 0, window_width, window_height);
-
-	glClearColor(0.0, 0.0, 0.0, 1.0);
-	glDisable(GL_DEPTH_TEST);
-
-
-	// set view matrix
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f);
-
-	return cudaSuccess;
 }

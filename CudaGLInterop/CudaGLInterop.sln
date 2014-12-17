@@ -3,7 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CudaGLInterop", "CudaGLInterop\CudaGLInterop.vcxproj", "{A4DEBAA4-72E4-4A46-BCFF-138E4C460105}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VertexObject", "VertexObject\VertexObject.vcxproj", "{27B1B21E-4CA1-43E3-978C-3C1CF6FEE816}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PixelObject", "PixelObject\PixelObject.vcxproj", "{A4DEBAA4-72E4-4A46-BCFF-138E4C460105}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Bitmap", "Bitmap\Bitmap.vcxproj", "{EE58B096-6C59-4392-B908-557BEC0D8013}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,14 +17,32 @@ Global
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{27B1B21E-4CA1-43E3-978C-3C1CF6FEE816}.Debug|Win32.ActiveCfg = Debug|Win32
+		{27B1B21E-4CA1-43E3-978C-3C1CF6FEE816}.Debug|Win32.Build.0 = Debug|Win32
+		{27B1B21E-4CA1-43E3-978C-3C1CF6FEE816}.Debug|Win32.Deploy.0 = Debug|Win32
+		{27B1B21E-4CA1-43E3-978C-3C1CF6FEE816}.Debug|x64.ActiveCfg = Debug|x64
+		{27B1B21E-4CA1-43E3-978C-3C1CF6FEE816}.Debug|x64.Build.0 = Debug|x64
+		{27B1B21E-4CA1-43E3-978C-3C1CF6FEE816}.Release|Win32.ActiveCfg = Release|Win32
+		{27B1B21E-4CA1-43E3-978C-3C1CF6FEE816}.Release|Win32.Build.0 = Release|Win32
+		{27B1B21E-4CA1-43E3-978C-3C1CF6FEE816}.Release|x64.ActiveCfg = Release|x64
+		{27B1B21E-4CA1-43E3-978C-3C1CF6FEE816}.Release|x64.Build.0 = Release|x64
 		{A4DEBAA4-72E4-4A46-BCFF-138E4C460105}.Debug|Win32.ActiveCfg = Debug|Win32
 		{A4DEBAA4-72E4-4A46-BCFF-138E4C460105}.Debug|Win32.Build.0 = Debug|Win32
+		{A4DEBAA4-72E4-4A46-BCFF-138E4C460105}.Debug|Win32.Deploy.0 = Debug|Win32
 		{A4DEBAA4-72E4-4A46-BCFF-138E4C460105}.Debug|x64.ActiveCfg = Debug|x64
 		{A4DEBAA4-72E4-4A46-BCFF-138E4C460105}.Debug|x64.Build.0 = Debug|x64
 		{A4DEBAA4-72E4-4A46-BCFF-138E4C460105}.Release|Win32.ActiveCfg = Release|Win32
 		{A4DEBAA4-72E4-4A46-BCFF-138E4C460105}.Release|Win32.Build.0 = Release|Win32
 		{A4DEBAA4-72E4-4A46-BCFF-138E4C460105}.Release|x64.ActiveCfg = Release|x64
 		{A4DEBAA4-72E4-4A46-BCFF-138E4C460105}.Release|x64.Build.0 = Release|x64
+		{EE58B096-6C59-4392-B908-557BEC0D8013}.Debug|Win32.ActiveCfg = Debug|Win32
+		{EE58B096-6C59-4392-B908-557BEC0D8013}.Debug|Win32.Build.0 = Debug|Win32
+		{EE58B096-6C59-4392-B908-557BEC0D8013}.Debug|x64.ActiveCfg = Debug|x64
+		{EE58B096-6C59-4392-B908-557BEC0D8013}.Debug|x64.Build.0 = Debug|x64
+		{EE58B096-6C59-4392-B908-557BEC0D8013}.Release|Win32.ActiveCfg = Release|Win32
+		{EE58B096-6C59-4392-B908-557BEC0D8013}.Release|Win32.Build.0 = Release|Win32
+		{EE58B096-6C59-4392-B908-557BEC0D8013}.Release|x64.ActiveCfg = Release|x64
+		{EE58B096-6C59-4392-B908-557BEC0D8013}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

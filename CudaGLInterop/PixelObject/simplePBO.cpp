@@ -1,6 +1,5 @@
 // simplePBO.cpp (Rob Farber)
 
-// includes
 #include <GL/glew.h>
 #include <cuda_runtime.h>
 #include <helper_cuda.h>
@@ -74,41 +73,39 @@ void createTexture(GLuint* textureID, unsigned int size_x, unsigned int size_y){
 	// GL_TEXTURE_2D for improved performance if linear interpolation is
 	// not desired. Replace GL_LINEAR with GL_NEAREST in the
 	// glTexParameteri() call
-
 }
 
-void deleteTexture(GLuint* tex)
-{
+void deleteTexture(GLuint* tex){
 	glDeleteTextures(1, tex);
-
-	*tex = NULL;
+	*tex=NULL;
 }
 
-void cleanupCuda()
-{
-	if (pbo) deletePBO(&pbo);
-	if (textureID) deleteTexture(&textureID);
+void cleanupCuda(){
+	if(pbo){
+		deletePBO(&pbo);
+	}
+	if(textureID){
+		deleteTexture(&textureID); 
+	}
 }
 
 // Run the Cuda part of the computation
-void runCuda()
-{
-	uchar4 *dptr = NULL;
+void runCuda(){
+	uchar4 *d_ptr=NULL;
 
 	// map OpenGL buffer object for writing from CUDA on a single GPU
 	// no data is moved (Win & Linux). When mapped to CUDA, OpenGL
 	// should not use this buffer
-	cudaGLMapBufferObject((void**)&dptr, pbo);
+	cudaGLMapBufferObject((void**)&d_ptr, pbo);
 
 	// execute the kernel
-	launch_kernel(dptr, image_width, image_height, animTime);
+	launch_kernel(d_ptr, image_width, image_height, animTime);
 
 	// unmap buffer object
 	cudaGLUnmapBufferObject(pbo);
 }
 
-void initCuda(int argc, char** argv)
-{
+void initCuda(int argc, char** argv){
 	// First initialize OpenGL context, so we can properly set the GL
 	// for CUDA.  NVIDIA notes this is necessary in order to achieve
 	// optimal performance with OpenGL/CUDA interop.  use command-line

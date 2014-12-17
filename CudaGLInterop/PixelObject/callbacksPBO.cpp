@@ -5,7 +5,6 @@
 #include <helper_cuda.h>
 #include <helper_cuda_gl.h>
 #include <cuda_gl_interop.h>
-//#include <cutil_gl_error.h>
 #include <rendercheck_gl.h>
 
 // variables for keyboard control
@@ -22,8 +21,7 @@ extern unsigned int image_height;
 // The user must create the following routines:
 void runCuda();
 
-void display()
-{
+void display(){
 	// run CUDA kernel
 	runCuda();
 
@@ -33,19 +31,16 @@ void display()
 	// bind texture from PBO
 	glBindTexture(GL_TEXTURE_2D, textureID);
 
-
 	// Note: glTexSubImage2D will perform a format conversion if the
 	// buffer is a different format from the texture. We created the
 	// texture with format GL_RGBA8. In glTexSubImage2D we specified
 	// GL_BGRA and GL_UNSIGNED_INT. This is a fast-path combination
 
 	// Note: NULL indicates the data resides in device memory
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image_width, image_height,
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image_width, image_height, 
 		GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
-
 	// Draw a single Quad with texture coordinates for each vertex.
-
 	glBegin(GL_QUADS);
 	glTexCoord2f(0.0f, 1.0f); glVertex3f(0.0f, 0.0f, 0.0f);
 	glTexCoord2f(0.0f, 0.0f); glVertex3f(0.0f, 1.0f, 0.0f);
@@ -57,16 +52,15 @@ void display()
 	glutSwapBuffers();
 
 	// if animFlag is true, then indicate the display needs to be redrawn
-	if (animFlag) {
+	if(animFlag){
 		glutPostRedisplay();
-		animTime += animInc;
+		animTime+=animInc;
 	}
 }
 
-//! Keyboard events handler for GLUT
-void keyboard(unsigned char key, int x, int y)
-{
-	switch (key) {
+// Keyboard events handler for GLUT
+void keyboard(unsigned char key, int x, int y){
+	switch(key){
 	case(27) :
 		exit(0);
 		break;
@@ -90,10 +84,8 @@ void keyboard(unsigned char key, int x, int y)
 }
 
 // No mouse event handlers defined
-void mouse(int button, int state, int x, int y)
-{
+void mouse(int button, int state, int x, int y){
 }
 
-void motion(int x, int y)
-{
+void motion(int x, int y){
 }

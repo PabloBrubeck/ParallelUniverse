@@ -14,23 +14,8 @@
 #define WIDTH 512
 #define HEIGHT 512
 
-int divideCeil(int num, int den){
-	return (num+den-1)/den;
-}
-unsigned int nextPowerOf2(unsigned int n){
-  unsigned k=0;
-  if(n&&!(n&(n-1))){
-	  return n;
-  }
-  while(n!=0){
-    n>>=1;
-    k++;
-  }
-  return 1<<k;
-}
-
 __device__
-static float G=1000.0f;
+static const float G=1000.f, epsilon=0.1f;
 __device__
 float invsqrt(float x){
 	long i;
@@ -46,44 +31,40 @@ float invsqrt(float x){
 	return y;
 }
 __device__
-float3 operator+(const float3& u, const float3& v) {
-    return make_float3(u.x+v.x, u.y+v.y, u.z+v.z);
+void set(float3 &u, const float x, const float y, const float z){
+	u.x=x;
+	u.y=y;
+	u.z=z;
 }
 __device__
-float3 operator-(const float3& u, const float3& v) {
-    return make_float3(u.x-v.x, u.y-v.y, u.z-v.z);
+float magnitude2(const float3 &u){
+	const float x=u.x;
+	const float y=u.y;
+	const float z=u.z;
+    return x*x+y*y+z*z;
 }
 __device__
-float3 operator*(const float3& u, const float d) {
-    return make_float3(u.x*d, u.y*d, u.z*d);
-}
-__device__
-float3 operator/(const float3& u, const float d) {
-    return make_float3(u.x/d, u.y/d, u.z/d);
-}
-__device__
-float magnitude2(const float3& v) {
-    return v.x*v.x+v.y*v.y+v.z*v.z;
+float3 distance(const float3 &p, const float3 &q){
+	return make_float3(q.x-p.x, q.y-p.y, q.z-p.z);
 }
 
 __global__
-void mapMagnitude2(float3 *d_vec, float* d_mag, const int n){
+void mapMagnitude2(float3 *d_vec, float *d_abs, const size_t n){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	if(i<n){
-		d_mag[i]=magnitude2(d_vec[i]);
+		d_abs[i]=magnitude2(d_vec[i]);
 	}
 }
 __global__
-void reduceMax(float *d_in, float *d_out, const size_t elements)
-{   
-    int tid=threadIdx.x;
-    int gid=blockIdx.x*blockDim.x+tid;
+void reduceMax(float *d_in, float *d_out, const size_t n){   
     extern __shared__ float shared[];
-	shared[tid]= gid<elements? d_in[gid]: -FLT_MAX;
+	int tid=threadIdx.x;
+    int gid=blockIdx.x*blockDim.x+tid;
+	shared[tid]= gid<n? d_in[gid]: -FLT_MAX;
     __syncthreads();
     for(unsigned int s=blockDim.x/2; s>0; s>>=1){
-        if(tid<s && gid<elements){
-            shared[tid]=max(shared[tid], shared[tid+s]);
+        if(tid<s){
+            shared[tid]=__max(shared[tid], shared[tid+s]);
         }
         __syncthreads();
     }
@@ -91,83 +72,42 @@ void reduceMax(float *d_in, float *d_out, const size_t elements)
         d_out[blockIdx.x]=shared[0];
     }
 }
-float getMax(float *d_in, int n){
-	int grid, block=MAXTHREADS;
-	float *h_out=new float();
-	do{
-		grid=(n+block-1)/block;
-		if(grid==1){
-			block=nextPowerOf2(n);
-		}
-		reduceMax<<<grid, block, block*sizeof(float)>>>(d_in, d_in, n);
-		n=grid;
-	}while(grid>1);
-	HANDLE_ERROR(cudaMemcpy(h_out, d_in, sizeof(float), cudaMemcpyDeviceToHost));
-	return *h_out;
-}
-
 __global__
-void setZero(float3 *d_acc, const int n){
-	int i=blockIdx.x*blockDim.x+threadIdx.x;
-	if(i<n){
-		d_acc[i]=make_float3(0.0f, 0.0f, 0.0f);
-	}
-}
-__global__
-void intialState(float* d_mass, float3 *d_pos, float3 *d_vel, float3 *d_acc, const int n){
+void initialState(float* d_mass, float3 *d_pos, float3 *d_vel, float3 *d_acc, const int n){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	if(i<n){
 		float radius=32+(64.0f*i)/n;
 		float angle=16*(6.2832f*i)/n;
 		float c=cos(angle);
 		float s=sin(angle);
+		float m=invsqrt(G*n/128.f);
 		d_pos[i]=make_float3(radius*c+256, radius*s+256, 0.0f);
-		d_vel[i]=make_float3(s, -c, 0.0f)/(invsqrt(G*n/128.0f));
-		d_acc[i]=make_float3(0.0f, 0.0f, 0.0f);
-		d_mass[i]=1.0f;
+		d_vel[i]=make_float3(s/m, -c/m, 0.0f);
+		d_acc[i]=make_float3(0.f, 0.f, 0.f);
+		d_mass[i]=1.f;
 	}
 }
 __global__
-void potential(float *mass, float3 *d_pos, float *d_pot, const int n){
-	extern __shared__ float s_pot[];
-	int tid=threadIdx.x;
-	int i=blockIdx.x;
-	int j=blockIdx.y*blockDim.x+tid;
-	if(j>=n || i==j){
-		s_pot[tid]=0.0f;
-	}else{
-		float3 r=d_pos[i]-d_pos[j];
-		s_pot[tid]=-G*mass[i]*mass[j]*invsqrt(magnitude2(r));
-	}
-    __syncthreads();
-    for(unsigned int s=blockDim.x/2; s>0; s>>=1){
-        if(tid<s){
-            s_pot[tid]=s_pot[tid]+s_pot[tid+s];
-        }
-        __syncthreads();
-    }
-	if(tid==0){
-		atomicAdd(&(d_pot[i]), s_pot[0]);
-    }
-}
-
-__global__
-void interact(float *mass, float3 *d_pos, float3 *d_acc, const int n){
+void interact(float *d_mass, float3 *d_pos, float3 *d_acc, const int n){
 	extern __shared__ float3 s_acc[];
 	int tid=threadIdx.x;
 	int i=blockIdx.x;
 	int j=blockIdx.y*blockDim.x+tid;
 	if(j>=n || i==j){
-		s_acc[tid]=make_float3(0.0f, 0.0f, 0.0f);
+		set(s_acc[tid], 0.f, 0.f, 0.f);
 	}else{
-		float3 r=d_pos[j]-d_pos[i];
-		float r2=magnitude2(r)+1;
-		s_acc[tid]=r*(invsqrt(r2)*G*mass[j]/r2);
+		float3 r=distance(d_pos[i], d_pos[j]);
+		float r2=magnitude2(r)+epsilon;
+		float w2=G*d_mass[j]*invsqrt(r2*r2*r2);
+		set(s_acc[tid], r.x*w2, r.y*w2, r.z*w2);
 	}
+	// Reduction
     __syncthreads();
     for(unsigned int s=blockDim.x/2; s>0; s>>=1){
         if(tid<s){
-            s_acc[tid]=s_acc[tid]+s_acc[tid+s];
+            s_acc[tid].x+=s_acc[tid+s].x;
+			s_acc[tid].y+=s_acc[tid+s].y;
+			s_acc[tid].z+=s_acc[tid+s].z;
         }
         __syncthreads();
     }
@@ -181,8 +121,15 @@ __global__
 void move(unsigned char *d_bitmap, float *mass, float3 *d_pos, float3 *d_vel, float3 *d_acc, float dt, const int n) {
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	if(i<n){
-		d_vel[i]=d_vel[i]+d_acc[i]*dt;
-		d_pos[i]=d_pos[i]+d_vel[i]*dt;
+		float vx=d_vel[i].x+d_acc[i].x*dt;
+		float vy=d_vel[i].y+d_acc[i].y*dt;
+		float vz=d_vel[i].z+d_acc[i].z*dt;
+		d_pos[i].x+=vx*dt;
+		d_pos[i].y+=vy*dt;
+		d_pos[i].z+=vz*dt;
+		set(d_vel[i], vx, vy, vz);
+		set(d_acc[i], 0.f, 0.f, 0.f);
+
 		int x=(int)d_pos[i].x;
 		int y=(int)d_pos[i].y;
 		if(x>=0 && x<WIDTH && y>=0 && y<HEIGHT){
@@ -196,6 +143,35 @@ void move(unsigned char *d_bitmap, float *mass, float3 *d_pos, float3 *d_vel, fl
 	}
 }
 
+int divideCeil(int num, int den){
+	return (num+den-1)/den;
+}
+unsigned int nextPowerOf2(unsigned int n){
+  unsigned k=0;
+  if(n&&!(n&(n-1))){
+	  return n;
+  }
+  while(n!=0){
+    n>>=1;
+    k++;
+  }
+  return 1<<k;
+}
+float getMax(float *d_in, const size_t lenght){
+	int n=lenght;
+	int grid, block=MAXTHREADS;
+	float *h_out=new float();
+	do{
+		grid=(n+block-1)/block;
+		if(grid==1){
+			block=nextPowerOf2(n);
+		}
+		reduceMax<<<grid, block, block*sizeof(float)>>>(d_in, d_in, n);
+		n=grid;
+	}while(grid>1);
+	HANDLE_ERROR(cudaMemcpy(h_out, d_in, sizeof(float), cudaMemcpyDeviceToHost));
+	return *h_out;
+}
 void randset(float* d_in, size_t n, float m, float s){
 	curandGenerator_t generator;
 	curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_DEFAULT);
@@ -279,17 +255,14 @@ struct CPUBitmap {
 		int memory=size+n*(3*sizeof(float3)+2*sizeof(float));
 		printf("Currently using %d bytes of device global memory\n", memory);
 		
-		intialState<<<grid1D, block1D>>>(d_mass, d_pos, d_vel, d_acc, n);
+		initialState<<<grid1D, block1D>>>(d_mass, d_pos, d_vel, d_acc, n);
 		int i=0;
 		do{
 			HANDLE_ERROR(cudaMemsetAsync(d_bitmap, 0, size));
-			setZero<<<grid1D, block1D>>>(d_acc, n);
 			interact<<<grid2D, block2D, bytes>>>(d_mass, d_pos, d_acc, n);
 
 			mapMagnitude2<<<grid1D, block1D>>>(d_acc, d_aux, n);
-			float amax=sqrt(getMax(d_aux, n));
-			dt=dvmax/amax;
-			cudaDeviceSynchronize();
+			dt=dvmax/sqrt(getMax(d_aux, n));
 
 			move<<<grid1D, block1D>>>(d_bitmap, d_mass, d_pos, d_vel, d_acc, dt, n);
 			
