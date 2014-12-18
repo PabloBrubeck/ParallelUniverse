@@ -198,8 +198,6 @@ float getMax(float *d_in, const size_t numElems){
 }
 
 void init(float4* d_pos, uchar4* d_color, const size_t n){
-	
-
 	curandState* d_states;
     checkCudaErrors(cudaMalloc((void**)&d_states, n*sizeof(curandState)));
 	checkCudaErrors(cudaMalloc((void**)&d_aux, n*sizeof(float)));
