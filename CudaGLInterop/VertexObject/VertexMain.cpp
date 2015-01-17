@@ -22,8 +22,7 @@ extern void mouse(int button, int state, int x, int y);
 extern void motion(int x, int y);
 
 // GLUT specific variables
-unsigned int window_width  = 512;
-unsigned int window_height = 512;
+uint2 window = make_uint2(512,512);
 
 // Timer for FPS calculations
 StopWatchInterface *timer = NULL; 
@@ -55,7 +54,7 @@ bool initGL(int argc, char **argv){
 	// Steps 1-2: create a window and GL context (also register callbacks)
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
-	glutInitWindowSize(window_width, window_height);
+	glutInitWindowSize(window.x, window.y);
 	glutCreateWindow("Cuda GL Interop Demo (adapted from NVIDIA's simpleGL");
 	glutDisplayFunc(fpsDisplay);
 	glutKeyboardFunc(keyboard);
@@ -63,14 +62,14 @@ bool initGL(int argc, char **argv){
 
 	// check for necessary OpenGL extensions
 	glewInit();
-	if (!glewIsSupported("GL_VERSION_2_0 ")) {
+	if(!glewIsSupported("GL_VERSION_2_0 ")){
 		fprintf(stderr, "ERROR: Support for necessary OpenGL extensions missing.");
 		fflush(stderr);
 		return false;
 	}
 
 	// Step 3: Setup our viewport and viewing modes
-	glViewport(0, 0, window_width, window_height);
+	glViewport(0, 0, window.x, window.y);
 
 	// default initialization
 	glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -83,8 +82,8 @@ bool initGL(int argc, char **argv){
 	// projection
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(60.0, (GLfloat)window_width / (GLfloat) window_height,
-		0.10, 10.0); // This is the only line that differs from PixelMain.cpp
+	gluPerspective(60.0, (GLfloat)window.x / (GLfloat) window.y,
+		0.01, 100.0); // This is the only line that differs from PixelMain.cpp
 	
 	return true;
 }

@@ -8,7 +8,6 @@
 #include <cuda_gl_interop.h>
 #include <rendercheck_gl.h>
 
-#define SDK_CHECK_ERROR_GL();
 
 // The user must create the following routines:
 // CUDA methods
@@ -97,7 +96,7 @@ int main(int argc, char** argv){
 	}
 
 	initCuda(argc, argv);
-	SDK_CHECK_ERROR_GL();
+	//SDK_CHECK_ERROR_GL();
 	
 	// register callbacks
 	glutDisplayFunc(fpsDisplay);

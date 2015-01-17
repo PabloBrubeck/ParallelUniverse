@@ -14,18 +14,15 @@ void initCuda(int argc, char** argv);
 void runCuda();
 void renderCuda(int);
  
-// Callbacks
- 
 int drawMode=GL_POINTS; // the default draw mode: GL_TRIANGLE_FAN
  
 // mouse controls
-int mouse_old_x, mouse_old_y;
-int mouse_buttons = 0;
-float rotate_x = 0.0, rotate_y = 0.0;
-float translate_z = -3.0;
- 
-//! Display callback for GLUT
-//! Keyboard events handler for GLUT
+int2 mouseOld;
+int mouseButtons = 0;
+float2 rotate=make_float2(0.f, 0.f);
+float translate_z = -3.f;
+double zoom=1.0;
+
 //! Display callback for GLUT
 void display(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -33,10 +30,10 @@ void display(){
 	// set view matrix
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	glTranslatef(0.0, 0.0, translate_z);
-	glRotatef(rotate_x, 1.0, 0.0, 0.0);
-	glRotatef(rotate_y, 0.0, 1.0, 0.0);
-
+	glTranslatef(0.f, 0.f, translate_z);
+	glRotatef(rotate.x, 1.f, 0.f, 0.f);
+	glRotatef(rotate.y, 0.f, 1.f, 0.f);
+	
 	// run CUDA kernel to generate vertex positions
 	runCuda();
 
@@ -66,29 +63,33 @@ void keyboard(unsigned char key, int x, int y){
 	}
 	glutPostRedisplay();
 }
- 
+
 // Mouse event handlers for GLUT
 void mouse(int button, int state, int x, int y){
 	if(state==GLUT_DOWN){
-		mouse_buttons |= 1<<button;
+		mouseButtons |= 1<<button;
 	}else if(state == GLUT_UP){
-		mouse_buttons = 0;
+		mouseButtons = 0;
 	}
-	mouse_old_x=x;
-	mouse_old_y=y;
+
+	if(mouseButtons&8){
+		zoom*=0.9;
+	}else if(mouseButtons&16){
+		zoom*=1.1;
+	}
+
+	mouseOld=make_int2(x, y);
 	glutPostRedisplay();
 }
- 
+
 void motion(int x, int y){
-	float dx, dy;
-	dx=x-mouse_old_x;
-	dy=y-mouse_old_y;
-	if(mouse_buttons&1){
-		rotate_x+=dy*0.2f;
-		rotate_y+=dx*0.2f;
-	}else if(mouse_buttons&4){
+	float dx=x-mouseOld.x;
+	float dy=y-mouseOld.y;
+	if(mouseButtons&1){
+		rotate.x+=dy*0.2f;
+		rotate.y+=dx*0.2f;
+	}else if(mouseButtons&4){
 		translate_z+=dy*0.01;
 	}
-	mouse_old_x=x;
-	mouse_old_y=y;
+	mouseOld=make_int2(x, y);
 }

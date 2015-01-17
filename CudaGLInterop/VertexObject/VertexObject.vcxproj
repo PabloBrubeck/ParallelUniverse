@@ -165,6 +165,10 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClCompile Include="simpleVBO.cpp" />
     <ClCompile Include="VertexMain.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Planck.h" />
+    <ClInclude Include="Shape.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 6.5.targets" />

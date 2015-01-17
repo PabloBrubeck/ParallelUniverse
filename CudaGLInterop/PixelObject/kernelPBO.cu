@@ -6,16 +6,9 @@
 #include <stdio.h>
 #include <helper_cuda.h>
 
-void checkCUDAError(const char *msg) {
-	cudaError_t err = cudaGetLastError();
-	if (err != cudaSuccess) {
-		fprintf(stderr, "Cuda error: %s: %s.\n", msg, cudaGetErrorString(err));
-		exit(EXIT_FAILURE);
-	}
-}
-
 //Simple kernel writes changing colors to a uchar4 array
-__global__ void kernel(uchar4* pos, unsigned int width, unsigned int height,
+__global__ 
+void kernel(uchar4* pos, unsigned int width, unsigned int height,
 	float time)
 {
 	int index=blockIdx.x*blockDim.x+threadIdx.x;
@@ -46,6 +39,5 @@ extern "C" void launch_kernel(uchar4* pos, unsigned int image_width,
 
 	// make certain the kernel has completed 
 	cudaThreadSynchronize();
-
-	checkCUDAError("kernel failed!");
+	checkCudaErrors(cudaGetLastError());
 }
