@@ -85,9 +85,9 @@ int main(int argc,char** argv) {
             rangeMax=1.0e-10;
 			rangeMax=fmax(fmax(red, green), fmax(blue, rangeMax));
 			
-			colorValues[i][j][0]=(short)(float)(colorDepth)*pow(red/rangeMax,gamma);
-			colorValues[i][j][1]=(short)(float)(colorDepth)*pow(green/rangeMax,gamma);
-			colorValues[i][j][2]=(short)(float)(colorDepth)*pow(blue/rangeMax,gamma);
+			colorValues[i][j][0]=(short)((float)colorDepth*pow(red/rangeMax,gamma));
+			colorValues[i][j][1]=(short)((float)colorDepth*pow(green/rangeMax,gamma));
+			colorValues[i][j][2]=(short)((float)colorDepth*pow(blue/rangeMax,gamma));
         }
 
         if(DMAX1(red,green,blue)>colorMax) colorMax=DMAX1(red,green,blue);

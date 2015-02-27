@@ -100,7 +100,7 @@ void renderCuda(int drawMode){
 	glBindBuffer(GL_ARRAY_BUFFER, colorVBO.vbo);
 	glColorPointer(4, GL_UNSIGNED_BYTE, 0, 0);
 	glEnableClientState(GL_COLOR_ARRAY);
- 
+	
 	switch(drawMode){
 		case GL_LINE_STRIP:
 			for(int i=0 ; i<mesh.x*mesh.y; i+=mesh.x){

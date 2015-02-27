@@ -37,20 +37,13 @@ float invsqrt(float x){
 }
 __device__
 float magnitude2(const float3 &u){
-	const float x=u.x;
-	const float y=u.y;
-	const float z=u.z;
-    return x*x+y*y+z*z;
-}
-__device__
-float3 distance(const float4 &p, const float4 &q){
-	return make_float3(q.x-p.x, q.y-p.y, q.z-p.z);
+    return u.x*u.x+u.y*u.y+u.z*u.z;
 }
 __device__
 void bodyBodyInteraction(float3 &a, const float4 &p, const float4 &q, const float m){
-	float3 r=distance(p, q);
-	float r2=magnitude2(r)+epsilon;
-	float w2=G*m*invsqrt(r2*r2*r2);
+	float3 r={q.x-p.x, q.y-p.y, q.z-p.z};
+	float r2=magnitude2(r);
+	float w2=m*invsqrt(r2*r2*r2+epsilon);
 	a.x+=r.x*w2;
 	a.y+=r.y*w2;
 	a.z+=r.z*w2;
@@ -81,35 +74,27 @@ void reduceMax(float *d_in, float *d_out, const size_t n){
         d_out[blockIdx.x]=shared[0];
     }
 }
-__global__ 
-void generateSeed(curandState *d_states, unsigned long seed, const size_t n){
-    int tid=blockIdx.x*blockDim.x+threadIdx.x;
-	if(tid<n){
-		curand_init(seed, tid, 0, &d_states[tid]);
-	}
-} 
 __global__
 void interact(float *d_mass, float4 *d_pos, float3 *d_acc, const size_t n){
 	extern __shared__ float4 s_pos[];
-
 	int tid=threadIdx.x;
 	int src=blockIdx.x*blockDim.x+tid;
 	int dst=blockIdx.y*blockDim.x+tid;
-	
-	s_pos[tid]=src<n? d_pos[src]: make_float4(0.f, 0.f, 0.f, 0.f);
-	s_pos[tid].w=src<n? d_mass[src]: 0.f;
-	__syncthreads();
-
-	float4 pos=d_pos[dst];
-	float3 acc=make_float3(0.f, 0.f, 0.f);
-	for(int i=0; i<blockDim.x; i++){
-		bodyBodyInteraction(acc, pos, s_pos[i], s_pos[i].w);
+	if(src<n){
+		s_pos[tid]=d_pos[src];
+		s_pos[tid].w=d_mass[src];
 	}
-
-	atomicAdd(&(d_acc[dst].x), acc.x);
-	atomicAdd(&(d_acc[dst].y), acc.y);
-	atomicAdd(&(d_acc[dst].z), acc.z);
-	
+	__syncthreads();
+	if(dst<n){
+		float4 pos=d_pos[dst];
+		float3 acc={0.f, 0.f, 0.f};
+		for(int i=0; i<blockDim.x; i++){
+			bodyBodyInteraction(acc, pos, s_pos[i], s_pos[i].w);
+		}
+		atomicAdd(&(d_acc[dst].x), acc.x);
+		atomicAdd(&(d_acc[dst].y), acc.y);
+		atomicAdd(&(d_acc[dst].z), acc.z);
+	}
 }
 __global__
 void move(float4 *d_pos, float3 *d_vel, float3 *d_acc, float dt, const size_t n){
@@ -127,15 +112,15 @@ void move(float4 *d_pos, float3 *d_vel, float3 *d_acc, float dt, const size_t n)
 }
 __global__
 void initialState(float* d_mass, uchar4* d_color, float4 *d_pos, float3 *d_vel, 
-	float3 *d_acc, curandState *d_states, uint2 mesh){
+	float3 *d_acc, uint2 mesh){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
+	
 	if(i<mesh.x && j<mesh.y){
-		int k=j*mesh.x+i;
 		int n=mesh.x*mesh.y;
-
-		curandState localState=d_states[k];
-				
+		int k=j*mesh.x+i;
+		float x0, y0, z0;
+			
 		float pi=3.1415926535f;
 		float theta=2*k*pi/mesh.x;
 		float r=mod((9*pi*k)/(n-1), 1.f);
@@ -147,14 +132,26 @@ void initialState(float* d_mass, uchar4* d_color, float4 *d_pos, float3 *d_vel,
 		float M=1.5f*n*r;
 		float w=sqrt(G*M);
 
-		d_pos[k]=make_float4(x, y, z, 1.f);
-		d_vel[k]=make_float3(y*w, -x*w, 0.f);
-		d_acc[k]=make_float3(0.f, 0.f, 0.f);
+		if(k<n/2){
+			x0=1.f;
+			y0=1.f;
+			z0=1.f;
+			d_pos[k]={x+x0, y+y0, z+z0, 1.f};
+			d_vel[k]={y*w, -x*w, 0.f};
+		}else{
+			x0=-1.f;
+			y0=-1.f;
+			z0=-1.f;
+			d_pos[k]={y+y0, z+z0, x+x0, 1.f};
+			d_vel[k]={-x*w, 0.f, y*w};
+		}
+		
+		
+		d_acc[k]={0.f, 0.f, 0.f};
 		d_mass[k]=m;
 
 		float temp=1000.f+(m-1)*10000.f;
 		d_color[k]=planckColor(temp);
-		d_states[k]=localState;	
 	}
 }
 
@@ -198,13 +195,11 @@ void init(float4* d_pos, uchar4* d_color, const uint2 mesh){
 	checkCudaErrors(cudaMalloc((void**)&d_acc, n*sizeof(float3)));
 	dim3 block(16, 16);
 	dim3 grid(divideCeil(mesh.x, block.x), divideCeil(mesh.y, block.y));
-	generateSeed<<<grid, block>>>(d_states, time(NULL), n);
-	initialState<<<grid, block>>>(d_mass, d_color, d_pos, d_vel, d_acc, d_states, mesh);
+	initialState<<<grid, block>>>(d_mass, d_color, d_pos, d_vel, d_acc, mesh);
 }
 
 
 // Wrapper for the __global__ call that sets up the kernel call
-extern "C" 
 void launch_kernel(float4 *d_pos, uchar4 *d_color, uint2 mesh, float time){
 	if(first){
 		init(d_pos, d_color, mesh);
@@ -219,7 +214,7 @@ void launch_kernel(float4 *d_pos, uchar4 *d_color, uint2 mesh, float time){
 	int bytes=p*sizeof(float4);
 	dim3 grid2D(divideCeil(n, p), divideCeil(n, p));
 	interact<<<grid2D, p, bytes>>>(d_mass, d_pos, d_acc, n);
-
+	
 	mapMagnitude2<<<grid1D, block1D>>>(d_acc, d_aux, n);
 	float dt=dvmax/sqrt(getMax(d_aux, n));
 	
