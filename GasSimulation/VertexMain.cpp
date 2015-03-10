@@ -22,7 +22,7 @@ extern void mouse(int button, int state, int x, int y);
 extern void motion(int x, int y);
 
 // GLUT specific variables
-uint2 window = make_uint2(512,512);
+uint2 window = make_uint2(720,720);
 
 // Timer for FPS calculations
 StopWatchInterface *timer = NULL; 

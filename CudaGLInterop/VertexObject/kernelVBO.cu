@@ -119,7 +119,6 @@ void initialState(float* d_mass, uchar4* d_color, float4 *d_pos, float3 *d_vel,
 	if(i<mesh.x && j<mesh.y){
 		int n=mesh.x*mesh.y;
 		int k=j*mesh.x+i;
-		float x0, y0, z0;
 			
 		float pi=3.1415926535f;
 		float theta=2*k*pi/mesh.x;
@@ -131,22 +130,9 @@ void initialState(float* d_mass, uchar4* d_color, float4 *d_pos, float3 *d_vel,
 		float m=2.f-r;
 		float M=1.5f*n*r;
 		float w=sqrt(G*M);
-
-		if(k<n/2){
-			x0=1.f;
-			y0=1.f;
-			z0=1.f;
-			d_pos[k]={x+x0, y+y0, z+z0, 1.f};
-			d_vel[k]={y*w, -x*w, 0.f};
-		}else{
-			x0=-1.f;
-			y0=-1.f;
-			z0=-1.f;
-			d_pos[k]={y+y0, z+z0, x+x0, 1.f};
-			d_vel[k]={-x*w, 0.f, y*w};
-		}
 		
-		
+		d_pos[k]={x, y, z, 1.f};
+		d_vel[k]={y*w, -x*w, 0.f};
 		d_acc[k]={0.f, 0.f, 0.f};
 		d_mass[k]=m;
 
