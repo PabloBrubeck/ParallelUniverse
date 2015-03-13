@@ -24,7 +24,7 @@ struct Particle{
 Particle *d_gas;
 uint *d_gridCounters, *d_gridCells;
 static bool first=true;
-
+static dim3 grid1D, block1D, grid3D, block3D;
 
 __device__
 float invsqrt(float x){
@@ -41,36 +41,49 @@ float invsqrt(float x){
 	return y;
 }
 __device__
-float quadFormula(float a, float b, float c){
-	return (-b+sqrtf(b*b-4.f*a*c))/(2.f*a);
-}
-__device__ 
-void collision(Particle &a, Particle &b){
-	float3 ds=a.pos-b.pos;
-	float3 dv=a.vel-b.vel;
-	float A=dot(dv, dv);
-	float B=-2.f*dot(ds, dv);
-	float C=dot(ds, ds)-L2;
-	float t0=quadFormula(A,B,C);
-	float3 r=ds-dv*t0; // |r|=L always
-
-	dv=r*(dot(dv, r)/L2);
-	a.vel+=dv;
-	b.vel-=dv;
-	a.pos+=dv*t0;
-	b.pos-=dv*t0;
-}
-__device__
-int cellIndex(float3 &pos){
+int cellIndex(float3 pos){
 	int i=(int)((pos.x+1.f)/L);
 	int j=(int)((pos.y+1.f)/L);
 	int k=(int)((pos.z+1.f)/L);
 	return (k*cells+j)*cells+i;
 }
+__device__
+void boundaries(Particle &p, float3 pos, float3 vel){
+	// 2x2x2 box fixed boundaries
+	if(abs(pos.x)>1.f){
+		vel.x=-vel.x;
+	}
+	if(abs(pos.y)>1.f){
+		vel.y=-vel.y;
+	}
+	if(abs(pos.z)>1.f){
+		vel.z=-vel.z;
+	}
+	pos=clamp(pos, -1.f, 1.f);
+	p.pos=pos;
+	p.vel=vel;
+}
+__device__ 
+void collision(Particle *d_gas, int a, int b){
+	float3 s=d_gas[a].pos-d_gas[b].pos;
+	float3 u=d_gas[a].vel-d_gas[b].vel;
+	float uu=dot(u, u);
+	float su=dot(s, u);
+	float ss=dot(s, s);
+	float d=su*su-uu*(ss-L2);
+	if(d>=0){
+		float t0=-(su+sqrtf(d))/uu;
+		float3 r=s+u*t0;            // |r|=L always
+		float3 du=r*(dot(u, r)/L2);
+		float3 ds=du*t0;
+		boundaries(d_gas[a], d_gas[a].pos+ds, d_gas[a].vel+du);
+		boundaries(d_gas[b], d_gas[b].pos-ds, d_gas[b].vel-du);
+	}
+}
 
 
 __global__
-void initialState(uchar4* d_color, float4* d_pos, Particle* d_gas, uint3 mesh){
+void initialState(Particle* d_gas, uchar4* d_color, uint3 mesh){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
 	int k=blockIdx.z*blockDim.z+threadIdx.z;
@@ -81,20 +94,19 @@ void initialState(uchar4* d_color, float4* d_pos, Particle* d_gas, uint3 mesh){
 		float y=((float)(2*j))/mesh.y-1.f;
 		float z=((float)(2*k))/mesh.z-1.f;
 		
-		d_pos[gid]={x, y, z, 1.f};
 		d_gas[gid].pos={x, y, z};
 		d_gas[gid].vel={x, y, z};
 		d_gas[gid].acc={0.f, 0.f, 0.f};
-		float temp=2500.f*dot(d_gas[gid].vel, d_gas[gid].vel);
-		d_color[gid]=planckColor(temp);
+		d_color[gid]={255u, 255u, 255u, 255u};
 	}
 }
-__global__
+__global__ 
 void updateGrid(Particle* d_gas, uint* d_gridCounters, uint* d_gridCells, int n){
 	int gid=blockIdx.x*blockDim.x+threadIdx.x;
 	if(gid<n){
+		// Update grid
 		int cid=cellIndex(d_gas[gid].pos);
-		int s=atomicAdd(&(d_gridCounters[cid]), 1u);
+		int s=atomicInc(&(d_gridCounters[cid]), 1u);
 		if(s<4u){
 			d_gridCells[4*cid+s]=gid;
 		}
@@ -108,12 +120,12 @@ void neighbors(Particle* d_gas, uint* d_gridCounters, uint* d_gridCells){
 	if(hx<cells && hy<cells && hz<cells){
 		int hid=(hz*cells+hy)*cells+hx;
 		int hcount=d_gridCounters[hid];
+		
 		if(hcount==0){
 			return;
 		}
 		int ncount=0;
-		int* neighbors=new int[108];
-		int index=0;
+		int neighbors[128];
 
 		int nx, ny, nz;
 		for(int i=-1; i<=1; i++){
@@ -128,55 +140,55 @@ void neighbors(Particle* d_gas, uint* d_gridCounters, uint* d_gridCells){
 						int nid=(nz*cells+ny)*cells+nx;
 						int acount=d_gridCounters[nid];
 						for(int m=0; m<acount; m++){
-							neighbors[index++]=d_gridCells[4*nid+m];
+							neighbors[ncount++]=d_gridCells[4*nid+m];
 						}
-						ncount+=acount;
 					}
 				}
 			}
 		}
-
-		Particle home, away;
+		
+		int home, away;
 		for(int h=0; h<hcount; h++){
-			home=d_gas[d_gridCells[4*hid+h]];
+			home=d_gridCells[4*hid+h];
+			float3 posh=d_gas[home].pos;
 			for(int a=0; a<ncount; a++){
-				away=d_gas[neighbors[a]];
-				// Check if particles are close enough
-				float3 r=home.pos-away.pos;
-				float r2=dot(r,r);
-				if(r2<L2){
-					// Check if the barycenter belongs to home
-					float3 b=(home.pos+away.pos)/2.f;
-					if(cellIndex(b)==hid){
-						collision(home, away);
+				away=neighbors[a];
+				if(home!=away){
+					// Check if particles are close enough
+					float3 posn=d_gas[away].pos;
+					float3 r=posh-posn;
+					float r2=dot(r,r);
+					if(r2<L2){
+						// Check if the barycenter belongs to home
+						float3 b=(posh+posn)/2.f;
+						if(cellIndex(b)==hid){
+							collision(d_gas, home, away);
+						}
 					}
 				}
 			}
-		}		
+		}			
 	}
 }
-__global__ 
-void move(uchar4* d_color, float4* d_pos, Particle* d_gas, float step, int n){
+__global__
+void integrate(Particle* d_gas, float step, int n){
 	int gid=blockIdx.x*blockDim.x+threadIdx.x;
 	if(gid<n){
 		float3 vel=d_gas[gid].vel+d_gas[gid].acc*step;
 		float3 pos=d_gas[gid].pos+vel*step;
-		if(abs(pos.x)>1.f){
-			vel.x=-vel.x;
-		}
-		if(abs(pos.y)>1.f){
-			vel.y=-vel.y;
-		}
-		if(abs(pos.z)>1.f){
-			vel.z=-vel.z;
-		}
-		pos=clamp(pos, -1.f, 1.f);
-		d_pos[gid]={pos.x, pos.y, pos.z, 1.f};
-		d_gas[gid].pos=pos;
-		d_gas[gid].vel=vel;
-		d_gas[gid].acc={0.f, 0.f, 0.f};
+		boundaries(d_gas[gid], pos, vel);
+	}
+}
+__global__
+void updatePoints(Particle *d_gas, float4 *d_pos, uchar4 *d_color, int n){
+	int gid=blockIdx.x*blockDim.x+threadIdx.x;
+	if(gid<n){
+		float3 pos=d_gas[gid].pos;
+		float3 vel=d_gas[gid].vel;
 		float temp=2500.f*dot(vel,vel);
-		d_color[gid]=planckColor(temp);
+
+		d_pos[gid]={pos.x, pos.y, pos.z, 1.f};
+		//d_color[gid]=planckColor(temp);
 	}
 }
 
@@ -209,27 +221,35 @@ void printFromDevice(uint* d_array, int length){
 }
 
 
-void init(float4* d_pos, uchar4* d_color, uint3 mesh){
-	int n=mesh.x*mesh.y*mesh.z;
+void init(float4* d_pos, uchar4* d_color, uint3 mesh, int n){
 	checkCudaErrors(cudaMalloc((void**)&d_gas, n*sizeof(Particle)));
 	checkCudaErrors(cudaMalloc((void**)&d_gridCounters, cells3*sizeof(uint)));
 	checkCudaErrors(cudaMalloc((void**)&d_gridCells, 4*cells3*sizeof(uint)));
-	dim3 grid3D(ceil(mesh.x, 8), ceil(mesh.y, 8), ceil(mesh.z, 8));
-	initialState<<<grid3D, dim3(8, 8, 8)>>>(d_color, d_pos, d_gas, mesh);
+	dim3 grid(ceil(mesh.x, 8), ceil(mesh.y, 8), ceil(mesh.z, 8));
+	initialState<<<grid, block3D>>>(d_gas, d_color, mesh);
 }
 void launch_kernel(float4 *d_pos, uchar4 *d_color, uint3 mesh, float time){
+	int n=mesh.x*mesh.y*mesh.z;
 	if(first){
-		init(d_pos, d_color, mesh);
+		block1D=MAXTHREADS;
+		grid1D=ceil(n, MAXTHREADS);
+
+		int bpg=ceil(cells, 8);
+		block3D=dim3(8, 8, 8);
+		grid3D=dim3(bpg, bpg, bpg);
+
+		init(d_pos, d_color, mesh, n);
 		first=false;
 	}
-	int n=mesh.x*mesh.y*mesh.z;
-	float step=0.001f;
-
+	
 	checkCudaErrors(cudaMemset(d_gridCounters, 0u, cells3*sizeof(uint)));
 	checkCudaErrors(cudaMemset(d_gridCells, 0u, 4*cells3*sizeof(uint)));
 	
-	dim3 grid1D(ceil(n, MAXTHREADS));
-	updateGrid<<<grid1D, MAXTHREADS>>>(d_gas, d_gridCounters, d_gridCells, n);
-	move<<<grid1D, MAXTHREADS>>>(d_color, d_pos, d_gas, step, n);
-	
+	float step=0.01f;
+	integrate<<<grid1D, block1D>>>(d_gas, step, n);
+	updateGrid<<<grid1D, block1D>>>(d_gas, d_gridCounters, d_gridCells, n);
+	neighbors<<<grid3D, block3D>>>(d_gas, d_gridCounters, d_gridCells);
+	updatePoints<<<grid1D, block1D>>>(d_gas, d_pos, d_color, n);
+
+	//printFromDevice(d_gridCounters+1090105, 20);
 }
