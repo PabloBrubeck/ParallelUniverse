@@ -12,7 +12,7 @@
 float animTime = 0.f;
  
 // constants
-const uint2 mesh={64u, 64u};
+const uint3 mesh={64u, 64u};
 const unsigned int RestartIndex = 0xffffffff;
  
 struct mappedBuffer_t{
@@ -21,7 +21,7 @@ struct mappedBuffer_t{
   struct cudaGraphicsResource *cudaResource;
 };
 
-void launch_kernel(float4* d_pos, uchar4* d_color, uint2 mesh, float time);
+void launch_kernel(float4* d_pos, uchar4* d_color, uint3 mesh, float time);
  
 // vbo variables
 mappedBuffer_t vertexVBO = {NULL, sizeof(float4), NULL};
@@ -34,7 +34,7 @@ void createVBO(mappedBuffer_t* mbuf){
   glBindBuffer(GL_ARRAY_BUFFER, mbuf->vbo);
    
   // initialize buffer object
-  unsigned int size=mesh.x*mesh.y*(mbuf->typeSize);
+  unsigned int size=mesh.x*mesh.y*mesh.z*(mbuf->typeSize);
   glBufferData(GL_ARRAY_BUFFER, size, 0, GL_DYNAMIC_DRAW);
    
   glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -100,40 +100,42 @@ void renderCuda(int drawMode){
 	glBindBuffer(GL_ARRAY_BUFFER, colorVBO.vbo);
 	glColorPointer(4, GL_UNSIGNED_BYTE, 0, 0);
 	glEnableClientState(GL_COLOR_ARRAY);
- 
+	
+	size_t n=mesh.x*mesh.y*mesh.z;
 	switch(drawMode){
+		default:
+		case GL_POINTS:
+			glDrawArrays(GL_POINTS, 0, n);
+			break;
+
 		case GL_LINE_STRIP:
-			for(int i=0 ; i<mesh.x*mesh.y; i+=mesh.x){
+			for(int i=0 ; i<n; i+=mesh.x){
 				glDrawArrays(GL_LINE_STRIP, i, mesh.x);
 			}
 			break;
 
 		case GL_TRIANGLE_FAN:{ 
-			static GLuint* qIndices=NULL;
-			int size = 5*(mesh.y-1)*(mesh.x-1);
-			if(qIndices == NULL){ // allocate and assign trianglefan indicies 
-				qIndices = (GLuint *) malloc(size*sizeof(GLint));
+			int size=5*(mesh.y-1)*(mesh.x-1);
+			static GLuint* qIndices=(GLuint*)malloc(size*sizeof(GLint));
+			for(int k=0; k<mesh.z; k++){
+				// allocate and assign trianglefan indicies 
 				int index=0;
-				for(int i=1; i < mesh.y; i++){
-					for(int j=1; j < mesh.x; j++){
-						qIndices[index++] = (i)*mesh.x + j; 
-						qIndices[index++] = (i)*mesh.x + j-1; 
-						qIndices[index++] = (i-1)*mesh.x + j-1; 
-						qIndices[index++] = (i-1)*mesh.x + j; 
-						qIndices[index++] = RestartIndex;
+				for(int j=1; j<mesh.y; j++){
+					for(int i=1; i<mesh.x; i++){
+						qIndices[index++]=(k*mesh.y+j)*mesh.x+i; 
+						qIndices[index++]=(k*mesh.y+j)*mesh.x+i-1; 
+						qIndices[index++]=(k*mesh.y+j-1)*mesh.x+i-1; 
+						qIndices[index++]=(k*mesh.y+j-1)*mesh.x+i; 
+						qIndices[index++]=RestartIndex;
 					}
 				}
+				glPrimitiveRestartIndexNV(RestartIndex);
+				glEnableClientState(GL_PRIMITIVE_RESTART_NV);
+				glDrawElements(GL_TRIANGLE_FAN, size, GL_UNSIGNED_INT, qIndices);
+				glDisableClientState(GL_PRIMITIVE_RESTART_NV);
 			}
-			glPrimitiveRestartIndexNV(RestartIndex);
-			glEnableClientState(GL_PRIMITIVE_RESTART_NV);
-			glDrawElements(GL_TRIANGLE_FAN, size, GL_UNSIGNED_INT, qIndices);
-			glDisableClientState(GL_PRIMITIVE_RESTART_NV);
 			break;
 		}
-		case GL_POINTS:
-		default:
-			glDrawArrays(GL_POINTS, 0, mesh.x*mesh.y);
-			break;
 	}
  
 	glDisableClientState(GL_VERTEX_ARRAY);

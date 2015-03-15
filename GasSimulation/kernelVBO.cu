@@ -23,7 +23,7 @@ struct Particle{
 
 Particle *d_gas;
 uint *d_gridCounters, *d_gridCells;
-static bool first=true;
+
 static dim3 grid1D, block1D, grid3D, block3D;
 
 __device__
@@ -70,15 +70,12 @@ void collision(Particle *d_gas, int a, int b){
 	float uu=dot(u, u);
 	float su=dot(s, u);
 	float ss=dot(s, s);
-	float d=su*su-uu*(ss-L2);
-	if(d>=0){
-		float t0=-(su+sqrtf(d))/uu;
-		float3 r=s+u*t0;            // |r|=L always
-		float3 du=r*(dot(u, r)/L2);
-		float3 ds=du*t0;
-		boundaries(d_gas[a], d_gas[a].pos+ds, d_gas[a].vel+du);
-		boundaries(d_gas[b], d_gas[b].pos-ds, d_gas[b].vel-du);
-	}
+	float t0=-(su+sqrtf(su*su-uu*(ss-L2)))/uu;
+	float3 r=s+u*t0;            // |r|=L always
+	float3 du=r*(dot(u, r)/L2);
+	float3 ds=du*t0;
+	boundaries(d_gas[a], d_gas[a].pos+ds, d_gas[a].vel+du);
+	boundaries(d_gas[b], d_gas[b].pos-ds, d_gas[b].vel-du);
 }
 
 
@@ -120,12 +117,11 @@ void neighbors(Particle* d_gas, uint* d_gridCounters, uint* d_gridCells){
 	if(hx<cells && hy<cells && hz<cells){
 		int hid=(hz*cells+hy)*cells+hx;
 		int hcount=d_gridCounters[hid];
-		
 		if(hcount==0){
 			return;
 		}
 		int ncount=0;
-		int neighbors[128];
+		int neighbors[64];
 
 		int nx, ny, nz;
 		for(int i=-1; i<=1; i++){
@@ -230,7 +226,7 @@ void init(float4* d_pos, uchar4* d_color, uint3 mesh, int n){
 }
 void launch_kernel(float4 *d_pos, uchar4 *d_color, uint3 mesh, float time){
 	int n=mesh.x*mesh.y*mesh.z;
-	if(first){
+	if(time==0){
 		block1D=MAXTHREADS;
 		grid1D=ceil(n, MAXTHREADS);
 
@@ -239,13 +235,12 @@ void launch_kernel(float4 *d_pos, uchar4 *d_color, uint3 mesh, float time){
 		grid3D=dim3(bpg, bpg, bpg);
 
 		init(d_pos, d_color, mesh, n);
-		first=false;
 	}
 	
 	checkCudaErrors(cudaMemset(d_gridCounters, 0u, cells3*sizeof(uint)));
 	checkCudaErrors(cudaMemset(d_gridCells, 0u, 4*cells3*sizeof(uint)));
 	
-	float step=0.01f;
+	float step=0.001f;
 	integrate<<<grid1D, block1D>>>(d_gas, step, n);
 	updateGrid<<<grid1D, block1D>>>(d_gas, d_gridCounters, d_gridCells, n);
 	neighbors<<<grid3D, block3D>>>(d_gas, d_gridCounters, d_gridCells);

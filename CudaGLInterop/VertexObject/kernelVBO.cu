@@ -4,6 +4,7 @@
 #include <time.h>
 #include <helper_cuda.h>
 #include <curand_kernel.h>
+#include <cutil_math.h>
 #include "Planck.h"
 
 #define MAXTHREADS 512
@@ -11,8 +12,15 @@
 static const float dvmax=1.f;
 static bool first=true;
 
-float *d_mass, *d_aux;
-float3 *d_vel, *d_acc;
+struct Particle{
+	float mass;
+	float3 pos;
+	float3 vel;
+	float3 acc;
+};
+
+Particle *d_stars;
+float *d_aux;
 
 __device__
 static const float G=1.f, epsilon=0.0006f;
@@ -40,13 +48,10 @@ float magnitude2(const float3 &u){
     return u.x*u.x+u.y*u.y+u.z*u.z;
 }
 __device__
-void bodyBodyInteraction(float3 &a, const float4 &p, const float4 &q, const float m){
-	float3 r={q.x-p.x, q.y-p.y, q.z-p.z};
+float3 bodyBodyInteraction(const Particle &a, const Particle &b){
+	float3 r=a.pos-b.pos;
 	float r2=magnitude2(r);
-	float w2=m*invsqrt(r2*r2*r2+epsilon);
-	a.x+=r.x*w2;
-	a.y+=r.y*w2;
-	a.z+=r.z*w2;
+	return (b.mass*invsqrt(r2*r2*r2+epsilon))*r;
 }
 
 
@@ -75,44 +80,38 @@ void reduceMax(float *d_in, float *d_out, const size_t n){
     }
 }
 __global__
-void interact(float *d_mass, float4 *d_pos, float3 *d_acc, const size_t n){
-	extern __shared__ float4 s_pos[];
+void interact(Particle *d_stars, const size_t n){
+	extern __shared__ Particle s_par[];
 	int tid=threadIdx.x;
 	int src=blockIdx.x*blockDim.x+tid;
 	int dst=blockIdx.y*blockDim.x+tid;
 	if(src<n){
-		s_pos[tid]=d_pos[src];
-		s_pos[tid].w=d_mass[src];
+		s_par[tid]=d_stars[src];
 	}
 	__syncthreads();
 	if(dst<n){
-		float4 pos=d_pos[dst];
 		float3 acc={0.f, 0.f, 0.f};
 		for(int i=0; i<blockDim.x; i++){
-			bodyBodyInteraction(acc, pos, s_pos[i], s_pos[i].w);
+			acc+=bodyBodyInteraction(d_stars[dst], s_par[i]);
 		}
-		atomicAdd(&(d_acc[dst].x), acc.x);
-		atomicAdd(&(d_acc[dst].y), acc.y);
-		atomicAdd(&(d_acc[dst].z), acc.z);
+		atomicAdd(&(d_stars[dst].acc.x), acc.x);
+		atomicAdd(&(d_stars[dst].acc.y), acc.y);
+		atomicAdd(&(d_stars[dst].acc.z), acc.z);
 	}
 }
 __global__
-void move(float4 *d_pos, float3 *d_vel, float3 *d_acc, float dt, const size_t n){
-	int i=blockIdx.x*blockDim.x+threadIdx.x;
-	if(i<n){
-		float vx=d_vel[i].x+d_acc[i].x*dt;
-		float vy=d_vel[i].y+d_acc[i].y*dt;
-		float vz=d_vel[i].z+d_acc[i].z*dt;
-		d_pos[i].x+=vx*dt;
-		d_pos[i].y+=vy*dt;
-		d_pos[i].z+=vz*dt;
-		d_vel[i]={vx, vy, vz};
-		d_acc[i]={0.f, 0.f, 0.f};
+void integrate(float4 *d_pos, Particle* d_stars, float dt, const size_t n){
+	int gid=blockIdx.x*blockDim.x+threadIdx.x;
+	if(gid<n){
+		d_stars[gid].vel+=d_stars[gid].acc*dt;
+		float3 pos=d_stars[gid].pos+d_stars[gid].vel*dt;
+		d_stars[gid].pos=pos;
+		d_stars[gid].acc={0.f, 0.f, 0.f};
+		d_pos[gid]={pos.x, pos.y, pos.z, 1.f};
 	}
 }
 __global__
-void initialState(float* d_mass, uchar4* d_color, float4 *d_pos, float3 *d_vel, 
-	float3 *d_acc, uint2 mesh){
+void initialState(uchar4* d_color, float4 *d_pos, Particle* d_stars, uint3 mesh){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
 	
@@ -120,9 +119,9 @@ void initialState(float* d_mass, uchar4* d_color, float4 *d_pos, float3 *d_vel,
 		int n=mesh.x*mesh.y;
 		int k=j*mesh.x+i;
 			
-		float pi=3.1415926535f;
-		float theta=2*k*pi/mesh.x;
-		float r=mod((9*pi*k)/(n-1), 1.f);
+		float PI=3.1415926535f;
+		float theta=2*k*PI/mesh.x;
+		float r=mod((9*PI*k)/(n-1), 1.f);
 		float z=(2*k>n? 1:-1)*exp(-r*r*5)/20;
 		float x=r*cos(theta);
 		float y=r*sin(theta);
@@ -132,16 +131,17 @@ void initialState(float* d_mass, uchar4* d_color, float4 *d_pos, float3 *d_vel,
 		float w=sqrt(G*M);
 		
 		d_pos[k]={x, y, z, 1.f};
-		d_vel[k]={y*w, -x*w, 0.f};
-		d_acc[k]={0.f, 0.f, 0.f};
-		d_mass[k]=m;
+		d_stars[k].pos={x, y, z};
+		d_stars[k].vel={y*w, -x*w, 0.f};
+		d_stars[k].acc={0.f, 0.f, 0.f};
+		d_stars[k].mass=m;
 
 		float temp=1000.f+(m-1)*10000.f;
 		d_color[k]=planckColor(temp);
 	}
 }
 
-int divideCeil(int num, int den){
+int ceil(int num, int den){
 	return (num+den-1)/den;
 }
 unsigned int nextPowerOf2(unsigned int n){
@@ -171,38 +171,30 @@ float getMax(float *d_in, const size_t numElems){
 	return *h_out;
 }
 
-void init(float4* d_pos, uchar4* d_color, const uint2 mesh){
-	size_t n=mesh.x*mesh.y;
-	curandState* d_states;
-    checkCudaErrors(cudaMalloc((void**)&d_states, n*sizeof(curandState)));
+void init(float4* d_pos, uchar4* d_color, const uint3 mesh){
+	size_t n=mesh.x*mesh.y*mesh.z;
 	checkCudaErrors(cudaMalloc((void**)&d_aux, n*sizeof(float)));
-	checkCudaErrors(cudaMalloc((void**)&d_mass, n*sizeof(float)));
-	checkCudaErrors(cudaMalloc((void**)&d_vel, n*sizeof(float3)));
-	checkCudaErrors(cudaMalloc((void**)&d_acc, n*sizeof(float3)));
+	checkCudaErrors(cudaMalloc((void**)&d_stars, n*sizeof(Particle)));
 	dim3 block(16, 16);
-	dim3 grid(divideCeil(mesh.x, block.x), divideCeil(mesh.y, block.y));
-	initialState<<<grid, block>>>(d_mass, d_color, d_pos, d_vel, d_acc, mesh);
+	dim3 grid(ceil(mesh.x, block.x), ceil(mesh.y, block.y));
+	initialState<<<grid, block>>>(d_color, d_pos, d_stars, mesh);
 }
-
-
-// Wrapper for the __global__ call that sets up the kernel call
-void launch_kernel(float4 *d_pos, uchar4 *d_color, uint2 mesh, float time){
-	if(first){
+void launch_kernel(float4 *d_pos, uchar4 *d_color, uint3 mesh, float time){
+	if(time==0.f){
 		init(d_pos, d_color, mesh);
-		first=false;
 	}
 
-	size_t n=mesh.x*mesh.y;
+	size_t n=mesh.x*mesh.y*mesh.z;
 	int block1D=MAXTHREADS;
-	int grid1D=divideCeil(n, block1D);
+	int grid1D=ceil(n, block1D);
 	
 	int p=128;
-	int bytes=p*sizeof(float4);
-	dim3 grid2D(divideCeil(n, p), divideCeil(n, p));
+	int bytes=p*sizeof(Particle);
+	dim3 grid2D(ceil(n, p), ceil(n, p));
 	interact<<<grid2D, p, bytes>>>(d_mass, d_pos, d_acc, n);
 	
-	mapMagnitude2<<<grid1D, block1D>>>(d_acc, d_aux, n);
+	mapMagnitude2<<<grid1D, block1D>>>(d_stars, d_aux, n);
 	float dt=dvmax/sqrt(getMax(d_aux, n));
 	
-	move<<<grid1D, block1D>>>(d_pos, d_vel, d_acc, dt, n);
+	integrate<<<grid1D, block1D>>>(d_pos, d_stars, dt, n);
 }

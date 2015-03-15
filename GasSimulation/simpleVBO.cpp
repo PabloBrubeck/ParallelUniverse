@@ -12,7 +12,7 @@
 float animTime = 0.f;
  
 // constants
-const uint3 mesh={32u, 32u, 32u};
+const uint3 mesh={64u, 64u, 64u};
 const unsigned int RestartIndex = 0xffffffff;
  
 struct mappedBuffer_t{
