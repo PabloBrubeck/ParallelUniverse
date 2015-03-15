@@ -8,7 +8,7 @@
 #include <rendercheck_gl.h>
  
 extern float animTime;
- 
+
 // The user must create the following routines:
 void initCuda(int argc, char** argv);
 void runCuda();

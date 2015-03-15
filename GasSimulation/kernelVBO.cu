@@ -23,7 +23,6 @@ struct Particle{
 
 Particle *d_gas;
 uint *d_gridCounters, *d_gridCells;
-
 static dim3 grid1D, block1D, grid3D, block3D;
 
 __device__
@@ -117,11 +116,12 @@ void neighbors(Particle* d_gas, uint* d_gridCounters, uint* d_gridCells){
 	if(hx<cells && hy<cells && hz<cells){
 		int hid=(hz*cells+hy)*cells+hx;
 		int hcount=d_gridCounters[hid];
+		
 		if(hcount==0){
 			return;
 		}
 		int ncount=0;
-		int neighbors[64];
+		int neighbors[128];
 
 		int nx, ny, nz;
 		for(int i=-1; i<=1; i++){
@@ -203,18 +203,6 @@ uint nextPowerOf2(uint n){
   }
   return 1<<k;
 }
-void printArray(uint* arr, int n){
-	for(int i=0; i<n; i++){
-		printf("%u ", arr[i]);
-	}
-	printf("\n");
-}
-void printFromDevice(uint* d_array, int length){
-    uint *h_temp=new uint[length];
-    checkCudaErrors(cudaMemcpy(h_temp, d_array, length*sizeof(uint), cudaMemcpyDeviceToHost)); 
-    printArray(h_temp, length);
-    delete[] h_temp;
-}
 
 
 void init(float4* d_pos, uchar4* d_color, uint3 mesh, int n){
@@ -226,7 +214,7 @@ void init(float4* d_pos, uchar4* d_color, uint3 mesh, int n){
 }
 void launch_kernel(float4 *d_pos, uchar4 *d_color, uint3 mesh, float time){
 	int n=mesh.x*mesh.y*mesh.z;
-	if(time==0){
+	if(time==0.f){
 		block1D=MAXTHREADS;
 		grid1D=ceil(n, MAXTHREADS);
 
@@ -240,11 +228,9 @@ void launch_kernel(float4 *d_pos, uchar4 *d_color, uint3 mesh, float time){
 	checkCudaErrors(cudaMemset(d_gridCounters, 0u, cells3*sizeof(uint)));
 	checkCudaErrors(cudaMemset(d_gridCells, 0u, 4*cells3*sizeof(uint)));
 	
-	float step=0.001f;
+	float step=0.01f;
 	integrate<<<grid1D, block1D>>>(d_gas, step, n);
 	updateGrid<<<grid1D, block1D>>>(d_gas, d_gridCounters, d_gridCells, n);
 	neighbors<<<grid3D, block3D>>>(d_gas, d_gridCounters, d_gridCells);
 	updatePoints<<<grid1D, block1D>>>(d_gas, d_pos, d_color, n);
-
-	//printFromDevice(d_gridCounters+1090105, 20);
 }
