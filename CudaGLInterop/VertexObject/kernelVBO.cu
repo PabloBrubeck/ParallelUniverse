@@ -10,7 +10,6 @@
 #define MAXTHREADS 512
 
 static const float dvmax=1.f;
-static bool first=true;
 
 struct Particle{
 	float mass;
