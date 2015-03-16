@@ -1,4 +1,4 @@
-// simpleVBO.cpp (Rob Farber)
+// simpleVBO.cpp based on Rob Farber's code from drdobbs.com
 
 #include <GL/glew.h>
 #include <GL/gl.h>
@@ -12,7 +12,7 @@
 float animTime = 0.f;
  
 // constants
-const uint3 mesh={64u, 64u, 64u};
+const dim3 mesh(64, 64, 64);
 const unsigned int RestartIndex = 0xffffffff;
  
 struct mappedBuffer_t{
@@ -21,7 +21,7 @@ struct mappedBuffer_t{
   struct cudaGraphicsResource *cudaResource;
 };
 
-void launch_kernel(float4* d_pos, uchar4* d_color, uint3 mesh, float time);
+void launch_kernel(float4* d_pos, uchar4* d_color, dim3 mesh, float time);
  
 // vbo variables
 mappedBuffer_t vertexVBO = {NULL, sizeof(float4), NULL};
@@ -111,6 +111,12 @@ void renderCuda(int drawMode){
 		case GL_LINE_STRIP:
 			for(int i=0 ; i<n; i+=mesh.x){
 				glDrawArrays(GL_LINE_STRIP, i, mesh.x);
+			}
+			break;
+
+		case GL_LINE_LOOP:
+			for(int i=0 ; i<n; i+=mesh.x){
+				glDrawArrays(GL_LINE_LOOP, i, mesh.x);
 			}
 			break;
 

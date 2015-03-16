@@ -1,150 +1,58 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-#include <stdio.h>
-#include <time.h>
 #include <helper_cuda.h>
-#include <curand_kernel.h>
-#include "Planck.h"
+#include <cutil_math.h>
+#include "geometry.cuh"
 
 #define MAXTHREADS 512
+#define PI 3.14159265f
 
-static const float dvmax=1.f;
-
-float *d_mass, *d_aux;
-float3 *d_vel, *d_acc;
-
-__device__
-static const float G=1.f, epsilon=0.0006f;
-
-__device__
-float mod(float x, float y) {
-	return x-y*floor(x/y);
-}
-__device__
-float invsqrt(float x){
-	long i;
-	float x2, y;
-	const float threehalfs = 1.5F;
-	x2=x*0.5F;
-	y=x;
-	i=*(long*)&y;                // evil floating point bit level hacking
-	i=0x5f3759df-(i>>1);         // what the fuck?
-	y=*(float*)&i;
-	y=y*(threehalfs-(x2*y*y));   // 1st iteration
-    y=y*(threehalfs-(x2*y*y));   // 2nd iteration, this can be removed
-	return y;
-}
-__device__
-float magnitude2(const float3 &u){
-    return u.x*u.x+u.y*u.y+u.z*u.z;
-}
-__device__
-void bodyBodyInteraction(float3 &a, const float4 &p, const float4 &q, const float m){
-	float3 r={q.x-p.x, q.y-p.y, q.z-p.z};
-	float r2=magnitude2(r);
-	float w2=m*invsqrt(r2*r2*r2+epsilon);
-	a.x+=r.x*w2;
-	a.y+=r.y*w2;
-	a.z+=r.z*w2;
-}
-
+static dim3 grid3D, block3D;
 
 __global__
-void mapMagnitude2(float3 *d_vec, float *d_abs, const size_t n){
-	int i=blockIdx.x*blockDim.x+threadIdx.x;
-	if(i<n){
-		d_abs[i]=magnitude2(d_vec[i]);
-	}
-}
-__global__
-void reduceMax(float *d_in, float *d_out, const size_t n){   
-    extern __shared__ float shared[];
-	int tid=threadIdx.x;
-    int gid=blockIdx.x*blockDim.x+tid;
-	shared[tid]= gid<n? d_in[gid]: -FLT_MAX;
-    __syncthreads();
-    for(unsigned int s=blockDim.x/2; s>0; s>>=1){
-        if(tid<s){
-            shared[tid]=__max(shared[tid], shared[tid+s]);
-        }
-        __syncthreads();
-    }
-    if(tid==0){
-        d_out[blockIdx.x]=shared[0];
-    }
-}
-__global__
-void interact(float *d_mass, float4 *d_pos, float3 *d_acc, const size_t n){
-	extern __shared__ float4 s_pos[];
-	int tid=threadIdx.x;
-	int src=blockIdx.x*blockDim.x+tid;
-	int dst=blockIdx.y*blockDim.x+tid;
-	if(src<n){
-		s_pos[tid]=d_pos[src];
-		s_pos[tid].w=d_mass[src];
-	}
-	__syncthreads();
-	if(dst<n){
-		float4 pos=d_pos[dst];
-		float3 acc={0.f, 0.f, 0.f};
-		for(int i=0; i<blockDim.x; i++){
-			bodyBodyInteraction(acc, pos, s_pos[i], s_pos[i].w);
-		}
-		atomicAdd(&(d_acc[dst].x), acc.x);
-		atomicAdd(&(d_acc[dst].y), acc.y);
-		atomicAdd(&(d_acc[dst].z), acc.z);
-	}
-}
-__global__
-void move(float4 *d_pos, float3 *d_vel, float3 *d_acc, float dt, const size_t n){
-	int i=blockIdx.x*blockDim.x+threadIdx.x;
-	if(i<n){
-		float vx=d_vel[i].x+d_acc[i].x*dt;
-		float vy=d_vel[i].y+d_acc[i].y*dt;
-		float vz=d_vel[i].z+d_acc[i].z*dt;
-		d_pos[i].x+=vx*dt;
-		d_pos[i].y+=vy*dt;
-		d_pos[i].z+=vz*dt;
-		d_vel[i]={vx, vy, vz};
-		d_acc[i]={0.f, 0.f, 0.f};
-	}
-}
-__global__
-void initialState(float* d_mass, uchar4* d_color, float4 *d_pos, float3 *d_vel, 
-	float3 *d_acc, uint3 mesh){
+void animate(uchar4* d_color, float4 *d_pos, dim3 mesh, float time){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
-	
-	if(i<mesh.x && j<mesh.y){
-		int n=mesh.x*mesh.y;
-		int k=j*mesh.x+i;
-			
-		float pi=3.1415926535f;
-		float theta=2*k*pi/mesh.x;
-		float r=mod((9*pi*k)/(n-1), 1.f);
-		float z=(2*k>n? 1:-1)*exp(-r*r*5)/20;
-		float x=r*cos(theta);
-		float y=r*sin(theta);
-		
-		float m=2.f-r;
-		float M=1.5f*n*r;
-		float w=sqrtf(G*M);
-		
-		d_pos[k]={x, y, z, 1.f};
-		d_vel[k]={y*w, -x*w, 0.f};
-		d_acc[k]={0.f, 0.f, 0.f};
-		d_mass[k]=m;
+	int k=blockIdx.z*blockDim.z+threadIdx.z;
 
-		float temp=1000.f+(m-1)*10000.f;
-		d_color[k]=planckColor(temp);
+	if(i<mesh.x && j<mesh.y && k<mesh.z){
+		int gid=(k*mesh.y+j)*mesh.x+i;
+		
+		float s=param(-0.5f, 0.5f, 3, i, mesh.x);
+		float t=param(0.f, 2*PI, 1, j, mesh.y);
+
+		float4 temp={0.f,0.f,0.f,1.f};
+		mobius(temp, s, t, 1.f);
+		d_pos[gid]=0.99f*d_pos[gid]+0.01f*temp;
+	}
+}
+__global__
+void initialState(uchar4* d_color, float4 *d_pos, dim3 mesh){
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	int j=blockIdx.y*blockDim.y+threadIdx.y;
+	int k=blockIdx.z*blockDim.z+threadIdx.z;
+
+	if(i<mesh.x && j<mesh.y && k<mesh.z){
+		int gid=(k*mesh.y+j)*mesh.x+i;
+
+		
+		float u=param(0, 2*PI, 1, j, mesh.y);
+		float v=param(0, 2*PI, 1, i, mesh.x);
+
+		d_pos[gid].w=1.f;
+		torus(d_pos[gid], u, v, 0.5f, 1.f);
+		d_color[gid]={255u, 255u, 255u, 255u};
 	}
 }
 
 
-int divideCeil(int num, int den){
+int ceil(int num, int den){
 	return (num+den-1)/den;
 }
-unsigned int nextPowerOf2(unsigned int n){
+float mod(float x, float y){
+	return x-y*floor(x/y);
+}
+unsigned nextPowerOf2(unsigned n){
   unsigned k=0;
   if(n&&!(n&(n-1))){
 	  return n;
@@ -155,51 +63,13 @@ unsigned int nextPowerOf2(unsigned int n){
   }
   return 1<<k;
 }
-float getMax(float *d_in, const size_t numElems){
-	int n=numElems;
-	int grid, block=MAXTHREADS;
-	float *h_out=new float();
-	do{
-		grid=(n+block-1)/block;
-		if(grid==1){
-			block=nextPowerOf2(n);
-		}
-		reduceMax<<<grid, block, block*sizeof(float)>>>(d_in, d_in, n);
-		n=grid;
-	}while(grid>1);
-	checkCudaErrors(cudaMemcpy(h_out, d_in, sizeof(float), cudaMemcpyDeviceToHost));
-	return *h_out;
-}
-
-void init(float4* d_pos, uchar4* d_color, const uint3 mesh){
-	size_t n=mesh.x*mesh.y*mesh.z;
-	checkCudaErrors(cudaMalloc((void**)&d_aux, n*sizeof(float)));
-	checkCudaErrors(cudaMalloc((void**)&d_mass, n*sizeof(float)));
-	checkCudaErrors(cudaMalloc((void**)&d_vel, n*sizeof(float3)));
-	checkCudaErrors(cudaMalloc((void**)&d_acc, n*sizeof(float3)));
-	dim3 block(16, 16);
-	dim3 grid(divideCeil(mesh.x, block.x), divideCeil(mesh.y, block.y));
-	initialState<<<grid, block>>>(d_mass, d_color, d_pos, d_vel, d_acc, mesh);
-}
 
 
-// Wrapper for the __global__ call that sets up the kernel call
-void launch_kernel(float4 *d_pos, uchar4 *d_color, uint3 mesh, float time){
-	if(time==0.f){
-		init(d_pos, d_color, mesh);
+void launch_kernel(float4 *d_pos, uchar4 *d_color, dim3 mesh, float time){
+	if(mod(time,10)<=0.01f){
+		block3D=dim3(8, 8, 8);
+		grid3D=dim3(ceil(mesh.x, 8), ceil(mesh.y, 8), ceil(mesh.z, 8));
+		initialState<<<grid3D, block3D>>>(d_color, d_pos, mesh);
 	}
-
-	size_t n=mesh.x*mesh.y*mesh.z;
-	int block1D=MAXTHREADS;
-	int grid1D=divideCeil(n, block1D);
-	
-	int p=128;
-	int bytes=p*sizeof(float4);
-	dim3 grid2D(divideCeil(n, p), divideCeil(n, p));
-	interact<<<grid2D, p, bytes>>>(d_mass, d_pos, d_acc, n);
-	
-	mapMagnitude2<<<grid1D, block1D>>>(d_acc, d_aux, n);
-	float dt=dvmax/sqrt(getMax(d_aux, n));
-	
-	move<<<grid1D, block1D>>>(d_pos, d_vel, d_acc, dt, n);
+	animate<<<grid3D, block3D>>>(d_color, d_pos, mesh, time);
 }

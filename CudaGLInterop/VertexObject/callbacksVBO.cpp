@@ -14,7 +14,7 @@ void initCuda(int argc, char** argv);
 void runCuda();
 void renderCuda(int);
  
-int drawMode=GL_POINTS; // the default draw mode: GL_TRIANGLE_FAN
+int drawMode=GL_LINE_LOOP; // the default draw mode
  
 // mouse controls
 int2 mouseOld;
@@ -56,7 +56,8 @@ void keyboard(unsigned char key, int x, int y){
 	case 'D':
 		switch(drawMode){
 		case GL_POINTS: drawMode = GL_LINE_STRIP; break;
-		case GL_LINE_STRIP: drawMode = GL_TRIANGLE_FAN; break;
+		case GL_LINE_STRIP: drawMode = GL_LINE_LOOP; break;
+		case GL_LINE_LOOP: drawMode = GL_TRIANGLE_FAN; break;
 		default: drawMode=GL_POINTS;
 		}
 		break;

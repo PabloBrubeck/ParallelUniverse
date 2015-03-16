@@ -5,7 +5,7 @@
 #include <helper_cuda.h>
 #include <curand_kernel.h>
 #include <cutil_math.h>
-#include "Planck.h"
+#include "Planck.cuh"
 
 #define L 0.015625f               // cell lenght = 2*particle radius
 #define L2 L*L                    // cell lenght squared
@@ -79,7 +79,7 @@ void collision(Particle *d_gas, int a, int b){
 
 
 __global__
-void initialState(Particle* d_gas, uchar4* d_color, uint3 mesh){
+void initialState(Particle* d_gas, uchar4* d_color, dim3 mesh){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
 	int k=blockIdx.z*blockDim.z+threadIdx.z;
@@ -91,7 +91,7 @@ void initialState(Particle* d_gas, uchar4* d_color, uint3 mesh){
 		float z=((float)(2*k))/mesh.z-1.f;
 		
 		d_gas[gid].pos={x, y, z};
-		d_gas[gid].vel={x, y, z};
+		d_gas[gid].vel={-x, -y, -z};
 		d_gas[gid].acc={0.f, 0.f, 0.f};
 		d_color[gid]={255u, 255u, 255u, 255u};
 	}
@@ -205,14 +205,14 @@ uint nextPowerOf2(uint n){
 }
 
 
-void init(float4* d_pos, uchar4* d_color, uint3 mesh, int n){
+void init(float4* d_pos, uchar4* d_color, dim3 mesh, int n){
 	checkCudaErrors(cudaMalloc((void**)&d_gas, n*sizeof(Particle)));
 	checkCudaErrors(cudaMalloc((void**)&d_gridCounters, cells3*sizeof(uint)));
 	checkCudaErrors(cudaMalloc((void**)&d_gridCells, 4*cells3*sizeof(uint)));
 	dim3 grid(ceil(mesh.x, 8), ceil(mesh.y, 8), ceil(mesh.z, 8));
 	initialState<<<grid, block3D>>>(d_gas, d_color, mesh);
 }
-void launch_kernel(float4 *d_pos, uchar4 *d_color, uint3 mesh, float time){
+void launch_kernel(float4 *d_pos, uchar4 *d_color, dim3 mesh, float time){
 	int n=mesh.x*mesh.y*mesh.z;
 	if(time==0.f){
 		block1D=MAXTHREADS;

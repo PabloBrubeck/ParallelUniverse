@@ -9,8 +9,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PixelObject", "PixelObject\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Bitmap", "Bitmap\Bitmap.vcxproj", "{EE58B096-6C59-4392-B908-557BEC0D8013}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PlanckColor", "PlanckColor\PlanckColor.vcxproj", "{07BF1518-809C-4ED7-A32B-E4673AE8533F}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -45,12 +43,6 @@ Global
 		{EE58B096-6C59-4392-B908-557BEC0D8013}.Release|Win32.Build.0 = Release|Win32
 		{EE58B096-6C59-4392-B908-557BEC0D8013}.Release|x64.ActiveCfg = Release|x64
 		{EE58B096-6C59-4392-B908-557BEC0D8013}.Release|x64.Build.0 = Release|x64
-		{07BF1518-809C-4ED7-A32B-E4673AE8533F}.Debug|Win32.ActiveCfg = Debug|Win32
-		{07BF1518-809C-4ED7-A32B-E4673AE8533F}.Debug|Win32.Build.0 = Debug|Win32
-		{07BF1518-809C-4ED7-A32B-E4673AE8533F}.Debug|x64.ActiveCfg = Debug|Win32
-		{07BF1518-809C-4ED7-A32B-E4673AE8533F}.Release|Win32.ActiveCfg = Release|Win32
-		{07BF1518-809C-4ED7-A32B-E4673AE8533F}.Release|Win32.Build.0 = Release|Win32
-		{07BF1518-809C-4ED7-A32B-E4673AE8533F}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

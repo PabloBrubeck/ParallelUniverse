@@ -166,7 +166,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClCompile Include="VertexMain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Planck.h" />
+    <ClInclude Include="Planck.cuh" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -21,6 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{27B1B21E-4CA1-43E3-978C-3C1CF6FEE816}</ProjectGuid>
     <RootNamespace>VertexObject</RootNamespace>
+    <ProjectName>N-body</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -166,7 +167,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClCompile Include="VertexMain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="geometry.cuh" />
+    <ClInclude Include="Planck.cuh" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

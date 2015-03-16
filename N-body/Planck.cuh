@@ -1,6 +1,5 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-#include <stdio.h>
 #include <helper_cuda.h>
 #include <cutil_math.h>
 
@@ -68,7 +67,7 @@ float3 blackBody(float temperature){
         ZZ+=weight*dis*fColorMatch[band][2];
     }
     // re-normalize the color scale
-    float denom=max(XX, YY, ZZ);
+    float denom=max(XX,YY,ZZ);
 	return {XX/denom, YY/denom, ZZ/denom};
 }
 __device__
@@ -84,9 +83,10 @@ uchar4 XYZ2RGB(float3 r, float3 g, float3 b, float3 color){
     float blue=((r.x*g.y-g.x*r.y)*color.z+(color.x*r.y-r.x*color.y)*g.z
         +(g.x*color.y-color.x*g.y)*r.z)/den;
 
-    red=clamp(red, 0.f, 1.f);
+	
+    red=  clamp(red, 0.f, 1.f);
 	green=clamp(green, 0.f, 1.f);
-	blue=clamp(blue, 0.f, 1.f);
+	blue= clamp(blue, 0.f, 1.f);
 	rangeMax=fmax(fmax(red, green), fmax(blue, rangeMax));
 	red=depth*powf(red/rangeMax, gamma);
 	green=depth*powf(green/rangeMax, gamma);

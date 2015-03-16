@@ -25,7 +25,7 @@
     </CudaCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Planck.h">
+    <ClInclude Include="Planck.cuh">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
