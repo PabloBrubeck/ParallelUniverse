@@ -7,44 +7,18 @@
 #define MAXTHREADS 512
 #define PI 3.14159265f
 
-static dim3 grid3D, block3D;
+float4* d_shape;
 
 __global__
-void animate(uchar4* d_color, float4 *d_pos, dim3 mesh, float time){
+void animate(float4 *d_pos, float4 *d_shape, dim3 mesh){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
 	int k=blockIdx.z*blockDim.z+threadIdx.z;
-
 	if(i<mesh.x && j<mesh.y && k<mesh.z){
 		int gid=(k*mesh.y+j)*mesh.x+i;
-		
-		float s=param(-0.5f, 0.5f, 3, i, mesh.x);
-		float t=param(0.f, 2*PI, 1, j, mesh.y);
-
-		float4 temp={0.f,0.f,0.f,1.f};
-		mobius(temp, s, t, 1.f);
-		d_pos[gid]=0.99f*d_pos[gid]+0.01f*temp;
+		d_pos[gid]=0.99f*d_pos[gid]+0.01f*d_shape[gid];
 	}
 }
-__global__
-void initialState(uchar4* d_color, float4 *d_pos, dim3 mesh){
-	int i=blockIdx.x*blockDim.x+threadIdx.x;
-	int j=blockIdx.y*blockDim.y+threadIdx.y;
-	int k=blockIdx.z*blockDim.z+threadIdx.z;
-
-	if(i<mesh.x && j<mesh.y && k<mesh.z){
-		int gid=(k*mesh.y+j)*mesh.x+i;
-
-		
-		float u=param(0, 2*PI, 1, j, mesh.y);
-		float v=param(0, 2*PI, 1, i, mesh.x);
-
-		d_pos[gid].w=1.f;
-		torus(d_pos[gid], u, v, 0.5f, 1.f);
-		d_color[gid]={255u, 255u, 255u, 255u};
-	}
-}
-
 
 int ceil(int num, int den){
 	return (num+den-1)/den;
@@ -66,10 +40,17 @@ unsigned nextPowerOf2(unsigned n){
 
 
 void launch_kernel(float4 *d_pos, uchar4 *d_color, dim3 mesh, float time){
-	if(mod(time,10)<=0.01f){
-		block3D=dim3(8, 8, 8);
-		grid3D=dim3(ceil(mesh.x, 8), ceil(mesh.y, 8), ceil(mesh.z, 8));
-		initialState<<<grid3D, block3D>>>(d_color, d_pos, mesh);
+	static int n=mesh.x*mesh.y*mesh.z;
+	static dim3 block(8, 8, 8);
+	static dim3 grid(ceil(mesh.x, 8), ceil(mesh.y, 8), ceil(mesh.z, 8));
+	
+	if(time==0.f){
+		cudaMalloc((void**)&d_shape, n*sizeof(float4));
+		figureEight<<<block, grid>>>(d_shape, mesh, 1.f, 2.f);
 	}
-	animate<<<grid3D, block3D>>>(d_color, d_pos, mesh, time);
+	if(mod(time, 10)<=0.01f){
+		torus<<<block, grid>>>(d_pos, mesh, 1.f, 2.f);
+	}
+	animate<<<grid, block>>>(d_pos, d_shape, mesh);
+	color<<<grid, block>>>(d_color, d_pos, mesh);
 }

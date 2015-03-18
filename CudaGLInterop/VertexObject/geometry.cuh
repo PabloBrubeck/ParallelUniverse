@@ -3,27 +3,15 @@
 #include <helper_cuda.h>
 #include <cutil_math.h>
 
-__device__
-float param(float min, float max, char s, int i, int n){
-	float range=max-min;
-	switch(s){
-	default:
-	case 0: // (min, max)
-		return min+range*((i+0.5f)/n);
-	case 1: // [min, max)
-		return min+range*((i+0.0f)/n);
-	case 2: // (min, max]
-		return min+range*((i+1.0f)/n);
-	case 3: // [min, max]
-		return min+range*(i/(n-1.f));
-	}
-}
+#define PI 3.14159265f
+
 
 __device__
 void cylindrical(float4 &p, float r, float theta, float z){
 	p.x=r*cosf(theta);
 	p.y=r*sinf(theta);
 	p.z=z;
+	p.w=1.f;
 }
 __device__
 void spherical(float4 &p, float rho, float theta, float phi){
@@ -31,29 +19,75 @@ void spherical(float4 &p, float rho, float theta, float phi){
 	p.x=r*cosf(theta);
 	p.y=r*sinf(theta);
 	p.z=rho*cosf(phi);
+	p.w=1.f;
 }
-__device__
-void torus(float4 &p, float u, float v, float a, float c){
-	float r=c+a*cosf(v);
-	p.x=r*cosf(u);
-	p.y=r*sinf(u);
-	p.z=a*sinf(v);
+
+
+__global__
+void color(uchar4 *d_color, float4 *d_vertex, dim3 mesh){
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	int j=blockIdx.y*blockDim.y+threadIdx.y;
+	int k=blockIdx.z*blockDim.z+threadIdx.z;
+	if(i<mesh.x && j<mesh.y && k<mesh.z){
+		int gid=(k*mesh.y+j)*mesh.x+i;
+		float4 p=d_vertex[gid];
+		float x2=p.x*p.x;
+		float y2=p.y*p.y;
+		float z2=p.z*p.z;
+		float r2=x2+y2+z2;
+		p={x2/r2, y2/r2, z2/r2, 1.f};
+		d_color[gid]={255*p.x, 255*p.y, 255*p.z, 255};
+	}
 }
-__device__
-void mobius(float4 &p, float s, float t, float r){
-	r+=s*cosf(t/2.f);
-    p.x=r*cosf(t);
-    p.y=r*sinf(t);
-    p.z=s*sinf(t/2.f);
+__global__
+void sphere(float4 *d_vertex, dim3 mesh, float r){
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	int j=blockIdx.y*blockDim.y+threadIdx.y;
+	int k=blockIdx.z*blockDim.z+threadIdx.z;
+	if(i<mesh.x && j<mesh.y && k<mesh.z){
+		int gid=(k*mesh.y+j)*mesh.x+i;
+		float u=(2*j*PI)/mesh.y;
+		float v=(2*i*PI)/mesh.x;
+		spherical(d_vertex[gid], r, u, v);
+	}
 }
-__device__
-void figureEight(float4 &p, float u, float v, float r, float c){
-	float a=sinf(v);
-    float b=sinf(2*v);
-    float cos=cosf(-u);
-    float sin=sinf(-u);
-    float t=r*(c+a*cos-b*sin);
-    p.x=t*cosf(-2*u);
-	p.y=t*sinf(-2*u);
-	p.z=r*(a*sin+b*cos);
+__global__
+void torus(float4 *d_vertex, dim3 mesh, float a, float c){
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	int j=blockIdx.y*blockDim.y+threadIdx.y;
+	int k=blockIdx.z*blockDim.z+threadIdx.z;
+	if(i<mesh.x && j<mesh.y && k<mesh.z){
+		int gid=(k*mesh.y+j)*mesh.x+i;
+		float u=(2*j*PI)/mesh.y;
+		float v=(2*i*PI)/mesh.x;
+		cylindrical(d_vertex[gid], c+a*cosf(v), u, a*sinf(v));
+	}
+}
+__global__
+void mobius(float4 *d_vertex, dim3 mesh, float r, float w){
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	int j=blockIdx.y*blockDim.y+threadIdx.y;
+	int k=blockIdx.z*blockDim.z+threadIdx.z;
+	if(i<mesh.x && j<mesh.y && k<mesh.z){
+		int gid=(k*mesh.y+j)*mesh.x+i;
+		float s=w*((2*i)/(mesh.x-1.f)-1.f);
+		float t=(2*j*PI)/mesh.y;
+		cylindrical(d_vertex[gid], r+s*cosf(t/2.f), t, s*sinf(t/2.f));
+	}
+}
+__global__
+void figureEight(float4 *d_vertex, dim3 mesh, float r, float w){
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	int j=blockIdx.y*blockDim.y+threadIdx.y;
+	int k=blockIdx.z*blockDim.z+threadIdx.z;
+	if(i<mesh.x && j<mesh.y && k<mesh.z){
+		int gid=(k*mesh.y+j)*mesh.x+i;
+		float v=(2*i*PI)/mesh.x;
+		float u=(2*j*PI)/mesh.y;
+		float a=cosf(u/2);
+		float b=sinf(u/2);
+		float c=sinf(v);
+		float d=sinf(2*v);
+		cylindrical(d_vertex[gid], r*(w+a*c-b*d), u, r*(a*d+b*c));
+	}
 }

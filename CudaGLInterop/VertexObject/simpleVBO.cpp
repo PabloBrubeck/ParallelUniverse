@@ -12,9 +12,9 @@
 float animTime = 0.f;
  
 // constants
-const dim3 mesh(64, 64, 1);
+const dim3 mesh(256, 256, 1);
 const unsigned int RestartIndex = 0xffffffff;
- 
+
 struct mappedBuffer_t{
   GLuint vbo;
   GLuint typeSize;
@@ -120,24 +120,29 @@ void renderCuda(int drawMode){
 			}
 			break;
 
-		case GL_TRIANGLE_FAN:{ 
+		case GL_TRIANGLE_FAN:{
 			int size=5*(mesh.y-1)*(mesh.x-1);
-			static GLuint* qIndices=(GLuint*)malloc(size*sizeof(GLint));
-			for(int k=0; k<mesh.z; k++){
-				// allocate and assign trianglefan indicies 
+			static GLuint* qIndices=NULL;
+			if(qIndices==NULL){
+				qIndices=(GLuint*)malloc(mesh.z*size*sizeof(GLint));
 				int index=0;
-				for(int j=1; j<mesh.y; j++){
-					for(int i=1; i<mesh.x; i++){
-						qIndices[index++]=(k*mesh.y+j)*mesh.x+i; 
-						qIndices[index++]=(k*mesh.y+j)*mesh.x+i-1; 
-						qIndices[index++]=(k*mesh.y+j-1)*mesh.x+i-1; 
-						qIndices[index++]=(k*mesh.y+j-1)*mesh.x+i; 
-						qIndices[index++]=RestartIndex;
+				// allocate and assign trianglefan indicies 
+				for(int k=0; k<mesh.z; k++){
+					for(int j=1; j<mesh.y; j++){
+						for(int i=1; i<mesh.x; i++){
+							qIndices[index++]=(k*mesh.y+j)*mesh.x+i; 
+							qIndices[index++]=(k*mesh.y+j)*mesh.x+i-1; 
+							qIndices[index++]=(k*mesh.y+j-1)*mesh.x+i-1; 
+							qIndices[index++]=(k*mesh.y+j-1)*mesh.x+i; 
+							qIndices[index++]=RestartIndex;
+						}
 					}
 				}
+			}
+			for(int i=0; i<n; i+=size){
 				glPrimitiveRestartIndexNV(RestartIndex);
 				glEnableClientState(GL_PRIMITIVE_RESTART_NV);
-				glDrawElements(GL_TRIANGLE_FAN, size, GL_UNSIGNED_INT, qIndices);
+				glDrawElements(GL_TRIANGLE_FAN, size, GL_UNSIGNED_INT, qIndices+i);
 				glDisableClientState(GL_PRIMITIVE_RESTART_NV);
 			}
 			break;
