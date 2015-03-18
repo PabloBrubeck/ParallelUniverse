@@ -30,6 +30,24 @@ void displayTriangle()
 	glFlush();
 }
 
+void displaySolidTeapot()
+{
+	glClear(GL_COLOR_BUFFER_BIT);
+	glClearColor(0.0, 0.0, 0.0, 0.0);
+	glColor3f(1.0, 0.0, 1.0);
+	glutSolidTeapot(0.5);
+	glFlush();
+}
+
+void displayWireTeapot()
+{
+	glClear(GL_COLOR_BUFFER_BIT);
+	glClearColor(0.0, 0.0, 0.0, 0.0);
+	glColor3f(1.0, 1.0, 0.0);
+	glutWireTeapot(0.5);
+	glFlush();
+}
+
 void display()
 {
 	//Clear window
@@ -69,17 +87,28 @@ void display()
 
 void mymenu(int value)
 {
-	if (value == 0)
-		displayTriangle();
-	if (value == 1)
-		display();
-	if (value == 2)
+	switch (value)
 	{
+	case 0:
+		displayTriangle();
+		break;
+	case 1:
+		display();
+		break;
+	case 2:
+		displaySolidTeapot();
+		break;
+	case 3:
+		displayWireTeapot();
+		break;
+	case 4:
 		glClear(GL_COLOR_BUFFER_BIT);
 		glFlush();
-	}
-	if (value == 3)
+		break;
+	case 5:
 		exit(0);
+		break;
+	}
 }
 
 void init()
@@ -113,8 +142,10 @@ int main(int argc, char** argv)
 	int id = glutCreateMenu(mymenu);
 	glutAddMenuEntry("Triangle", 0);
 	glutAddMenuEntry("Circle", 1);
-	glutAddMenuEntry("Clear screen", 2);
-	glutAddMenuEntry("Exit", 3);
+	glutAddMenuEntry("Solid Teapot", 2);
+	glutAddMenuEntry("Wire Teapot", 3);
+	glutAddMenuEntry("Clear screen", 4);
+	glutAddMenuEntry("Exit", 5);
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
 	init();
 	glutMainLoop();
