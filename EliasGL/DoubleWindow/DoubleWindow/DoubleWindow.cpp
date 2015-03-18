@@ -1,10 +1,5 @@
-// DoubleWindow.cpp : Defines the entry point for the console application.
-//
-
-#include "stdafx.h"
 #include <windows.h>
-#include <gl/gl.h>
-#include <GL/glut.h>
+#include <glut.h>
 #include <math.h>
 #define DEG_TO_RAD 0.017453
 int singleb, doubleb; //Window ids
@@ -14,9 +9,9 @@ void displays()
 {
 	glClear(GL_COLOR_BUFFER_BIT);
 	glBegin(GL_POLYGON);
-	glVertex2f(sin(DEG_TO_RAD*theta), cos(DEG_TO_RAD*theta));
+	glVertex2f(cos(DEG_TO_RAD*theta), sin(DEG_TO_RAD*theta));
 	glVertex2f(-sin(DEG_TO_RAD*theta), cos(DEG_TO_RAD*theta));
-	glVertex2f(-sin(DEG_TO_RAD*theta), -cos(DEG_TO_RAD*theta));
+	glVertex2f(-cos(DEG_TO_RAD*theta), -sin(DEG_TO_RAD*theta));
 	glVertex2f(sin(DEG_TO_RAD*theta), -cos(DEG_TO_RAD*theta));
 	glEnd();
 	glFlush();
@@ -26,9 +21,9 @@ void displayd()
 {
 	glClear(GL_COLOR_BUFFER_BIT);
 	glBegin(GL_POLYGON);
-	glVertex2f(sin(DEG_TO_RAD*theta), cos(DEG_TO_RAD*theta));
+	glVertex2f(cos(DEG_TO_RAD*theta), sin(DEG_TO_RAD*theta));
 	glVertex2f(-sin(DEG_TO_RAD*theta), cos(DEG_TO_RAD*theta));
-	glVertex2f(-sin(DEG_TO_RAD*theta), -cos(DEG_TO_RAD*theta));
+	glVertex2f(-cos(DEG_TO_RAD*theta), -sin(DEG_TO_RAD*theta));
 	glVertex2f(sin(DEG_TO_RAD*theta), -cos(DEG_TO_RAD*theta));
 	glEnd();
 	glutSwapBuffers();
@@ -47,6 +42,7 @@ void spinDisplay()
 	//Draw double buffer window
 	glutSetWindow(doubleb);
 	glutPostWindowRedisplay(doubleb);
+	Sleep(10);
 }
 
 void mouse(int btn, int state, int x, int y)
