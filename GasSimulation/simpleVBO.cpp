@@ -88,7 +88,7 @@ void initCuda(int argc, char** argv){
 	createVBO(&colorVBO);
 	// make certain the VBO gets cleaned up on program exit
 	atexit(cleanupCuda);
-
+	
 	runCuda();
 }
  

@@ -21,10 +21,6 @@ struct Particle{
 };
 
 
-Particle *d_gas;
-uint *d_gridCounters, *d_gridCells;
-static dim3 grid1D, block1D, grid3D, block3D;
-
 __device__
 float invsqrt(float x){
 	long i;
@@ -91,7 +87,7 @@ void initialState(Particle* d_gas, uchar4* d_color, dim3 mesh){
 		float z=((float)(2*k))/mesh.z-1.f;
 		
 		d_gas[gid].pos={x, y, z};
-		d_gas[gid].vel={-x, -y, -z};
+		d_gas[gid].vel={1, 0.3, 0.5};
 		d_gas[gid].acc={0.f, 0.f, 0.f};
 		d_color[gid]={255u, 255u, 255u, 255u};
 	}
@@ -205,30 +201,28 @@ uint nextPowerOf2(uint n){
 }
 
 
-void init(float4* d_pos, uchar4* d_color, dim3 mesh, int n){
-	checkCudaErrors(cudaMalloc((void**)&d_gas, n*sizeof(Particle)));
-	checkCudaErrors(cudaMalloc((void**)&d_gridCounters, cells3*sizeof(uint)));
-	checkCudaErrors(cudaMalloc((void**)&d_gridCells, 4*cells3*sizeof(uint)));
-	dim3 grid(ceil(mesh.x, 8), ceil(mesh.y, 8), ceil(mesh.z, 8));
-	initialState<<<grid, block3D>>>(d_gas, d_color, mesh);
-}
 void launch_kernel(float4 *d_pos, uchar4 *d_color, dim3 mesh, float time){
-	int n=mesh.x*mesh.y*mesh.z;
-	if(time==0.f){
-		block1D=MAXTHREADS;
-		grid1D=ceil(n, MAXTHREADS);
+	static const int n=mesh.x*mesh.y*mesh.z;
+	static const int bpg=ceil(cells, 8);
+	static const dim3 block1D(MAXTHREADS);
+	static const dim3 grid1D(ceil(n, MAXTHREADS));
+	static const dim3 block3D(8, 8, 8);
+	static const dim3 grid3D(bpg, bpg, bpg);
+	static Particle *d_gas=NULL;
+	static uint *d_gridCounters=NULL, *d_gridCells=NULL;
 
-		int bpg=ceil(cells, 8);
-		block3D=dim3(8, 8, 8);
-		grid3D=dim3(bpg, bpg, bpg);
-
-		init(d_pos, d_color, mesh, n);
+	if(d_gas==NULL){
+		checkCudaErrors(cudaMalloc((void**)&d_gas, n*sizeof(Particle)));
+		checkCudaErrors(cudaMalloc((void**)&d_gridCounters, cells3*sizeof(uint)));
+		checkCudaErrors(cudaMalloc((void**)&d_gridCells, 4*cells3*sizeof(uint)));
+		dim3 tgrid(ceil(mesh.x, 8), ceil(mesh.y, 8), ceil(mesh.z, 8));
+		initialState<<<tgrid, block3D>>>(d_gas, d_color, mesh);
 	}
 	
 	checkCudaErrors(cudaMemset(d_gridCounters, 0u, cells3*sizeof(uint)));
 	checkCudaErrors(cudaMemset(d_gridCells, 0u, 4*cells3*sizeof(uint)));
 	
-	float step=0.01f;
+	static float step=0.001f;
 	integrate<<<grid1D, block1D>>>(d_gas, step, n);
 	updateGrid<<<grid1D, block1D>>>(d_gas, d_gridCounters, d_gridCells, n);
 	neighbors<<<grid3D, block3D>>>(d_gas, d_gridCounters, d_gridCells);

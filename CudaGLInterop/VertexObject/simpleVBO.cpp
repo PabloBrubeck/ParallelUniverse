@@ -12,7 +12,7 @@
 float animTime = 0.f;
  
 // constants
-const dim3 mesh(256, 256, 1);
+const dim3 mesh(128, 128, 1);
 const unsigned int RestartIndex = 0xffffffff;
 
 struct mappedBuffer_t{
@@ -21,7 +21,7 @@ struct mappedBuffer_t{
   struct cudaGraphicsResource *cudaResource;
 };
 
-void launch_kernel(float4* d_pos, uchar4* d_color, dim3 mesh, float time);
+void launch_kernel(float4* d_vertex, uchar4* d_color, dim3 mesh, float time);
  
 // vbo variables
 mappedBuffer_t vertexVBO = {NULL, sizeof(float4), NULL};
@@ -60,17 +60,17 @@ void cleanupCuda(){
 // Run the Cuda part of the computation
 void runCuda(){
 	// map OpenGL buffer object for writing from CUDA
-	float4 *d_pos;
+	float4 *d_vertex;
 	uchar4 *d_color;
 	size_t start;
 
 	cudaGraphicsMapResources(1, &vertexVBO.cudaResource, NULL);
-	cudaGraphicsResourceGetMappedPointer((void**)&d_pos, &start, vertexVBO.cudaResource);
+	cudaGraphicsResourceGetMappedPointer((void**)&d_vertex, &start, vertexVBO.cudaResource);
 	cudaGraphicsMapResources(1, &colorVBO.cudaResource, NULL);
 	cudaGraphicsResourceGetMappedPointer((void**)&d_color, &start, colorVBO.cudaResource);
- 
+
     // execute the kernel
-    launch_kernel(d_pos, d_color, mesh, animTime);
+    launch_kernel(d_vertex, d_color, mesh, animTime);
  
     // unmap buffer object
 	cudaGraphicsUnmapResources(1, &vertexVBO.cudaResource, NULL);
@@ -139,10 +139,10 @@ void renderCuda(int drawMode){
 					}
 				}
 			}
-			for(int i=0; i<n; i+=size){
+			for(int i=0; i<mesh.z; i++){
 				glPrimitiveRestartIndexNV(RestartIndex);
 				glEnableClientState(GL_PRIMITIVE_RESTART_NV);
-				glDrawElements(GL_TRIANGLE_FAN, size, GL_UNSIGNED_INT, qIndices+i);
+				glDrawElements(GL_TRIANGLE_FAN, size, GL_UNSIGNED_INT, qIndices+i*size);
 				glDisableClientState(GL_PRIMITIVE_RESTART_NV);
 			}
 			break;

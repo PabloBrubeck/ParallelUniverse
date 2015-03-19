@@ -1,5 +1,5 @@
 #include <windows.h>
-#include <GL/glut.h>
+#include "GL/glut.h"
 
 GLfloat light_diffuse[] = {1.0, 0.0, 0.0, 1.0};  /* Red diffuse light. */
 GLfloat light_position[] = {1.0, 1.0, 1.0, 0.0};  /* Infinite light location. */
