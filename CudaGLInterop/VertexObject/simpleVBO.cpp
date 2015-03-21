@@ -21,10 +21,11 @@ struct mappedBuffer_t{
   struct cudaGraphicsResource *cudaResource;
 };
 
-void launch_kernel(float4* d_pos, uchar4* d_color, dim3 mesh, float time);
+void launch_kernel(float4* d_pos, float4* d_norm, uchar4* d_color, dim3 mesh, float time);
  
 // vbo variables
 mappedBuffer_t vertexVBO = {NULL, sizeof(float4), NULL};
+mappedBuffer_t normalVBO = {NULL, sizeof(float4), NULL};
 mappedBuffer_t colorVBO  = {NULL, sizeof(uchar4), NULL};
  
 // Create VBO
@@ -54,6 +55,7 @@ void deleteVBO(mappedBuffer_t* mbuf){
  
 void cleanupCuda(){
 	deleteVBO(&vertexVBO);
+	deleteVBO(&normalVBO);
 	deleteVBO(&colorVBO);
 	cudaDeviceReset();
 }
@@ -62,19 +64,23 @@ void cleanupCuda(){
 void runCuda(){
 	// map OpenGL buffer object for writing from CUDA
 	float4 *d_pos;
+	float4 *d_norm;
 	uchar4 *d_color;
 	size_t start;
 
 	cudaGraphicsMapResources(1, &vertexVBO.cudaResource, NULL);
 	cudaGraphicsResourceGetMappedPointer((void**)&d_pos, &start, vertexVBO.cudaResource);
+	cudaGraphicsMapResources(1, &normalVBO.cudaResource, NULL);
+	cudaGraphicsResourceGetMappedPointer((void**)&d_norm, &start, normalVBO.cudaResource);
 	cudaGraphicsMapResources(1, &colorVBO.cudaResource, NULL);
 	cudaGraphicsResourceGetMappedPointer((void**)&d_color, &start, colorVBO.cudaResource);
  
     // execute the kernel
-    launch_kernel(d_pos, d_color, mesh, animTime);
+    launch_kernel(d_pos, d_norm, d_color, mesh, animTime);
  
     // unmap buffer object
 	cudaGraphicsUnmapResources(1, &vertexVBO.cudaResource, NULL);
+	cudaGraphicsUnmapResources(1, &normalVBO.cudaResource, NULL);
     cudaGraphicsUnmapResources(1, &colorVBO.cudaResource, NULL);
 }
  
@@ -86,6 +92,7 @@ void initCuda(int argc, char** argv){
 	cudaGLSetGLDevice(findCudaDevice(argc, (const char **)argv));
    
 	createVBO(&vertexVBO);
+	createVBO(&normalVBO);
 	createVBO(&colorVBO);
 	// make certain the VBO gets cleaned up on program exit
 	atexit(cleanupCuda);
@@ -97,6 +104,10 @@ void renderCuda(int drawMode){
 	glBindBuffer(GL_ARRAY_BUFFER, vertexVBO.vbo);
 	glVertexPointer(4, GL_FLOAT, 0, 0);
 	glEnableClientState(GL_VERTEX_ARRAY);
+
+	glBindBuffer(GL_ARRAY_BUFFER, normalVBO.vbo);
+	glNormalPointer(GL_FLOAT, 0, 0);
+	glEnableClientState(GL_NORMAL_ARRAY);
    
 	glBindBuffer(GL_ARRAY_BUFFER, colorVBO.vbo);
 	glColorPointer(4, GL_UNSIGNED_BYTE, 0, 0);
@@ -151,5 +162,6 @@ void renderCuda(int drawMode){
 	}
  
 	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_NORMAL_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
 }
