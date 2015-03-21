@@ -59,8 +59,8 @@ void launch_kernel(float4 *d_vertex, uchar4 *d_color, dim3 mesh, float time){
 		cudaMalloc((void**)&d_sphere, n*sizeof(float4));
 		cudaMalloc((void**)&d_torus, n*sizeof(float4));
 
-		sphere<<<grid, block>>>(d_sphere, mesh, 1.f);
-		catenoid<<<grid, block>>>(d_torus, mesh, 1.f, 1.f);
+		figureEight<<<grid, block>>>(d_sphere, mesh, 1.f, 2.f);
+		weirdThing<<<grid, block>>>(d_torus, mesh, 0.3f);
 		cudaMemcpy(d_vertex, d_sphere, n*sizeof(float4), cudaMemcpyDeviceToDevice);
 	}
 

@@ -72,17 +72,17 @@ bool initGL(int argc, char **argv){
 
 	// default initialization
 	glClearColor(0.0, 0.0, 0.0, 1.0);
-	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_DEPTH_TEST);
 
 	// set view matrix
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+	glTranslatef(0.f, 0.f, -3.f);
 
 	// projection
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(60.0, (GLfloat)window.x / (GLfloat) window.y,
-		0.01, 100.0); // This is the only line that differs from PixelMain.cpp
+	gluPerspective(60.0, (GLfloat)window.x/(GLfloat)window.y, 0.01, 100.0); // This is the only line that differs from PixelMain.cpp
 	
 	return true;
 }

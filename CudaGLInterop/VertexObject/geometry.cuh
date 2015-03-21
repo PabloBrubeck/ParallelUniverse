@@ -140,7 +140,7 @@ void catenoid(float4 *d_vertex, dim3 mesh, float c, float h){
 	}
 }
 __global__
-void wierdThing(float4 *d_vertex, dim3 mesh, float w){
+void weirdThing(float4 *d_vertex, dim3 mesh, float w){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
 	int k=blockIdx.z*blockDim.z+threadIdx.z;
@@ -149,6 +149,6 @@ void wierdThing(float4 *d_vertex, dim3 mesh, float w){
 		float u=(2*j*PI)/mesh.y;
 		float v=(2*i*PI)/mesh.x;
 		float p=1.25f+sinf(3*u);
-		cylindrical(d_vertex[gid], w*(6.f-p*sinf(u-3*v)), v, -w*p*cosf(u-3*v));
+		cylindrical(d_vertex[gid], -w*(p*sinf(u-3*v)-6.f), v, -w*p*cosf(u-3*v));
 	}
 }
