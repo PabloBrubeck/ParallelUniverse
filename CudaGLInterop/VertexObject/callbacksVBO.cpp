@@ -10,6 +10,9 @@
 
 extern uint2 window; 
 extern float animTime;
+extern void moveFingerX(int a, float d);
+extern void moveFingerZ(int a, float d);
+extern bool refresh;
 
 // The user must create the following routines:
 void initCuda(int argc, char** argv);
@@ -86,7 +89,56 @@ void keyboard(unsigned char key, int x, int y){
 		default: drawMode=GL_POINTS;
 		}
 		break;
+	case 'k': case 'K':
+		moveFingerX(4, -5.f);
+		break;
+	case 'm': case 'M':
+		moveFingerX(4, 5.f);
+		break;
+	case 'j': case 'J':
+		moveFingerX(3, -5.f);
+		break;
+	case 'n': case 'N':
+		moveFingerX(3, 5.f);
+		break;
+	case 'h': case 'H':
+		moveFingerX(2, -5.f);
+		break;
+	case 'b': case 'B':
+		moveFingerX(2, 5.f);
+		break;
+	case 'g': case 'G':
+		moveFingerX(1, -5.f);
+		break;
+	case 'v': case 'V':
+		moveFingerX(1, 5.f);
+		break;
+	case 'o': case 'O':
+		moveFingerZ(4, -5.f);
+		break;
+	case '0':
+		moveFingerZ(4, 5.f);
+		break;
+	case 'i': case 'I':
+		moveFingerZ(3, -5.f);
+		break;
+	case '9':
+		moveFingerZ(3, 5.f);
+		break;
+	case 'u': case 'U':
+		moveFingerZ(2, -5.f);
+		break;
+	case '8':
+		moveFingerZ(2, 5.f);
+		break;
+	case 'y': case 'Y':
+		moveFingerZ(1, -5.f);
+		break;
+	case '7':
+		moveFingerZ(1, 5.f);
+		break;
 	}
+	refresh=true;
 	glutPostRedisplay();
 }
 void mouse(int button, int state, int x, int y){

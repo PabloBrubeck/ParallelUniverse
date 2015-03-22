@@ -6,6 +6,7 @@
 #include "hand.cuh"
 
 #define MAXTHREADS 512
+bool refresh=true;
 
 __global__
 void animate(float4 *d_vertex, float4 *d_shape, dim3 mesh){
@@ -30,13 +31,16 @@ void printArray(float4* arr, int n){
 
 void launch_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, dim3 mesh, float time){
 	static const int n=mesh.x*mesh.y*mesh.z;
+	static float4 *skel=new float4[25], *hand=new float4[64];
 	
-	
-	if(time==0.f){
-		float4* h=new float4[25];
-		position(h);
-		printArray(h, 25);
-		cudaMemcpy(d_pos, h, 25*sizeof(float4), cudaMemcpyHostToDevice);
-		cudaMemset(d_color, 255u, 25*sizeof(unsigned int));
+
+	if(refresh){
+		skeleton(skel, angle);
+		int s=volume(hand, skel);
+		
+
+		cudaMemcpy(d_pos, hand, s*sizeof(float4), cudaMemcpyHostToDevice);
+		cudaMemset(d_color, 255u, s*sizeof(uint4));
+		refresh=false;
 	}
 }
