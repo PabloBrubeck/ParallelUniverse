@@ -59,11 +59,6 @@ bool initGL(int argc, char **argv){
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
 	glutInitWindowSize(window.x, window.y);
 	glutCreateWindow("Cuda GL Interop Demo (adapted from NVIDIA's simpleGL");
-	glutDisplayFunc(fpsDisplay);
-	glutKeyboardFunc(keyboard);
-	glutReshapeFunc(reshape);
-	glutMotionFunc(motion);
-	glutIdleFunc(idle);
 
 	// check for necessary OpenGL extensions
 	glewInit();
@@ -74,12 +69,11 @@ bool initGL(int argc, char **argv){
 	}
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
+	//glEnable(GL_CULL_FACE);
+	//glCullFace(GL_BACK);
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
-
 	return true;
 }
 
@@ -97,8 +91,10 @@ int main(int argc, char** argv){
 	// register callbacks
 	glutDisplayFunc(fpsDisplay);
 	glutKeyboardFunc(keyboard);
+	glutReshapeFunc(reshape);
 	glutMouseFunc(mouse);
 	glutMotionFunc(motion);
+	glutIdleFunc(idle);
 
 	// start rendering mainloop
 	glutMainLoop();

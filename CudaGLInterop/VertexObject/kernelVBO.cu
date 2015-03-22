@@ -6,6 +6,7 @@
 #include "hand.cuh"
 
 #define MAXTHREADS 512
+
 bool refresh=true;
 
 __global__
@@ -23,9 +24,33 @@ int ceil(int num, int den){
 	return (num+den-1)/den;
 }
 
-void printArray(float4* arr, int n){
-	for(int i=0; i<n; i++){
-		printf("%f\t %f\t %f\t %f\n", arr[i].x, arr[i].y, arr[i].z, arr[i].w);
+void geometry_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, dim3 mesh, float time){
+	static const int n=mesh.x*mesh.y*mesh.z;
+	static const dim3 block(8, 8, 8);
+	static const dim3 grid(ceil(mesh.x, 8), ceil(mesh.y, 8), ceil(mesh.z, 8));
+	static float4 *d_sphere=NULL, *d_torus=NULL;
+	static float last=-20.f;
+	static bool shape=true;
+
+	if(d_sphere==NULL){
+		cudaMalloc((void**)&d_sphere, n*sizeof(float4));
+		cudaMalloc((void**)&d_torus, n*sizeof(float4));
+
+		weirdThing<<<grid, block>>>(d_sphere, mesh, 0.3f);
+		torus<<<grid, block>>>(d_torus, mesh, 1.f, 2.f);
+		cudaMemcpy(d_pos, d_sphere, n*sizeof(float4), cudaMemcpyDeviceToDevice);
+	}
+
+	float elapsed=time-last;
+	if(elapsed>=2.f){
+		if(elapsed>=7.f){
+			shape=!shape;
+			last=time;
+		}else{
+			animate<<<grid, block>>>(d_pos, shape? d_sphere:d_torus, mesh);
+		}
+		normals<<<grid, block>>>(d_norm, d_pos, mesh);
+		colors<<< grid, block>>>(d_color, d_norm, mesh);
 	}
 }
 

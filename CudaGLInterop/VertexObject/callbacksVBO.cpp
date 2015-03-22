@@ -28,14 +28,14 @@ int drawMode=GL_POINTS; // the default draw mode
 static float aspect_ratio = 1.0f;
 
 // scene parameters
-const float3 eye=   make_float3(0.f, 0.0f, -20.0f);
-const float3 centre=make_float3(0.0f, 0.0f, 0.0f);
-const float3 up=    make_float3(0.0f, 1.0f, 0.0f);
+float3 eye=   make_float3(0.f, 0.f, -20.f);
+float3 centre=make_float3(0.f, 0.f, 0.f);
+float3 up=    make_float3(0.f, 1.f, 0.f);
+float3 model =make_float3(0.f, -0.5f, 0.f);
 
 // mouse controls
 int2 mouseOld;
 int mouseButtons = 0;
-float zoom = 10.f;
 
 inline float3 rotate_x(float3 v, float sin_ang, float cos_ang){
 	return make_float3(
@@ -50,6 +50,23 @@ inline float3 rotate_y(float3 v, float sin_ang, float cos_ang){
 		v.y,
 		(v.z * cos_ang) - (v.x * sin_ang)
 		);
+}
+
+void resetView(){
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glTranslatef(model.x, model.y, model.z);
+	gluPerspective(60.f, aspect_ratio, 0.01f, 100.0f);
+	gluLookAt(
+		eye.x, eye.y, eye.z,
+		centre.x, centre.y, centre.z,
+		up.x, up.y, up.z);
+	// set up the arcball using the current projection matrix
+	arcball_setzoom(-10.f/length(eye), eye, up);
+	
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	
 }
 
 // Callbacks for GLUT
@@ -85,18 +102,7 @@ void reshape(int width, int height){
 	window=make_int2(width, height);
 	aspect_ratio = (float)width/(float)height;
 	glViewport(0, 0, width, height);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	gluPerspective(60.f, aspect_ratio, 0.01f, 100.0f);
-	gluLookAt(
-		eye.x, eye.y, eye.z,
-		centre.x, centre.y, centre.z,
-		up.x, up.y, up.z);
-	// set up the arcball using the current projection matrix
-	arcball_setzoom(-10.f/length(eye), eye, up); //Radio de la arcball
-
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
+	resetView();
 }
 void keyboard(unsigned char key, int x, int y){
 	switch(key){
@@ -167,7 +173,7 @@ void keyboard(unsigned char key, int x, int y){
 void mouse(int button, int state, int x, int y){
 	if (state == GLUT_DOWN){
 		mouseOld=make_int2(x, y);
-		arcball_start(x, window.y-y);
+		arcball_start(window.x-x, y);
 		mouseButtons |= 1<<button;
 	}else{
 		mouseButtons = 0;
@@ -178,9 +184,10 @@ void motion(int x, int y){
 	float dy=y-mouseOld.y;
 	mouseOld=make_int2(x, y);
 	if(mouseButtons&1){
-		arcball_move(x, window.y-y);
+		arcball_move(window.x-x, y);
 	}else if(mouseButtons&4){
-		zoom*=(1.f+dy/100.f);
+		eye.z*=(1.f+dy/100.f);
+		resetView();
 	}
 }
 void idle(){

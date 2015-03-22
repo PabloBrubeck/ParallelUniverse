@@ -213,7 +213,7 @@ void volume(float4* hand, float4* skeleton, int n){
 void moveFingerX(int finger, float delta){
 	int index=5*finger+1;
 	for(int i=0; i<3; i++){
-		angle[index+i].x = clamp(angle[index+i].x+delta, 0.f, 90.f);
+		angle[index+i].x = clamp(angle[index+i].x+delta, 1.f, 90.f);
 	}
 }
 void moveFingerZ(int finger, float delta){

@@ -58,9 +58,6 @@ void arcball_setzoom(float radius, float3 eye, float3 up)
 		ab_planar = false;
 	}	  
 
-	glMatrixMode(GL_PROJECTION);
-	glTranslatef(0.f, -7.f, 0.f);
-
 	glGetDoublev(GL_PROJECTION_MATRIX,ab_glp);
 	glGetIntegerv(GL_VIEWPORT,ab_glv);
 
