@@ -12,7 +12,7 @@
 float animTime = 0.f;
  
 // constants
-const dim3 mesh(36, 1, 1);
+const dim3 mesh(36, 16, 1);
 const unsigned int RestartIndex = 0xffffffff;
 
 struct mappedBuffer_t{
@@ -57,6 +57,7 @@ void cleanupCuda(){
 	deleteVBO(&vertexVBO);
 	deleteVBO(&normalVBO);
 	deleteVBO(&colorVBO);
+	
 	cudaDeviceReset();
 }
 
@@ -74,7 +75,7 @@ void runCuda(){
 	cudaGraphicsResourceGetMappedPointer((void**)&d_norm, &start, normalVBO.cudaResource);
 	cudaGraphicsMapResources(1, &colorVBO.cudaResource, NULL);
 	cudaGraphicsResourceGetMappedPointer((void**)&d_color, &start, colorVBO.cudaResource);
- 
+		
     // execute the kernel
     launch_kernel(d_pos, d_norm, d_color, mesh, animTime);
  
@@ -92,8 +93,8 @@ void initCuda(int argc, char** argv){
 	cudaGLSetGLDevice(findCudaDevice(argc, (const char **)argv));
    
 	createVBO(&vertexVBO);
-	createVBO(&normalVBO);
 	createVBO(&colorVBO);
+	createVBO(&normalVBO);
 	// make certain the VBO gets cleaned up on program exit
 	atexit(cleanupCuda);
 
@@ -104,15 +105,15 @@ void renderCuda(int drawMode){
 	glBindBuffer(GL_ARRAY_BUFFER, vertexVBO.vbo);
 	glVertexPointer(4, GL_FLOAT, 0, 0);
 	glEnableClientState(GL_VERTEX_ARRAY);
-
+	
 	glBindBuffer(GL_ARRAY_BUFFER, normalVBO.vbo);
 	glNormalPointer(GL_FLOAT, 0, 0);
 	glEnableClientState(GL_NORMAL_ARRAY);
-   
+
 	glBindBuffer(GL_ARRAY_BUFFER, colorVBO.vbo);
 	glColorPointer(4, GL_UNSIGNED_BYTE, 0, 0);
 	glEnableClientState(GL_COLOR_ARRAY);
-	
+
 	size_t n=mesh.x*mesh.y*mesh.z;
 	switch(drawMode){
 		default:

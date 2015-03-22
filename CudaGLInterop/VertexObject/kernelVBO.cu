@@ -31,16 +31,14 @@ void printArray(float4* arr, int n){
 
 void launch_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, dim3 mesh, float time){
 	static const int n=mesh.x*mesh.y*mesh.z;
-	static float4 *skel=new float4[25], *hand=new float4[64];
+	static float4 *skel=new float4[25], *hand=new float4[n];
 	
-
 	if(refresh){
 		skeleton(skel, angle);
-		int s=volume(hand, skel);
+		volume(hand, skel, mesh.y);
 		
-
-		cudaMemcpy(d_pos, hand, s*sizeof(float4), cudaMemcpyHostToDevice);
-		cudaMemset(d_color, 255u, s*sizeof(uint4));
+		checkCudaErrors(cudaMemcpy(d_pos, hand, n*sizeof(float4), cudaMemcpyHostToDevice));
+		checkCudaErrors(cudaMemset(d_color, 255u, n*sizeof(uchar4)));
 		refresh=false;
 	}
 }

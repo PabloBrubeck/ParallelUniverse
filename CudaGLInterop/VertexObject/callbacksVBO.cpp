@@ -7,12 +7,15 @@
 #include <helper_cuda_gl.h>
 #include <cuda_gl_interop.h>
 #include <rendercheck_gl.h>
+#include "arcball.h"
 
-extern uint2 window; 
+
+extern int2 window;
+extern bool refresh; 
 extern float animTime;
-extern void moveFingerX(int a, float d);
-extern void moveFingerZ(int a, float d);
-extern bool refresh;
+extern void moveFingerX(int, float);
+extern void moveFingerZ(int, float);
+
 
 // The user must create the following routines:
 void initCuda(int argc, char** argv);
@@ -21,39 +24,52 @@ void renderCuda(int);
  
 int drawMode=GL_POINTS; // the default draw mode
  
+
+static float aspect_ratio = 1.0f;
+
+// scene parameters
+const float3 eye=   make_float3(0.f, 0.0f, -20.0f);
+const float3 centre=make_float3(0.0f, 0.0f, 0.0f);
+const float3 up=    make_float3(0.0f, 1.0f, 0.0f);
+
 // mouse controls
 int2 mouseOld;
 int mouseButtons = 0;
-float zoom = 1.f;
-float4 quat={0.f, 0.f, 1.f, 0.f};
+float zoom = 10.f;
 
-void getArcball(float3 &arcball, int i, int j){
-	float x=((float)(2*i))/window.x-1.f;
-	float y=((float)(2*j))/window.y-1.f;
-	float z=0.f;
-	float r2=x*x+y*y;
-	if(r2<=1){
-		z=sqrt(1-r2);
-	}else{
-		float r=sqrt(r2);
-		x/=r;
-		y/=r;
-	}
-	arcball=make_float3(x, -y, z);
+inline float3 rotate_x(float3 v, float sin_ang, float cos_ang){
+	return make_float3(
+		v.x,
+		(v.y * cos_ang) + (v.z * sin_ang),
+		(v.z * cos_ang) - (v.y * sin_ang)
+		);
+}
+inline float3 rotate_y(float3 v, float sin_ang, float cos_ang){
+	return make_float3(
+		(v.x * cos_ang) + (v.z * sin_ang),
+		v.y,
+		(v.z * cos_ang) - (v.x * sin_ang)
+		);
 }
 
-// Display callback for GLUT
+// Callbacks for GLUT
 void display(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
- 
-	// set view matrix
 	glMatrixMode(GL_MODELVIEW);
-	glRotatef(quat.w, quat.x, quat.y, quat.z);
-	quat.w=0;
-	if(zoom!=1.f){
-		glScalef(zoom, zoom, zoom);
-		zoom=1.f;
-	}
+	glLoadIdentity();
+
+	// and perform the arcball rotation around the eye
+	// (also disable depth test so they become the background)
+	glPushMatrix();
+	glDisable(GL_DEPTH_TEST);
+	glTranslatef(eye.x, eye.y, eye.z);
+	arcball_rotate();
+	glEnable(GL_DEPTH_TEST);
+	glPopMatrix();
+	// now render the regular scene under the arcball rotation about 0,0,0
+	// (generally you would want to render everything here)
+	arcball_rotate();
+
 
 	// run CUDA kernel to generate vertex positions
 	runCuda();
@@ -62,18 +78,25 @@ void display(){
 	renderCuda(drawMode);
 	
 	glutSwapBuffers();
-	glutPostRedisplay();
 
 	animTime+=0.01f;
 }
- 
-// Events handlers for GLUT
-void reshape(int x, int y){
-	window=make_uint2(x, y);
-	glViewport(0, 0, x, y);
+void reshape(int width, int height){
+	window=make_int2(width, height);
+	aspect_ratio = (float)width/(float)height;
+	glViewport(0, 0, width, height);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(60.0, (GLfloat)x/(GLfloat)y, 0.01, 100.0);
+	gluPerspective(60.f, aspect_ratio, 0.01f, 100.0f);
+	gluLookAt(
+		eye.x, eye.y, eye.z,
+		centre.x, centre.y, centre.z,
+		up.x, up.y, up.z);
+	// set up the arcball using the current projection matrix
+	arcball_setzoom(-10.f/length(eye), eye, up); //Radio de la arcball
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
 }
 void keyboard(unsigned char key, int x, int y){
 	switch(key){
@@ -142,26 +165,24 @@ void keyboard(unsigned char key, int x, int y){
 	glutPostRedisplay();
 }
 void mouse(int button, int state, int x, int y){
-	if(state==GLUT_DOWN){
-		mouseButtons |= 1<<button;
+	if (state == GLUT_DOWN){
 		mouseOld=make_int2(x, y);
-	}else if(state == GLUT_UP){
+		arcball_start(x, window.y-y);
+		mouseButtons |= 1<<button;
+	}else{
 		mouseButtons = 0;
 	}
-	glutPostRedisplay();
 }
 void motion(int x, int y){
-	static float3 arcNew, arcOld;
 	float dx=x-mouseOld.x;
 	float dy=y-mouseOld.y;
-	
-	if(mouseButtons&1){
-		getArcball(arcNew, x, y);
-		getArcball(arcOld, mouseOld.x, mouseOld.y);
-		quat=make_float4(cross(arcOld, arcNew), 
-			57.3f*acosf(min(1.f, dot(arcOld, arcNew))));
-	}else if(mouseButtons&4){
-		zoom=(1.f+dy/100.f);
-	}
 	mouseOld=make_int2(x, y);
+	if(mouseButtons&1){
+		arcball_move(x, window.y-y);
+	}else if(mouseButtons&4){
+		zoom*=(1.f+dy/100.f);
+	}
+}
+void idle(){
+	glutPostRedisplay();
 }

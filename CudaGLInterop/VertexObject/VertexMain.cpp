@@ -7,6 +7,7 @@
 #include <helper_timer.h>
 #include <cuda_gl_interop.h>
 #include <rendercheck_gl.h>
+#include "arcball.h"
 
 
 // The user must create the following routines:
@@ -17,13 +18,14 @@ extern void renderCuda(int);
 
 // callbacks
 extern void display();
-extern void reshape(int w, int h);
-extern void keyboard(unsigned char key, int x, int y);
-extern void mouse(int button, int state, int x, int y);
-extern void motion(int x, int y);
+extern void reshape(int, int);
+extern void keyboard(unsigned char, int, int);
+extern void mouse(int, int, int, int);
+extern void motion(int, int);
+extern void idle();
 
 // GLUT specific variables
-uint2 window = make_uint2(720, 720);
+int2 window = make_int2(720, 720);
 // Timer for FPS calculations
 StopWatchInterface *timer = NULL; 
 int fpsCount = 0;
@@ -52,14 +54,16 @@ void fpsDisplay(){
 
 bool initGL(int argc, char **argv){
 	// Steps 1-2: create a window and GL context (also register callbacks)
+	arcball_reset();
 	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
+	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
 	glutInitWindowSize(window.x, window.y);
 	glutCreateWindow("Cuda GL Interop Demo (adapted from NVIDIA's simpleGL");
 	glutDisplayFunc(fpsDisplay);
 	glutKeyboardFunc(keyboard);
 	glutReshapeFunc(reshape);
 	glutMotionFunc(motion);
+	glutIdleFunc(idle);
 
 	// check for necessary OpenGL extensions
 	glewInit();
@@ -69,22 +73,13 @@ bool initGL(int argc, char **argv){
 		return false;
 	}
 
-	// Step 3: Setup our viewport and viewing modes
-	glViewport(0, 0, window.x, window.y);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
 
-	// default initialization
-	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 
-	// set view matrix
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glTranslatef(0.f, 0.f, -3.f);
-
-	// projection
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	gluPerspective(60.0, (GLfloat)window.x/(GLfloat)window.y, 0.01, 100.0); 
 	return true;
 }
 

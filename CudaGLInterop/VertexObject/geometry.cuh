@@ -29,9 +29,8 @@ void spherical(float4 &p, float rho, float theta, float phi){
 }
 inline __host__ __device__ 
 float4 cross(float4 &a, float4 &b){
-	return make_float4(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x, 1.f);
+	return make_float4(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x, 0.f);
 }
-
 
 __global__
 void normals(float4* d_normals, float4 *d_vertex, dim3 mesh){

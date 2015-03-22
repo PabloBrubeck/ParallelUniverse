@@ -161,11 +161,13 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <CudaCompile Include="kernelVBO.cu" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="arcball.cpp" />
     <ClCompile Include="callbacksVBO.cpp" />
     <ClCompile Include="simpleVBO.cpp" />
     <ClCompile Include="VertexMain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="arcball.h" />
     <ClInclude Include="geometry.cuh" />
     <ClInclude Include="hand.cuh" />
   </ItemGroup>

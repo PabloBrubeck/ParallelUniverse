@@ -52,14 +52,14 @@ int* path=new int[36]{
 
 float3 angle[25]={
 	{0.f, 0.f, 0.f}, //0 Thumb
-	{0.f, 0.f, 0.f},
-	{0.f, 0.f, 0.f},
-	{0.f, 0.f, 0.f},
+	{10.f, 0.f, 0.f},
+	{10.f, 0.f, 0.f},
+	{10.f, 0.f, 0.f},
 	{0.f, 0.f, 0.f},
 	{0.f, 0.f, 0.f}, //5 Index
-	{0.f, 0.f, 0.f},
-	{0.f, 0.f, 0.f},
-	{0.f, 0.f, 0.f},
+	{10.f, 0.f, 0.f},
+	{10.f, 0.f, 0.f},
+	{10.f, 0.f, 0.f},
 	{0.f, 0.f, 0.f},
 	{0.f, 0.f, 0.f}, //10 Middle
 	{60.f, 0.f, 0.f},
@@ -109,7 +109,7 @@ float4 vmult(float* A, float4 u){
 
 
 //Rotations
-void givens(float* Q, int i, int j, float theta){
+inline void givens(float* Q, int i, int j, float theta){
 	int k=3-(i+j);
     float cos=cosf(theta);
     float sin=sign(i-j)*sinf(theta);
@@ -119,7 +119,7 @@ void givens(float* Q, int i, int j, float theta){
     Q[j*4+i]=-sin;
     Q[k*4+k]=1.f;
 }
-void rotateXYZ(float* Q, float3 angle){
+inline void rotateXYZ(float* Q, float3 angle){
 	float* Rx=new float[16];
 	float* Ry=new float[16];
 	float* Rz=new float[16];
@@ -134,7 +134,7 @@ void rotateXYZ(float* Q, float3 angle){
 	mmult(Q, Rz, temp, 4);
 	delete[] Rx, Ry, Rz, temp;
 }
-void rotateAxis(float* Q, float4 axis, float angle){
+inline void rotateAxis(float* Q, float4 axis, float angle){
         float cos=cosf(angle);
 		float sin=sinf(angle);
 		float x=axis.x;
@@ -150,18 +150,6 @@ void rotateAxis(float* Q, float4 axis, float angle){
             }
         }
     }
-void rotatePoints(float4* dst, float4* src, float* Q, int n){
-	for(int i=0; i<n; i++){
-		dst[i]=vmult(Q, src[i]);
-	}
-}
-
-void circle(float4* circ, float r, int n){
-	for(int i=0; i<n; i++){
-		cylindrical(circ[i], r, (2*i*PI)/n, 0.f);
-	}
-}
-
 
 void skeleton(float4* skeleton, float3* angles){
 	float* R=new float[16];
@@ -182,34 +170,44 @@ void skeleton(float4* skeleton, float3* angles){
 		}
 	}
 }
-
-int volume(float4* hand, float4* skeleton){
-	for(int i=0; i<1; i++){
+void volume(float4* hand, float4* skeleton, int n){
+	float4* N=new float4[36];
+	float4* B=new float4[36];
+	float4 ez={0.f, 0.f, 1.f, 1.f};
+	float4 zero={0.f, 0.f, 0.f, 1.f};
+	for(int j=0; j<36; j++){
+		int b=path[j];
+		if(b%5==4){
+			N[j]=zero;
+			B[j] =zero;
+		}else{
+			int a=path[(j+35)%36];
+			int c=path[(j+1)%36];
+			float4 OA=skeleton[a];
+			float4 OB=skeleton[b];
+			float4 OC=skeleton[c];
+			float4 AB=OB-OA;
+			float4 BC=OC-OB;
+			float4 AC=OC-OA;
+			float4 n=cross(BC,AB);
+			N[j]=normalize(dot(n,n)==0? cross(AC, ez): n);
+			B[j]=normalize(cross(n, AC));
+		}
+	}
+	float r=0.5f;
+	for(int i=0; i<n; i++){
+		float phi=(PI*i)/n;
+		float x=r*cosf(phi);
+		float y=r*sinf(phi);
 		for(int j=0; j<36; j++){
 			int k=i*36+j;
 			int b=path[j];
-			if(b%5==4){
-				hand[k]=skeleton[b];
-			}else{
-				int a=path[(j+35)%36];
-				int c=path[(j+1)%36];
-				float4 OB=skeleton[b];
-				float4 AB=OB-skeleton[a];
-				float4 BC=skeleton[c]-OB;
-				float4 n=cross(AB, BC);
-				n.w=0.f;
-				float an=dot(n,n);
-				if(an==0.f){
-					float4 zeta={0.f, 0.f, 1.f, 1.f};
-					float4 AC=skeleton[c]-skeleton[a];
-					n=cross(AC, zeta);
-				}
-				n=normalize(n);
-				hand[k]=OB+0.5f*n;
+			hand[k]=skeleton[b];
+			if(b%5!=4){
+				hand[k]+=x*N[j]+y*B[j];
 			}
 		}
 	}
-	return 36;
 }
 
 void moveFingerX(int finger, float delta){
@@ -218,7 +216,6 @@ void moveFingerX(int finger, float delta){
 		angle[index+i].x = clamp(angle[index+i].x+delta, 0.f, 90.f);
 	}
 }
-
 void moveFingerZ(int finger, float delta){
 	int index=5*finger+1;
 	angle[index].z= clamp(angle[index].z+delta, -30.f, 30.f);
