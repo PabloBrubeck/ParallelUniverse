@@ -12,7 +12,7 @@
 float animTime = 0.f;
  
 // constants
-const dim3 mesh(512, 512, 1);
+const dim3 mesh(5, 5, 1);
 const unsigned int RestartIndex = 0xffffffff;
 
 struct mappedBuffer_t{

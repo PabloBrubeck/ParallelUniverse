@@ -28,5 +28,8 @@
     <ClInclude Include="geometry.cuh">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="hand.cuh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -17,6 +17,7 @@ extern void renderCuda(int);
 
 // callbacks
 extern void display();
+extern void reshape(int w, int h);
 extern void keyboard(unsigned char key, int x, int y);
 extern void mouse(int button, int state, int x, int y);
 extern void motion(int x, int y);
@@ -57,6 +58,7 @@ bool initGL(int argc, char **argv){
 	glutCreateWindow("Cuda GL Interop Demo (adapted from NVIDIA's simpleGL");
 	glutDisplayFunc(fpsDisplay);
 	glutKeyboardFunc(keyboard);
+	glutReshapeFunc(reshape);
 	glutMotionFunc(motion);
 
 	// check for necessary OpenGL extensions
@@ -82,8 +84,7 @@ bool initGL(int argc, char **argv){
 	// projection
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(60.0, (GLfloat)window.x/(GLfloat)window.y, 0.01, 100.0); // This is the only line that differs from PixelMain.cpp
-	
+	gluPerspective(60.0, (GLfloat)window.x/(GLfloat)window.y, 0.01, 100.0); 
 	return true;
 }
 

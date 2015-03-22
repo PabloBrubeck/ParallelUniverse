@@ -16,7 +16,7 @@ void initCuda(int argc, char** argv);
 void runCuda();
 void renderCuda(int);
  
-int drawMode=GL_LINE_LOOP; // the default draw mode
+int drawMode=GL_POINTS; // the default draw mode
  
 // mouse controls
 int2 mouseOld;
@@ -39,7 +39,7 @@ void getArcball(float3 &arcball, int i, int j){
 	arcball=make_float3(x, -y, z);
 }
 
-//! Display callback for GLUT
+// Display callback for GLUT
 void display(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
  
@@ -64,7 +64,14 @@ void display(){
 	animTime+=0.01f;
 }
  
-//! Keyboard events handler for GLUT
+// Events handlers for GLUT
+void reshape(int x, int y){
+	window=make_uint2(x, y);
+	glViewport(0, 0, x, y);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(60.0, (GLfloat)x/(GLfloat)y, 0.01, 100.0);
+}
 void keyboard(unsigned char key, int x, int y){
 	switch(key){
 	case(27) :
@@ -82,8 +89,6 @@ void keyboard(unsigned char key, int x, int y){
 	}
 	glutPostRedisplay();
 }
-
-// Mouse event handlers for GLUT
 void mouse(int button, int state, int x, int y){
 	if(state==GLUT_DOWN){
 		mouseButtons |= 1<<button;
@@ -93,7 +98,6 @@ void mouse(int button, int state, int x, int y){
 	}
 	glutPostRedisplay();
 }
-
 void motion(int x, int y){
 	static float3 arcNew, arcOld;
 	float dx=x-mouseOld.x;
