@@ -1,11 +1,11 @@
 // simplePBO.cpp (Rob Farber)
 
 #include <GL/glew.h>
+#include <GL/gl.h>
+#include <GL/glext.h>
 #include <cuda_runtime.h>
 #include <helper_cuda.h>
-#include <helper_cuda_gl.h>
 #include <cuda_gl_interop.h>
-#include <rendercheck_gl.h>
 
 // external variables
 extern float animTime;
@@ -16,7 +16,8 @@ extern unsigned int window_height;
 unsigned int image_width = window_width;
 unsigned int image_height = window_height;
 
-extern "C" void launch_kernel(uchar4*, unsigned int, unsigned int, float);
+extern "C" void launch_kernel(uchar4* pos, unsigned int image_width,
+	unsigned int image_height, float time);
 
 // variables
 GLuint pbo = NULL;
@@ -115,7 +116,7 @@ void initCuda(int argc, char** argv){
 	createTexture(&textureID, image_width, image_height);
 
 	// Clean up on program exit
-	glutCloseFunc(cleanupCuda);
+	atexit(cleanupCuda);
 
 	runCuda();
 }

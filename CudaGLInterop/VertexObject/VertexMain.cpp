@@ -1,14 +1,12 @@
-// simpleGLmain.cpp (Rob Farber)
+// vertexMain.cpp based on Rob Farber's code from drdobbs.com
 
 #include <GL/glew.h>
 #include <cuda_runtime.h>
+#include <cuda_gl_interop.h>
 #include <helper_cuda.h>
 #include <helper_cuda_gl.h>
 #include <helper_timer.h>
-#include <cuda_gl_interop.h>
-#include <rendercheck_gl.h>
-#include "arcball.h"
-
+#include <nvGlutManipulators.h>
 
 // The user must create the following routines:
 // CUDA methods
@@ -24,12 +22,12 @@ extern void mouse(int, int, int, int);
 extern void motion(int, int);
 extern void idle();
 
-// GLUT specific variables
-int2 window = make_int2(720, 720);
 // Timer for FPS calculations
 StopWatchInterface *timer = NULL; 
-int fpsCount = 0;
-int fpsLimit = 100;
+int fpsCount=0;
+int fpsLimit=100;
+
+nv::GlutExamine manipulator;
 
 // Simple method to display the Frames Per Second in the window title
 void computeFPS(){
@@ -54,11 +52,18 @@ void fpsDisplay(){
 
 bool initGL(int argc, char **argv){
 	// Steps 1-2: create a window and GL context (also register callbacks)
-	arcball_reset();
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
-	glutInitWindowSize(window.x, window.y);
+	glutInitWindowSize(720, 720);
 	glutCreateWindow("Cuda GL Interop Demo (adapted from NVIDIA's simpleGL");
+
+	// register callbacks
+	glutDisplayFunc(fpsDisplay);
+	glutKeyboardFunc(keyboard);
+	glutReshapeFunc(reshape);
+	glutMouseFunc(mouse);
+	glutMotionFunc(motion);
+	glutIdleFunc(idle);
 
 	// check for necessary OpenGL extensions
 	glewInit();
@@ -85,17 +90,13 @@ int main(int argc, char** argv){
 		return EXIT_FAILURE;
 	}
 
-	initCuda(argc, argv);
-	//SDK_CHECK_ERROR_GL();
-	
-	// register callbacks
-	glutDisplayFunc(fpsDisplay);
-	glutKeyboardFunc(keyboard);
-	glutReshapeFunc(reshape);
-	glutMouseFunc(mouse);
-	glutMotionFunc(motion);
-	glutIdleFunc(idle);
+	manipulator.setDollyActivate(GLUT_RIGHT_BUTTON);
+    manipulator.setPanActivate(GLUT_LEFT_BUTTON, GLUT_ACTIVE_SHIFT);
+    manipulator.setDollyPosition(-3.0f);
 
+	initCuda(argc, argv);
+	SDK_CHECK_ERROR_GL();
+	
 	// start rendering mainloop
 	glutMainLoop();
 

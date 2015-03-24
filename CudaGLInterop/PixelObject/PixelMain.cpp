@@ -2,11 +2,11 @@
 
 #include <GL/glew.h>
 #include <cuda_runtime.h>
+#include <cuda_gl_interop.h>
 #include <helper_cuda.h>
 #include <helper_cuda_gl.h>
 #include <helper_timer.h>
-#include <cuda_gl_interop.h>
-#include <rendercheck_gl.h>
+#include <nvGlutManipulators.h>
 
 
 // The user must create the following routines:
@@ -96,7 +96,7 @@ int main(int argc, char** argv){
 	}
 
 	initCuda(argc, argv);
-	//SDK_CHECK_ERROR_GL();
+	SDK_CHECK_ERROR_GL();
 	
 	// register callbacks
 	glutDisplayFunc(fpsDisplay);

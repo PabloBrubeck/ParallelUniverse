@@ -1,13 +1,11 @@
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
 #include <helper_cuda.h>
 #include <cutil_math.h>
-#include "geometry.cuh"
-#include "hand.cuh"
+#include "geometry.h"
+#include "skeleton.h"
 
 #define MAXTHREADS 512
-
-bool refresh=true;
 
 __global__
 void animate(float4 *d_vertex, float4 *d_shape, dim3 mesh){
@@ -24,14 +22,13 @@ int ceil(int num, int den){
 	return (num+den-1)/den;
 }
 
-void geometry_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, dim3 mesh, float time){
+void launch_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, dim3 mesh, float time){
 	static const int n=mesh.x*mesh.y*mesh.z;
 	static const dim3 block(8, 8, 8);
 	static const dim3 grid(ceil(mesh.x, 8), ceil(mesh.y, 8), ceil(mesh.z, 8));
 	static float4 *d_sphere=NULL, *d_torus=NULL;
-	static float last=-20.f;
+	static float last=-FLT_MAX;
 	static bool shape=true;
-
 	if(d_sphere==NULL){
 		cudaMalloc((void**)&d_sphere, n*sizeof(float4));
 		cudaMalloc((void**)&d_torus, n*sizeof(float4));
@@ -40,7 +37,6 @@ void geometry_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, dim3 mesh, 
 		torus<<<grid, block>>>(d_torus, mesh, 1.f, 2.f);
 		cudaMemcpy(d_pos, d_sphere, n*sizeof(float4), cudaMemcpyDeviceToDevice);
 	}
-
 	float elapsed=time-last;
 	if(elapsed>=2.f){
 		if(elapsed>=7.f){
@@ -52,18 +48,17 @@ void geometry_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, dim3 mesh, 
 		normals<<<grid, block>>>(d_norm, d_pos, mesh);
 		colors<<< grid, block>>>(d_color, d_norm, mesh);
 	}
+	cudaThreadSynchronize();
+	checkCudaErrors(cudaGetLastError());
 }
 
-void launch_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, dim3 mesh, float time){
+void hand_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, dim3 mesh, float time){
 	static const int n=mesh.x*mesh.y*mesh.z;
 	static float4 *skel=new float4[25], *hand=new float4[n];
-	
-	if(refresh){
+	if(true){
 		skeleton(skel, angle);
 		volume(hand, skel, mesh.y);
-		
 		checkCudaErrors(cudaMemcpy(d_pos, hand, n*sizeof(float4), cudaMemcpyHostToDevice));
 		checkCudaErrors(cudaMemset(d_color, 255u, n*sizeof(uchar4)));
-		refresh=false;
 	}
 }

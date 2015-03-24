@@ -5,14 +5,13 @@
 #include <GL/glext.h>
 #include <cuda_runtime.h>
 #include <helper_cuda.h>
-#include <helper_cuda_gl.h>
 #include <cuda_gl_interop.h>
-#include <rendercheck_gl.h>
+
  
 float animTime = 0.f;
- 
+
 // constants
-const dim3 mesh(36, 16, 1);
+const dim3 mesh(128, 128, 1);
 const unsigned int RestartIndex = 0xffffffff;
 
 struct mappedBuffer_t{
@@ -37,7 +36,6 @@ void createVBO(mappedBuffer_t* mbuf){
   // initialize buffer object
   unsigned int size=mesh.x*mesh.y*mesh.z*(mbuf->typeSize);
   glBufferData(GL_ARRAY_BUFFER, size, 0, GL_DYNAMIC_DRAW);
-   
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   
   // register buffer object with CUDA
@@ -46,18 +44,17 @@ void createVBO(mappedBuffer_t* mbuf){
  
 // Delete VBO
 void deleteVBO(mappedBuffer_t* mbuf){
-	glBindBuffer(1, mbuf->vbo );
-	glDeleteBuffers(1, &(mbuf->vbo) );
-	cudaGraphicsUnregisterResource( mbuf->cudaResource );
-	mbuf->cudaResource = NULL;
-	mbuf->vbo = NULL;
+	glBindBuffer(1, mbuf->vbo);
+	glDeleteBuffers(1, &(mbuf->vbo));
+	cudaGraphicsUnregisterResource(mbuf->cudaResource);
+	mbuf->cudaResource=NULL;
+	mbuf->vbo=NULL;
 }
  
 void cleanupCuda(){
 	deleteVBO(&vertexVBO);
 	deleteVBO(&normalVBO);
 	deleteVBO(&colorVBO);
-	
 	cudaDeviceReset();
 }
 
@@ -68,17 +65,17 @@ void runCuda(){
 	float4 *d_norm;
 	uchar4 *d_color;
 	size_t start;
-
+	
 	cudaGraphicsMapResources(1, &vertexVBO.cudaResource, NULL);
 	cudaGraphicsResourceGetMappedPointer((void**)&d_pos, &start, vertexVBO.cudaResource);
 	cudaGraphicsMapResources(1, &normalVBO.cudaResource, NULL);
 	cudaGraphicsResourceGetMappedPointer((void**)&d_norm, &start, normalVBO.cudaResource);
 	cudaGraphicsMapResources(1, &colorVBO.cudaResource, NULL);
 	cudaGraphicsResourceGetMappedPointer((void**)&d_color, &start, colorVBO.cudaResource);
-		
+
     // execute the kernel
     launch_kernel(d_pos, d_norm, d_color, mesh, animTime);
- 
+
     // unmap buffer object
 	cudaGraphicsUnmapResources(1, &vertexVBO.cudaResource, NULL);
 	cudaGraphicsUnmapResources(1, &normalVBO.cudaResource, NULL);
@@ -114,7 +111,7 @@ void renderCuda(int drawMode){
 	glColorPointer(4, GL_UNSIGNED_BYTE, 0, 0);
 	glEnableClientState(GL_COLOR_ARRAY);
 
-	size_t n=mesh.x*mesh.y*mesh.z;
+	int n=mesh.x*mesh.y*mesh.z;
 	switch(drawMode){
 		default:
 		case GL_POINTS:
@@ -143,10 +140,10 @@ void renderCuda(int drawMode){
 				for(int k=0; k<mesh.z; k++){
 					for(int j=1; j<mesh.y; j++){
 						for(int i=1; i<mesh.x; i++){
-							qIndices[index++]=(k*mesh.y+j)*mesh.x+i; 
-							qIndices[index++]=(k*mesh.y+j)*mesh.x+i-1; 
+							qIndices[index++]=(k*mesh.y+ j )*mesh.x+ i; 
+							qIndices[index++]=(k*mesh.y+ j )*mesh.x+i-1; 
 							qIndices[index++]=(k*mesh.y+j-1)*mesh.x+i-1; 
-							qIndices[index++]=(k*mesh.y+j-1)*mesh.x+i; 
+							qIndices[index++]=(k*mesh.y+j-1)*mesh.x+ i; 
 							qIndices[index++]=RestartIndex;
 						}
 					}
@@ -160,8 +157,7 @@ void renderCuda(int drawMode){
 			}
 			break;
 		}
-	}
- 
+	} 
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_NORMAL_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);

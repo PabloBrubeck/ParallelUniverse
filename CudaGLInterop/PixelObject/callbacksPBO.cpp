@@ -50,6 +50,7 @@ void display(){
 
 	// Don't forget to swap the buffers!
 	glutSwapBuffers();
+	glutReportErrors();
 
 	// if animFlag is true, then indicate the display needs to be redrawn
 	if(animFlag){
