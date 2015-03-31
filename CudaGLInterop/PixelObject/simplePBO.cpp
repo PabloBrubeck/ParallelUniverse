@@ -1,4 +1,4 @@
-// simplePBO.cpp (Rob Farber)
+// simplePBO.cpp adapted from Rob Farber's code from drdobbs.com
 
 #include <GL/glew.h>
 #include <GL/gl.h>
@@ -9,15 +9,11 @@
 
 // external variables
 extern float animTime;
-extern unsigned int window_width;
-extern unsigned int window_height;
 
 // constants (the following should be a const in a header file)
-unsigned int image_width = window_width;
-unsigned int image_height = window_height;
+uint2 image=make_uint2(720u, 720u);
 
-extern "C" void launch_kernel(uchar4* pos, unsigned int image_width,
-	unsigned int image_height, float time);
+void launch_kernel(uchar4* pos, uint2 image, float time);
 
 // variables
 GLuint pbo = NULL;
@@ -26,7 +22,7 @@ GLuint textureID = NULL;
 void createPBO(GLuint* pbo){
 	if(pbo){
 		// set up vertex data parameter
-		int num_texels=image_width*image_height;
+		int num_texels=image.x*image.y;
 		int num_values=num_texels*4;
 		int size_tex_data = sizeof(GLubyte) * num_values;
 
@@ -64,7 +60,7 @@ void createTexture(GLuint* textureID, unsigned int size_x, unsigned int size_y){
 
 	// Allocate the texture memory. The last parameter is NULL since we only
 	// want to allocate memory, not initialize it
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, image_width, image_height, 0,
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, image.x, image.y, 0,
 		GL_BGRA, GL_UNSIGNED_BYTE, NULL);
 
 	// Must set the filter mode, GL_LINEAR enables interpolation when scaling
@@ -100,7 +96,7 @@ void runCuda(){
 	cudaGLMapBufferObject((void**)&d_ptr, pbo);
 
 	// execute the kernel
-	launch_kernel(d_ptr, image_width, image_height, animTime);
+	launch_kernel(d_ptr, image, animTime);
 
 	// unmap buffer object
 	cudaGLUnmapBufferObject(pbo);
@@ -113,7 +109,7 @@ void initCuda(int argc, char** argv){
 	// specified CUDA device, otherwise use device with highest Gflops/s
 	cudaGLSetGLDevice(findCudaDevice(argc, (const char **)argv));
 	createPBO(&pbo);
-	createTexture(&textureID, image_width, image_height);
+	createTexture(&textureID, image.x, image.y);
 
 	// Clean up on program exit
 	atexit(cleanupCuda);

@@ -1,12 +1,12 @@
-// vertexMain.cpp based on Rob Farber's code from drdobbs.com
+// vertexMain.cpp adapted from Rob Farber's code from drdobbs.com
 
 #include <GL/glew.h>
+#include <GL/freeglut.h>
 #include <cuda_runtime.h>
 #include <cuda_gl_interop.h>
 #include <helper_cuda.h>
 #include <helper_cuda_gl.h>
 #include <helper_timer.h>
-#include <nvGlutManipulators.h>
 
 // The user must create the following routines:
 // CUDA methods
@@ -17,28 +17,28 @@ extern void renderCuda(int);
 // callbacks
 extern void display();
 extern void reshape(int, int);
-extern void keyboard(unsigned char, int, int);
+extern void keyPressed(unsigned char, int, int);
+extern void keyReleased(unsigned char, int, int);
 extern void mouse(int, int, int, int);
 extern void motion(int, int);
+extern void timerEvent(int);
 extern void idle();
 
 // Timer for FPS calculations
-StopWatchInterface *timer = NULL; 
-int fpsCount=0;
-int fpsLimit=100;
+StopWatchInterface *timer = NULL;
 
-nv::GlutExamine manipulator;
 
 // Simple method to display the Frames Per Second in the window title
 void computeFPS(){
-	fpsCount++;
-	if(fpsCount==fpsLimit){
+	static int fpsCount=0;
+	static int fpsLimit=60;
+	if(++fpsCount==fpsLimit){
+		float ifps=1000.f/sdkGetAverageTimerValue(&timer);	
 		char fps[256];
-		float time=sdkGetAverageTimerValue(&timer);
-		float ifps=1000.f/sdkGetAverageTimerValue(&timer);
 		sprintf_s(fps, "Cuda GL Interop Wrapper: %3.1f fps ", ifps);
 		glutSetWindowTitle(fps);
 		fpsCount=0;
+		fpsLimit=ifps>1.f? (int)ifps: 1;
 		sdkResetTimer(&timer);
 	}
 }
@@ -50,35 +50,48 @@ void fpsDisplay(){
 	computeFPS();
 }
 
-bool initGL(int argc, char **argv){
-	// Steps 1-2: create a window and GL context (also register callbacks)
-	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
+bool initGL(int* argc, char** argv){
+	// create a window and GL context (also register callbacks)
+	glutInit(argc, argv);
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
 	glutInitWindowSize(720, 720);
-	glutCreateWindow("Cuda GL Interop Demo (adapted from NVIDIA's simpleGL");
-
+	glutInitWindowPosition(0, 0);
+	glutCreateWindow("Cuda GL Interop Wrapper (adapted from NVIDIA's simpleGL)");
+	
 	// register callbacks
 	glutDisplayFunc(fpsDisplay);
-	glutKeyboardFunc(keyboard);
 	glutReshapeFunc(reshape);
+	glutKeyboardFunc(keyPressed);
+	glutKeyboardUpFunc(keyReleased);
 	glutMouseFunc(mouse);
 	glutMotionFunc(motion);
+	glutTimerFunc(10, timerEvent, 0);
 	glutIdleFunc(idle);
 
-	// check for necessary OpenGL extensions
+	// initialize necessary OpenGL extensions
 	glewInit();
 	if(!glewIsSupported("GL_VERSION_2_0 ")){
 		fprintf(stderr, "ERROR: Support for necessary OpenGL extensions missing.");
 		fflush(stderr);
 		return false;
 	}
-
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	//glEnable(GL_CULL_FACE);
-	//glCullFace(GL_BACK);
-
+	
+	// default initialization
+	glClearColor(0.f, 0.f, 0.f, 1.f);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
+	
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glShadeModel(GL_SMOOTH);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	glDisable(GL_CULL_FACE);
+	//glCullFace(GL_BACK);
+
+	SDK_CHECK_ERROR_GL();
+
 	return true;
 }
 
@@ -86,13 +99,9 @@ bool initGL(int argc, char **argv){
 int main(int argc, char** argv){
 	sdkCreateTimer(&timer);
 
-	if(!initGL(argc, argv)){
-		return EXIT_FAILURE;
+	if(!initGL(&argc, argv)){
+		exit(EXIT_FAILURE);
 	}
-
-	manipulator.setDollyActivate(GLUT_RIGHT_BUTTON);
-    manipulator.setPanActivate(GLUT_LEFT_BUTTON, GLUT_ACTIVE_SHIFT);
-    manipulator.setDollyPosition(-3.0f);
 
 	initCuda(argc, argv);
 	SDK_CHECK_ERROR_GL();

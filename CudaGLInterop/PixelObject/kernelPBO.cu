@@ -2,42 +2,40 @@
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-
-#include <stdio.h>
 #include <helper_cuda.h>
+#include <cutil_math.h>
+#include <cuComplex.h>
+
+#define MAXTHREADS 512
 
 //Simple kernel writes changing colors to a uchar4 array
 __global__ 
-void kernel(uchar4* pos, unsigned int width, unsigned int height,
-	float time)
-{
-	int index=blockIdx.x*blockDim.x+threadIdx.x;
-	unsigned int x = index%width;
-	unsigned int y = index/width;
+void kernel(uchar4* d_pixel, uint2 image, float time){
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	int j=blockIdx.y*blockDim.y+threadIdx.y;
+	if(i<image.x && j<image.y){
+		int gid=j*image.x+i;
 
-	if (index < width*height) {
-		unsigned char r = (x + (int)time) & 0xff;
-		unsigned char g = (y + (int)time) & 0xff;
-		unsigned char b = ((x + y) + (int)time) & 0xff;
+		unsigned char r = (i + (int)time) & 0xff;
+		unsigned char g = (j + (int)time) & 0xff;
+		unsigned char b = ((i + j) + (int)time) & 0xff;
 
 		// Each thread writes one pixel location in the texture (textel)
-		pos[index] = make_uchar4(r,g,b,0);
+		d_pixel[gid] = make_uchar4(r, g, b, 255u);
 	}
 }
 
-// Wrapper for the __global__ call that sets up the kernel call
-extern "C" void launch_kernel(uchar4* pos, unsigned int image_width,
-	unsigned int image_height, float time)
-{
-	// execute the kernel
-	int nThreads = 256;
-	int totalThreads = image_height * image_width;
-	int nBlocks = totalThreads / nThreads;
-	nBlocks += ((totalThreads%nThreads)>0) ? 1 : 0;
+inline uint ceil(uint num, uint den){
+	return (num+den-1u)/den;
+}
 
-	kernel <<<nBlocks, nThreads>>>(pos, image_width, image_height, time);
 
-	// make certain the kernel has completed 
+void launch_kernel(uchar4* d_pixel, uint2 image, float time){
+	static const dim3 block(MAXTHREADS, 1);
+	static const dim3 grid(ceil(image.x, block.x), ceil(image.y, block.y));
+
+	kernel<<<grid, block>>>(d_pixel, image, time);
+
 	cudaThreadSynchronize();
 	checkCudaErrors(cudaGetLastError());
 }
