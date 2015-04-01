@@ -25,8 +25,7 @@ extern void timerEvent(int);
 extern void idle();
 
 // Timer for FPS calculations
-StopWatchInterface *timer = NULL;
-
+StopWatchInterface* timer = NULL;
 
 // Simple method to display the Frames Per Second in the window title
 void computeFPS(){
@@ -105,7 +104,7 @@ int main(int argc, char** argv){
 
 	initCuda(argc, argv);
 	SDK_CHECK_ERROR_GL();
-	
+
 	// start rendering mainloop
 	glutMainLoop();
 

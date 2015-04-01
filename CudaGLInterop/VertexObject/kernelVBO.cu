@@ -10,18 +10,18 @@
 // graphics pipeline-related kernels
 __global__
 void indices(uint4* d_index, float4* d_normals, float4 *d_vertex, dim3 mesh){
-	uint i=blockIdx.x*blockDim.x+threadIdx.x;
-	uint j=blockIdx.y*blockDim.y+threadIdx.y;
-	uint k=blockIdx.z*blockDim.z+threadIdx.z;
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	int j=blockIdx.y*blockDim.y+threadIdx.y;
+	int k=blockIdx.z*blockDim.z+threadIdx.z;
 	if(i<mesh.x && j<mesh.y && k<mesh.z){
-		uint gid=(k*mesh.y+j)*mesh.x+i;
+		int gid=(k*mesh.y+j)*mesh.x+i;
 		
-		uint ii=(i+1)%mesh.x;
-		uint jj=(j+1)%mesh.y;
-		uint a=(k*mesh.y+j)*mesh.x+i; 
-		uint b=(k*mesh.y+j)*mesh.x+ii; 
-		uint c=(k*mesh.y+jj)*mesh.x+ii; 
-		uint d=(k*mesh.y+jj)*mesh.x+i;
+		int ii=(i+1)%mesh.x;
+		int jj=(j+1)%mesh.y;
+		int a=(k*mesh.y+j)*mesh.x+i; 
+		int b=(k*mesh.y+j)*mesh.x+ii; 
+		int c=(k*mesh.y+jj)*mesh.x+ii; 
+		int d=(k*mesh.y+jj)*mesh.x+i;
 				
 		float4 CA=d_vertex[a]-d_vertex[c];
 		float4 DB=d_vertex[b]-d_vertex[d];
@@ -31,18 +31,18 @@ void indices(uint4* d_index, float4* d_normals, float4 *d_vertex, dim3 mesh){
 }
 __global__
 void normals(float4* d_normals, float4 *d_vertex, dim3 mesh){
-	uint i=blockIdx.x*blockDim.x+threadIdx.x;
-	uint j=blockIdx.y*blockDim.y+threadIdx.y;
-	uint k=blockIdx.z*blockDim.z+threadIdx.z;
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	int j=blockIdx.y*blockDim.y+threadIdx.y;
+	int k=blockIdx.z*blockDim.z+threadIdx.z;
 	if(i<mesh.x && j<mesh.y && k<mesh.z){
 		int gid=(k*mesh.y+j)*mesh.x+i;
 
-		uint ii=(i+1)%mesh.x;
-		uint jj=(j+1)%mesh.y;
-		uint a=(k*mesh.y+j)*mesh.x+i; 
-		uint b=(k*mesh.y+j)*mesh.x+ii; 
-		uint c=(k*mesh.y+jj)*mesh.x+ii; 
-		uint d=(k*mesh.y+jj)*mesh.x+i;
+		int ii=(i+1)%mesh.x;
+		int jj=(j+1)%mesh.y;
+		int a=(k*mesh.y+j)*mesh.x+i; 
+		int b=(k*mesh.y+j)*mesh.x+ii; 
+		//int c=(k*mesh.y+jj)*mesh.x+ii; 
+		int d=(k*mesh.y+jj)*mesh.x+i;
 		
 		float4 AB=d_vertex[b]-d_vertex[a];
 		float4 AD=d_vertex[d]-d_vertex[a];
