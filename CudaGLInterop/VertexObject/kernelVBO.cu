@@ -9,7 +9,7 @@
 
 // graphics pipeline-related kernels
 __global__
-void indices(uint4* d_index, float4* d_normals, float4 *d_vertex, dim3 mesh){
+void indices(uint4* d_index, dim3 mesh){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
 	int k=blockIdx.z*blockDim.z+threadIdx.z;
@@ -22,10 +22,6 @@ void indices(uint4* d_index, float4* d_normals, float4 *d_vertex, dim3 mesh){
 		int b=(k*mesh.y+j)*mesh.x+ii; 
 		int c=(k*mesh.y+jj)*mesh.x+ii; 
 		int d=(k*mesh.y+jj)*mesh.x+i;
-				
-		float4 CA=d_vertex[a]-d_vertex[c];
-		float4 DB=d_vertex[b]-d_vertex[d];
-		d_normals[gid]=cross(CA, DB);
 		d_index[gid]=make_uint4(a, b, c, d);
 	}
 }
@@ -39,14 +35,13 @@ void normals(float4* d_normals, float4 *d_vertex, dim3 mesh){
 
 		int ii=(i+1)%mesh.x;
 		int jj=(j+1)%mesh.y;
-		int a=(k*mesh.y+j)*mesh.x+i; 
 		int b=(k*mesh.y+j)*mesh.x+ii; 
-		//int c=(k*mesh.y+jj)*mesh.x+ii; 
 		int d=(k*mesh.y+jj)*mesh.x+i;
 		
-		float4 AB=d_vertex[b]-d_vertex[a];
-		float4 AD=d_vertex[d]-d_vertex[a];
-		d_normals[gid]=cross(AB, AD);
+		float4 OA=d_vertex[gid];
+		float4 AB=d_vertex[b]-OA;
+		float4 AD=d_vertex[d]-OA;
+		d_normals[gid]=normalize(cross(AB, AD));
 	}
 }
 __global__
@@ -56,18 +51,17 @@ void colors(uchar4 *d_color, float4 *d_normals, dim3 mesh){
 	int k=blockIdx.z*blockDim.z+threadIdx.z;
 	if(i<mesh.x && j<mesh.y && k<mesh.z){
 		int gid=(k*mesh.y+j)*mesh.x+i;
-		float4 *p=d_normals+gid;
-		float x=p->x, y=p->y, z=p->z;
+		float4 *n=d_normals+gid;
+		float x=n->x, y=n->y, z=n->z;
 		float x2=x*x, y2=y*y, z2=z*z;
-		float m2=x2+y2+z2;
 		
 		float r=(x<0?0:x2)+(y<0?y2:0)+(z<0?z2:0);
 		float g=(x<0?x2:0)+(y<0?0:y2)+(z<0?z2:0);
 		float b=(x<0?x2:0)+(y<0?y2:0)+(z<0?0:z2);
 		
-		d_color[gid].x=(unsigned char)(255.f*r/m2)&0xff;
-		d_color[gid].y=(unsigned char)(255.f*g/m2)&0xff;
-		d_color[gid].z=(unsigned char)(255.f*b/m2)&0xff;
+		d_color[gid].x=(unsigned char)(255.f*r)&0xff;
+		d_color[gid].y=(unsigned char)(255.f*g)&0xff;
+		d_color[gid].z=(unsigned char)(255.f*b)&0xff;
 		d_color[gid].w=192u;
 	}
 }
@@ -97,9 +91,11 @@ void launch_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_inde
 		checkCudaErrors(cudaMalloc((void**)&d_sphere, n*sizeof(float4)));
 		checkCudaErrors(cudaMalloc((void**)&d_torus, n*sizeof(float4)));
 		torus<<<grid, block>>>(d_torus, mesh, 2.f, 1.f);
-		pretzel<<<grid, block>>>(d_sphere, mesh, 0.3f);
+		pretzel<<<grid, block>>>(d_sphere, mesh, 0.35f);
 		checkCudaErrors(cudaMemcpy(d_pos, d_sphere, n*sizeof(float4), cudaMemcpyDeviceToDevice));
-		indices<<<grid, block>>>(d_index, d_norm, d_pos, mesh);
+		indices<<<grid, block>>>(d_index, mesh);
+		normals<<<grid, block>>>(d_norm, d_pos, mesh);
+		colors<<< grid, block>>>(d_color, d_norm, mesh);
 	}
 	float elapsed=time-last;
 	if(elapsed>=2.f){

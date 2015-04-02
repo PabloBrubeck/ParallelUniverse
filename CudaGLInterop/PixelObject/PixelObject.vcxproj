@@ -16,7 +16,7 @@
   <ItemGroup>
     <ClCompile Include="callbacksPBO.cpp" />
     <ClCompile Include="pixelMain.cpp" />
-    <ClCompile Include="simplePBO.cpp" />
+    <ClCompile Include="rendererPBO.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="kernelPBO.cu" />

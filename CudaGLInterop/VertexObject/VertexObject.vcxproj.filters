@@ -18,9 +18,6 @@
     <ClInclude Include="skeleton.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="camera.h">
-      <Filter>include</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="kernelVBO.cu">
@@ -31,10 +28,10 @@
     <ClCompile Include="callbacksVBO.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="simpleVBO.cpp">
+    <ClCompile Include="vertexMain.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="vertexMain.cpp">
+    <ClCompile Include="rendererVBO.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

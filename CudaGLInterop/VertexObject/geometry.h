@@ -45,7 +45,7 @@ void sphere(float4 *d_vertex, dim3 mesh, float r){
 	uint4 gid=gridIdx(mesh);
 	if(fits(gid, mesh)){
 		float u=((2*gid.x+1)*PI)/mesh.x;
-		float v=(gid.y*PI)/mesh.y;
+		float v=(PI*gid.y)/mesh.y;
 		spherical(d_vertex[gid.w], r, u, v);
 	}
 }
@@ -108,4 +108,3 @@ void pretzel(float4 *d_vertex, dim3 mesh, float w){
 		cylindrical(d_vertex[gid.w], w*(6.f-p*sinf(u-3*v)), v, w*p*cosf(u-3*v));
 	}
 }
-

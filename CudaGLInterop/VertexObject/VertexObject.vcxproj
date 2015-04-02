@@ -105,9 +105,11 @@
     <Link>
       <AdditionalDependencies>glew64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <ClCompile>
+      <FloatingPointModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Precise</FloatingPointModel>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="camera.h" />
     <ClInclude Include="geometry.h" />
     <ClInclude Include="linalg.h" />
     <ClInclude Include="skeleton.h" />
@@ -117,7 +119,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="callbacksVBO.cpp" />
-    <ClCompile Include="simpleVBO.cpp" />
+    <ClCompile Include="rendererVBO.cpp" />
     <ClCompile Include="vertexMain.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -75,22 +75,27 @@ bool initGL(int* argc, char** argv){
 		return false;
 	}
 	
-	// default initialization
+	// Setup lighting
+	GLfloat diffuseMaterial[4] = { 0.5, 0.5, 0.5, 1.0 };
+	GLfloat mat_specular[4] = { 1.0, 1.0, 1.0, 1.0 };
+	GLfloat light_position[4] = { 1.0, 1.0, 1.0, 0.0 };
+
 	glClearColor(0.f, 0.f, 0.f, 1.f);
+	glShadeModel (GL_SMOOTH);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
-	
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuseMaterial);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat_specular);
+	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 25.0);
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glShadeModel(GL_SMOOTH);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-	glDisable(GL_CULL_FACE);
-	//glCullFace(GL_BACK);
-
 	SDK_CHECK_ERROR_GL();
-
 	return true;
 }
 

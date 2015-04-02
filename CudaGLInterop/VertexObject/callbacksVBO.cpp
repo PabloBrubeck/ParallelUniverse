@@ -2,7 +2,8 @@
 
 #include <GL/glew.h>
 #include <GL/freeglut.h>
-#include "camera.h"
+#include <stdio.h>
+#include <NvAppBase/NvInputTransformer.h>
 
 // The user must create the following routines:
 void initCuda(int argc, char** argv);
@@ -10,29 +11,29 @@ void runCuda();
 void renderCuda(int);
 
 int drawMode=GL_POINTS; // the default draw mode
+bool fill=true;
 unsigned long pressed=0u;
 
-static Camera *sCamera = new Camera(PxVec3(0.f, 0.f, -5.f), PxVec3(0.f, 0.f, 1.f));
-
-void startRender(const PxVec3& cameraEye, const PxVec3& cameraDir){
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	// Setup camera
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	gluPerspective(60.0, (float)glutGet(GLUT_WINDOW_WIDTH)/(float)glutGet(GLUT_WINDOW_HEIGHT), 0.01, 100.0);
-
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	gluLookAt(cameraEye.x, cameraEye.y, cameraEye.z, cameraEye.x + cameraDir.x, cameraEye.y + cameraDir.y, cameraEye.z + cameraDir.z, 0.0f, 1.0f, 0.0f); 
-}
-
+// mouse controls
+int mouse_old_x, mouse_old_y;
+int mouse_buttons = 0;
+float rotate_x = 0.0, rotate_y = 0.0;
+float translate_z = -3.0;
 
 // Callbacks for GLUT
 void display(){
+	// run CUDA kernel to generate vertex positions
 	runCuda();
-	startRender(sCamera->getEye(), sCamera->getDir());
 
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// set view matrix
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glTranslatef(0.0, 0.0, translate_z);
+	glRotatef(rotate_x, 1.0, 0.0, 0.0);
+	glRotatef(rotate_y, 0.0, 1.0, 0.0);
+	
 	// render the data
 	renderCuda(drawMode);
 	
@@ -59,11 +60,11 @@ void keyPressed(unsigned char key, int x, int y){
 		pressed|=(1<<(key-97+10));
 	}
 	switch(key){
-	case 27:
-		exit(EXIT_SUCCESS);
-		break;
+	case 27:{
+		exit(0);
+	}break;
 	case 'w':
-	case 'W':
+	case 'W':{
 		switch(drawMode){
 		case GL_POINTS: 
 			drawMode=GL_LINE_LOOP;
@@ -74,9 +75,14 @@ void keyPressed(unsigned char key, int x, int y){
 		default: 
 			drawMode=GL_POINTS;
 		}
-		break;
-		glutPostRedisplay();
+	}break;
+	case 'q':
+	case 'Q':{
+		fill=!fill;
+		glPolygonMode(GL_FRONT_AND_BACK, fill? GL_FILL: GL_LINE);
+	}break;	
 	}
+	glutPostRedisplay();
 }
 void keyReleased(unsigned char key, int x, int y){
 	if(key>=48 && key<=57){
@@ -92,15 +98,32 @@ void keyReleased(unsigned char key, int x, int y){
 }
 
 void mouse(int button, int state, int x, int y){
-	sCamera->handleMouse(button, state, x, y);
+	if (state == GLUT_DOWN) {
+		mouse_buttons |= 1<<button;
+	} else if (state == GLUT_UP) {
+		mouse_buttons = 0;
+	}
+	mouse_old_x = x;
+	mouse_old_y = y;
+	glutPostRedisplay();
 }
 void motion(int x, int y){
-	sCamera->handleMotion(x, y);
+	float dx, dy;
+	dx = x - mouse_old_x;
+	dy = y - mouse_old_y;
+	if (mouse_buttons & 1) {
+		rotate_x += dy * 0.2f;
+		rotate_y += dx * 0.2f;
+	} else if (mouse_buttons & 4) {
+		translate_z += dy * 0.01f;
+	}
+	mouse_old_x = x;
+	mouse_old_y = y;
 }
 
 void timerEvent(int value){
 	glutPostRedisplay();
-	glutTimerFunc(10, timerEvent, value);
+	glutTimerFunc(10, timerEvent, 0);
 }
 void idle(){
 	glutPostRedisplay();

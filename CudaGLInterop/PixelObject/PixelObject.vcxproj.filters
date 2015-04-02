@@ -15,7 +15,7 @@
     <ClCompile Include="pixelMain.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="simplePBO.cpp">
+    <ClCompile Include="rendererPBO.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
