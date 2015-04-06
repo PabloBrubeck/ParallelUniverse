@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{4bc5bb34-cf98-4ce9-b47b-348518d2f1ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{814e8668-2458-4e1c-a67d-b7d043d2464b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="geometry.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="linalg.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="primitives.h">
+      <Filter>include</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="vertexMain.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="callbacksGAS.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="rendererGAS.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="kernelGAS.cu">
+      <Filter>src</Filter>
+    </CudaCompile>
+  </ItemGroup>
+</Project>

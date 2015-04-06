@@ -68,7 +68,7 @@ float3 blackBody(float temperature){
     }
     // re-normalize the color scale
     float denom=max(XX,YY,ZZ);
-	return {XX/denom, YY/denom, ZZ/denom};
+	return make_float3(XX/denom, YY/denom, ZZ/denom);
 }
 __device__
 uchar4 XYZ2RGB(float3 r, float3 g, float3 b, float3 color){

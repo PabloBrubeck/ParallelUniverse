@@ -17,7 +17,7 @@ float rotate_x = 0.0, rotate_y = 0.0;
 float translate_z = -3.0;
 
 // keyboard controls
-int drawMode=GL_QUADS;
+int drawMode=GL_POINTS;
 unsigned int key0=0x00000001;
 unsigned int key1=0x00000002;
 unsigned int key2=0x00000004;

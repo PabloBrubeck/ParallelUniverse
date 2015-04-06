@@ -81,7 +81,7 @@ bool initGL(int* argc, char** argv){
 	GLfloat light_position[4] = { 1.f, 1.f, 1.f, 0.f };
 
 	glClearColor(0.f, 0.f, 0.f, 1.f);
-	glShadeModel(GL_SMOOTH);
+	/*glShadeModel(GL_SMOOTH);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuseMaterial);
@@ -93,7 +93,7 @@ bool initGL(int* argc, char** argv){
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);*/
 
 	SDK_CHECK_ERROR_GL();
 	return true;

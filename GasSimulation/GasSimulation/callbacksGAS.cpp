@@ -17,7 +17,7 @@ float rotate_x = 0.0, rotate_y = 0.0;
 float translate_z = -3.0;
 
 // keyboard controls
-int drawMode=GL_QUADS;
+int drawMode=GL_POINTS;
 unsigned int key0=0x00000001;
 unsigned int key1=0x00000002;
 unsigned int key2=0x00000004;
@@ -68,11 +68,9 @@ void keyPressed(unsigned char key, int x, int y){
 	if(key==27){
 		exit(EXIT_SUCCESS);
 	}if(pressed & 0x00000002){
-		switch(drawMode){
-		case GL_POINTS: drawMode=GL_LINE_LOOP; break;
-		case GL_LINE_LOOP: drawMode=GL_QUADS;  break;
-		default: drawMode=GL_POINTS;
-		}
+		static int size=1;
+		size=(size)%4+1;
+		glPointSize(size);
 	}if(pressed & 0x00000004){
 		static bool fill=false;
 		glPolygonMode(GL_FRONT_AND_BACK, fill? GL_FILL: GL_LINE);
