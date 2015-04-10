@@ -56,24 +56,33 @@ void initialState(uchar4 *d_color, Particle *d_body, dim3 mesh){
 		int n=mesh.x*mesh.y;
 		int k=j*mesh.x+i;
 
-		float theta=2*k*PI/mesh.x;
-		float r=0.01f+mod((9*PI*k)/(n-1.f), 1.f);
+		float theta=2*i*PI/mesh.x;
+		float r=float(j+1)/mesh.y;
 		
 
 		float x=r*cos(theta);
 		float y=r*sin(theta);
-		float z=(i%2==0? 1:-1)*exp(-r*r*5)/20;
-		float m=2.f*exp(-r);
+		float z=0.f;
+		
+		float r0=1.f/3.f;
+		
+		float dr=1.f/mesh.y;
+		float r1=r-dr/2;
+		float r2=r+dr/2;
+		
 
-		float M=2.f*n*r;
-		float w=sqrtf(M);
+		float m=200000*r0*((r0+r2)*exp(-r1/r0)-(r0+r1)*exp(-r2/r0))/mesh.x;
+
+
+		float v2=200000*r0*(r0-(r0+r)*exp(-r/r0));
+		float w=sqrt(v2)/r;
 
 		d_body[k].mass=m;
 		d_body[k].pos={x, y, z};
 		d_body[k].vel={y*w, -x*w, 0.f};
 		d_body[k].acc={0.f, 0.f, 0.f};
 		
-		float temp=3500.f*m;
+		float temp=1000.f*m;
 		d_color[k]=planckColor(temp);
 	}
 }
@@ -182,7 +191,7 @@ void launch_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_inde
 	static const int n=mesh.x*mesh.y*mesh.z;
 	static const int block1D=MAXTHREADS;
 	static const int grid1D=ceil(n, block1D);
-	static const int p=256;
+	static const int p=128;
 	static const int bytes=p*sizeof(float4);
 	static const dim3 grid2D(ceil(n, p), ceil(n, p));
 
