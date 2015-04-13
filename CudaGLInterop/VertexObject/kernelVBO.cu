@@ -62,7 +62,7 @@ void transform(float4 *d_pos, float4 *d_shape, dim3 mesh){
 	int k=blockIdx.z*blockDim.z+threadIdx.z;
 	if(i<mesh.x && j<mesh.y && k<mesh.z){
 		int gid=(k*mesh.y+j)*mesh.x+i;
-		d_pos[gid]=0.99f*d_pos[gid]+0.01f*d_shape[gid];
+		d_pos[gid]=lerp(d_pos[gid], d_shape[gid], 0.01f);
 		d_pos[gid].w=1.f;
 	}
 }
