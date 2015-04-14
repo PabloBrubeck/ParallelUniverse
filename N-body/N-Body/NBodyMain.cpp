@@ -49,6 +49,21 @@ void fpsDisplay(){
 	computeFPS();
 }
 
+// Function to enable/disable vsync
+void setVSync(bool sync){	
+	typedef BOOL (APIENTRY *PFNWGLSWAPINTERVALPROC)(int);
+	PFNWGLSWAPINTERVALPROC wglSwapIntervalEXT = 0;
+	const char *extensions = (char*)glGetString(GL_EXTENSIONS);
+	if(strstr(extensions, "WGL_EXT_swap_control" )==0){
+		return;
+	}else{
+		wglSwapIntervalEXT=(PFNWGLSWAPINTERVALPROC)wglGetProcAddress("wglSwapIntervalEXT");
+		if(wglSwapIntervalEXT){
+			wglSwapIntervalEXT(sync);
+		}
+	}
+}
+
 bool initGL(int* argc, char** argv){
 	// create a window and GL context (also register callbacks)
 	glutInit(argc, argv);
@@ -74,7 +89,8 @@ bool initGL(int* argc, char** argv){
 		fflush(stderr);
 		return false;
 	}
-	
+	setVSync(0);
+
 	// Setup lighting
 	GLfloat diffuseMaterial[4]= { 1.f, 1.f, 1.f, 1.f };
 	GLfloat mat_specular[4] =	{ 1.f, 1.f, 1.f, 1.f };
@@ -98,6 +114,8 @@ bool initGL(int* argc, char** argv){
 	SDK_CHECK_ERROR_GL();
 	return true;
 }
+
+
 
 // Main program
 int main(int argc, char** argv){
