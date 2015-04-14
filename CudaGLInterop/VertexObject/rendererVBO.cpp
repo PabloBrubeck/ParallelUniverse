@@ -10,7 +10,7 @@
 #include <helper_cuda_gl.h>
 
 // constants
-const dim3 mesh(256, 256, 1);
+const dim3 mesh(512, 512, 1);
 
 struct mappedBuffer_t{
   GLuint vbo;
@@ -118,7 +118,6 @@ void initCuda(int argc, char** argv){
  
 void renderCuda(int drawMode){
 	glEnable(GL_COLOR_MATERIAL);
-	
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_NORMAL_ARRAY);
 	glEnableClientState(GL_COLOR_ARRAY);

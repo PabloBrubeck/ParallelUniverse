@@ -48,17 +48,15 @@ void bodyBodyInteraction(float3 &acc, float3 &p, float4 &q){
 
 // simulation kernels
 __global__
-void initialState(uchar4 *d_color, Particle *d_body, dim3 mesh){
+void initPos(uchar4 *d_color, Particle *d_body, dim3 mesh){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
-	
 	if(i<mesh.x && j<mesh.y){
 		int n=mesh.x*mesh.y;
 		int k=j*mesh.x+i;
 
 		float theta=2*i*PI/mesh.x;
 		float r=float(j+1)/mesh.y;
-		
 
 		float x=r*cos(theta);
 		float y=r*sin(theta);
@@ -69,21 +67,26 @@ void initialState(uchar4 *d_color, Particle *d_body, dim3 mesh){
 		float dr=1.f/mesh.y;
 		float r1=r-dr/2;
 		float r2=r+dr/2;
-		
-
 		float m=200000*r0*((r0+r2)*exp(-r1/r0)-(r0+r1)*exp(-r2/r0))/mesh.x;
-
-
-		float v2=200000*r0*(r0-(r0+r)*exp(-r/r0));
-		float w=sqrt(v2)/r;
 
 		d_body[k].mass=m;
 		d_body[k].pos={x, y, z};
-		d_body[k].vel={y*w, -x*w, 0.f};
-		d_body[k].acc={0.f, 0.f, 0.f};
 		
 		float temp=1000.f*m;
 		d_color[k]=planckColor(temp);
+	}
+}
+__global__
+void initVel(Particle *d_body, dim3 mesh){
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	int j=blockIdx.y*blockDim.y+threadIdx.y;
+	if(i<mesh.x && j<mesh.y){
+		int n=mesh.x*mesh.y;
+		int k=j*mesh.x+i;
+		float3 acc=d_body[k].acc;
+		float3 pos=d_body[k].pos;
+		float w=sqrtf(sqrtf(dot(acc,acc)/dot(pos,pos)));
+		d_body[k].vel={-w*pos.y, w*pos.x, 0.f};
 	}
 }
 __global__
@@ -205,7 +208,10 @@ void launch_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_inde
 		checkCudaErrors(cudaMalloc((void**)&d_body, n*sizeof(Particle)));
 		dim3 tblock(16, 16);
 		dim3 tgrid(ceil(mesh.x, tblock.x), ceil(mesh.y, tblock.y));
-		initialState<<<tgrid, tblock>>>(d_color, d_body, mesh);
+		
+		initPos<<<tgrid, tblock>>>(d_color, d_body, mesh);
+		interact<<<grid2D, p, bytes>>>(d_body, n);
+		initVel<<<tgrid, tblock>>>(d_body, mesh);
 	}
 
 	// main kernel sequence
