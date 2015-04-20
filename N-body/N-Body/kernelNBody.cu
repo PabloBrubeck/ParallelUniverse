@@ -60,9 +60,9 @@ void initPos(uchar4 *d_color, Particle *d_body, dim3 mesh){
 		float cos=cosf(theta);
 		float sin=sinf(theta);
 
-		float a=1.0f, b=1.5f;
-		float x=h*a*cos;
-		float y=h*b*sin;
+		float a=1.0f*h, b=1.5f*h;
+		float x=a*cos;
+		float y=b*sin;
 
 		float r=sqrtf(x*x+y*y);
 		float m=12*(1+3*r)*exp(-3*r);
@@ -82,9 +82,9 @@ void initVel(Particle *d_body, dim3 mesh){
 		int k=j*mesh.x+i;
 		
 		float theta=(2*i*PI)/mesh.x;
-		float l=float(j+1)/mesh.y;
+		float h=float(j+1)/mesh.y;
 
-		float a=1.0f, b=1.5f;
+		float a=1.0f*h, b=1.5f*h;
 		float3 g=d_body[k].acc;
 		float3 r=d_body[k].pos;
 
@@ -127,10 +127,11 @@ void integrate(Particle *d_body, float dt, int n){
 	}
 }
 __global__
-void updatePoints(float4 *d_pos, Particle *d_body, int n){
+void updatePoints(float4 *d_pos, float4 *d_norm, Particle *d_body, int n){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	if(i<n){
 		d_pos[i]=make_float4(d_body[i].pos, 1.f);
+		d_norm[i]=make_float4(normalize(d_body[i].vel), 1.f);
 	}
 }
 
@@ -225,7 +226,7 @@ void launch_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_inde
 	mapMagnitude2<<<grid1D, block1D>>>(d_body, d_aux, n);
 	float dt=dvmax/sqrt(getMax(d_aux, n));
 	integrate<<<grid1D, block1D>>>(d_body, dt, n);
-	updatePoints<<<grid1D, block1D>>>(d_pos, d_body, n);
+	updatePoints<<<grid1D, block1D>>>(d_pos, d_norm, d_body, n);
 
 	cudaThreadSynchronize();
 	checkCudaErrors(cudaGetLastError());

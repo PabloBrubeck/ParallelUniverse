@@ -89,7 +89,7 @@ bool initGL(int* argc, char** argv){
 		fflush(stderr);
 		return false;
 	}
-	setVSync(0);
+	//setVSync(0);
 
 	// Setup lighting
 	GLfloat diffuseMaterial[4]= { 1.f, 1.f, 1.f, 1.f };
