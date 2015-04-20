@@ -52,25 +52,23 @@ void initPos(uchar4 *d_color, Particle *d_body, dim3 mesh){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
 	if(i<mesh.x && j<mesh.y){
-		int n=mesh.x*mesh.y;
 		int k=j*mesh.x+i;
 
-		float theta=2*i*PI/mesh.x;
-		float r=float(j+1)/mesh.y;
+		float theta=(2*i*PI)/mesh.x;
+		float h=float(j+1)/mesh.y;
+		
+		float cos=cosf(theta);
+		float sin=sinf(theta);
 
-		float x=r*cos(theta);
-		float y=r*sin(theta);
-		float z=0.f;
-		
-		float r0=1.f/3.f;
-		
-		float dr=1.f/mesh.y;
-		float r1=r-dr/2;
-		float r2=r+dr/2;
-		float m=200000*r0*((r0+r2)*exp(-r1/r0)-(r0+r1)*exp(-r2/r0))/mesh.x;
+		float a=1.0f, b=1.5f;
+		float x=h*a*cos;
+		float y=h*b*sin;
+
+		float r=sqrtf(x*x+y*y);
+		float m=12*(1+3*r)*exp(-3*r);
 
 		d_body[k].mass=m;
-		d_body[k].pos={x, y, z};
+		d_body[k].pos={x, y, 0.f};
 		
 		float temp=1000.f*m;
 		d_color[k]=planckColor(temp);
@@ -81,12 +79,20 @@ void initVel(Particle *d_body, dim3 mesh){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
 	if(i<mesh.x && j<mesh.y){
-		int n=mesh.x*mesh.y;
 		int k=j*mesh.x+i;
-		float3 acc=d_body[k].acc;
-		float3 pos=d_body[k].pos;
-		float w=sqrtf(sqrtf(dot(acc,acc)/dot(pos,pos)));
-		d_body[k].vel={-w*pos.y, w*pos.x, 0.f};
+		
+		float theta=(2*i*PI)/mesh.x;
+		float l=float(j+1)/mesh.y;
+
+		float a=1.0f, b=1.5f;
+		float3 g=d_body[k].acc;
+		float3 r=d_body[k].pos;
+
+		float3 p=make_float3(r.x/(a*a), r.y/(b*b), 0.f);
+		float w2=-dot(g, p);
+		float w=sqrtf(max(0.f, w2));
+
+		d_body[k].vel={-a/b*w*r.y, b/a*w*r.x, 0.f};
 	}
 }
 __global__

@@ -1,4 +1,4 @@
-// callbacksVBO.cpp adapted from Rob Farber's code from drdobbs.com
+ // callbacksVBO.cpp adapted from Rob Farber's code from drdobbs.com
 
 #include <GL/glew.h>
 #include <GL/freeglut.h>

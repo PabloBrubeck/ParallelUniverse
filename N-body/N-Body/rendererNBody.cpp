@@ -19,7 +19,7 @@ struct mappedBuffer_t{
 };
 
 void launch_kernel(float4* d_pos, float4* d_norm, uchar4* d_color, uint4* d_index, dim3 mesh, float time);
- 
+
 // vbo variables
 mappedBuffer_t vertexVBO = {NULL, sizeof(float4), NULL};
 mappedBuffer_t normalVBO = {NULL, sizeof(float4), NULL};
@@ -35,7 +35,7 @@ void createVBO(mappedBuffer_t* mbuf, GLenum mode){
 	// initialize buffer object
 	unsigned int size=mesh.x*mesh.y*mesh.z*(mbuf->typeSize);
 	glBufferData(mode, size, 0, GL_DYNAMIC_DRAW);
-	//glBindBuffer(mode, 0);
+	glBindBuffer(mode, 0);
 
 	// register buffer object with CUDA
 	checkCudaErrors(cudaGraphicsGLRegisterBuffer(&(mbuf->cudaResource),

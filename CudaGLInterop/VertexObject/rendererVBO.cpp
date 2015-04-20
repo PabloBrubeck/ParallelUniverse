@@ -35,7 +35,7 @@ void createVBO(mappedBuffer_t* mbuf, GLenum mode){
 	// initialize buffer object
 	unsigned int size=mesh.x*mesh.y*mesh.z*(mbuf->typeSize);
 	glBufferData(mode, size, 0, GL_DYNAMIC_DRAW);
-	//glBindBuffer(mode, 0);
+	glBindBuffer(mode, 0);
 
 	// register buffer object with CUDA
 	checkCudaErrors(cudaGraphicsGLRegisterBuffer(&(mbuf->cudaResource),
