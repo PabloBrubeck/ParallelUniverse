@@ -18,6 +18,9 @@
     <ClInclude Include="skeleton.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="polynomial.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="kernelVBO.cu">

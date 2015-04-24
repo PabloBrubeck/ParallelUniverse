@@ -8,6 +8,8 @@
 #include <helper_cuda_gl.h>
 #include <helper_timer.h>
 
+#include <polynomial.h>
+
 // The user must create the following routines:
 // CUDA methods
 extern void initCuda(int argc, char** argv);

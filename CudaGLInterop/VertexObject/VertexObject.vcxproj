@@ -112,6 +112,7 @@
   <ItemGroup>
     <ClInclude Include="geometry.h" />
     <ClInclude Include="linalg.h" />
+    <ClInclude Include="polynomial.h" />
     <ClInclude Include="skeleton.h" />
   </ItemGroup>
   <ItemGroup>
