@@ -113,6 +113,8 @@ void wave_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index,
 	dampedWave<<<grid, block>>>(d_pos, mesh, 2.f, time);
 	indices<<<grid, block>>>(d_index, mesh);
 	normalMapping<<<grid, block>>>(d_color, d_norm, d_pos, mesh);
+	cudaThreadSynchronize();
+	checkCudaErrors(cudaGetLastError());
 }
 void ricci_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
 	static const dim3 block(MAXTHREADS, 1, 1);
@@ -127,7 +129,7 @@ void ricci_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index
 	cudaThreadSynchronize();
 	checkCudaErrors(cudaGetLastError());
 }
-void launch_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
+void torus_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
 	static const int n=mesh.x*mesh.y*mesh.z;
 	static const dim3 block(MAXTHREADS, 1, 1);
 	static const dim3 grid(ceil(mesh.x, block.x), ceil(mesh.y, block.y), ceil(mesh.z, block.z));
@@ -153,4 +155,31 @@ void launch_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_inde
 	}
 	cudaThreadSynchronize();
 	checkCudaErrors(cudaGetLastError());
+}
+void harmonic_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
+	static const dim3 block(MAXTHREADS, 1, 1);
+	static const dim3 grid(ceil(mesh.x, block.x), ceil(mesh.y, block.y), ceil(mesh.z, block.z));
+
+	int m=3;
+	int l=7;
+
+	if(time==0){
+		float* d_Pml=NULL;
+		float* h_Pml=new float[l-m+1];
+		legendreA(h_Pml, m, l);
+		float scale=sqrt(float((2*l+1)*factorial(l-abs(m)))/(4*PI*factorial(l+abs(m))));
+		int bytes=(l-m+1)*sizeof(float);
+		checkCudaErrors(cudaMalloc((void**)&d_Pml, bytes));
+		checkCudaErrors(cudaMemcpy(d_Pml, h_Pml, bytes, cudaMemcpyHostToDevice));
+	
+		sphericalHarmonic<<<grid, block>>>(d_pos, mesh, d_Pml, m, l, scale);
+		indices<<<grid, block>>>(d_index, mesh);
+		normalMapping<<<grid, block>>>(d_color, d_norm, d_pos, mesh);
+	}
+	cudaThreadSynchronize();
+	checkCudaErrors(cudaGetLastError());
+}
+
+void launch_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
+	harmonic_kernel(d_pos, d_norm, d_color, d_index, mesh, time);
 }

@@ -10,7 +10,7 @@
 #include <helper_cuda_gl.h>
 
 // constants
-const dim3 mesh(64, 64, 1);
+const dim3 mesh(128, 128, 1);
 
 struct mappedBuffer_t{
   GLuint vbo;

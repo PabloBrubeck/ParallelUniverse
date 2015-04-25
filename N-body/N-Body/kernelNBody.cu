@@ -41,7 +41,7 @@ __device__
 void bodyBodyInteraction(float3 &acc, float3 &p, float4 &q){
 	float3 r=make_float3(q.x-p.x, q.y-p.y, q.z-p.z);
 	float r2=dot(r, r);
-	float w2=q.w*invsqrt(r2*r2*r2+0.0006f);
+	float w2=q.w*invsqrt(r2*r2*r2+0.006f);
 	acc+=r*w2;
 }
 
@@ -83,16 +83,18 @@ void initVel(Particle *d_body, dim3 mesh){
 		
 		float theta=(2*i*PI)/mesh.x;
 		float h=float(j+1)/mesh.y;
+		float cos=cosf(theta);
+		float sin=sinf(theta);
 
 		float a=1.0f*h, b=1.5f*h;
 		float3 g=d_body[k].acc;
 		float3 r=d_body[k].pos;
 
-		float3 p=make_float3(r.x/(a*a), r.y/(b*b), 0.f);
+		float3 p=make_float3(cos/a, sin/b, 0.f);
 		float w2=-dot(g, p);
-		float w=sqrtf(max(0.f, w2));
+		float w=sqrtf(w2);
 
-		d_body[k].vel={-a/b*w*r.y, b/a*w*r.x, 0.f};
+		d_body[k].vel={-w*a*sin, w*b*cos, 0.f};
 	}
 }
 __global__
@@ -109,7 +111,9 @@ void interact(Particle *d_body, int n){
 		float3 pos=d_body[dst].pos;
 		float3 acc=make_float3(0.f, 0.f, 0.f);
 		for(int i=0; i<blockDim.x; i++){
-			bodyBodyInteraction(acc, pos, s_buff[i]);
+			if(blockIdx.y*blockDim.x+i!=dst){
+				bodyBodyInteraction(acc, pos, s_buff[i]);
+			}
 		}
 		atomicAdd(&(d_body[dst].acc.x), acc.x);
 		atomicAdd(&(d_body[dst].acc.y), acc.y);

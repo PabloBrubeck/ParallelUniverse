@@ -2,6 +2,7 @@
 #include "device_launch_parameters.h"
 #include <helper_cuda.h>
 #include <cutil_math.h>
+#include "polynomial.h"
 
 #define PI float(3.1415926535897932384626433832795)
 
@@ -118,5 +119,15 @@ void dampedWave(float4 *d_vertex, dim3 mesh, float r, float t){
 		float v=(r*gid.y)/(mesh.y-1);
 		float A=expf(-v*v/(r*r))*cosf(2*PI/(0.75*r)*v)*sinf(2*PI*t);
 		cylindrical(d_vertex[gid.w], v, u, A);
+	}
+}
+__global__
+void sphericalHarmonic(float4 *d_vertex, dim3 mesh, float* d_Pml, int m, int l, float scale){
+	uint4 gid=gridIdx(mesh);
+	if(fits(gid, mesh)){
+		float u=-((2*gid.x+1)*PI)/mesh.x;
+		float v=(PI*gid.y)/mesh.y;
+		float rho=scale*horner(d_Pml, l-m, cosf(v))*powf(sinf(v),m)*cosf(m*u);
+		spherical(d_vertex[gid.w], rho*rho, u, v);
 	}
 }

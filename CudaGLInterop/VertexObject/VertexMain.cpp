@@ -8,8 +8,6 @@
 #include <helper_cuda_gl.h>
 #include <helper_timer.h>
 
-#include <polynomial.h>
-
 // The user must create the following routines:
 // CUDA methods
 extern void initCuda(int argc, char** argv);
@@ -91,12 +89,12 @@ bool initGL(int* argc, char** argv){
 		fflush(stderr);
 		return false;
 	}
-	setVSync(0);
+	setVSync(1);
 
 	// Setup lighting
-	GLfloat diffuseMaterial[4]= { 1.f, 1.f, 1.f, 1.f };
-	GLfloat mat_specular[4] =	{ 1.f, 1.f, 1.f, 1.f };
-	GLfloat light_position[4] = { 1.f, 1.f, 1.f, 0.f };
+	float diffuseMaterial[4]= { 1.f, 1.f, 1.f, 1.f };
+	float mat_specular[4] =	{ 1.f, 1.f, 1.f, 1.f };
+	float light_position[4] = { 0.f, 1.f, 1.f, 0.f };
 
 	glClearColor(0.f, 0.f, 0.f, 1.f);
 	glShadeModel(GL_SMOOTH);
