@@ -107,7 +107,7 @@ inline uint ceil(uint num, uint den){
 	return (num+den-1u)/den;
 }
 
-void wave_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
+void wave(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
 	static const dim3 block(MAXTHREADS, 1, 1);
 	static const dim3 grid(ceil(mesh.x, block.x), ceil(mesh.y, block.y), ceil(mesh.z, block.z));
 	dampedWave<<<grid, block>>>(d_pos, mesh, 2.f, time);
@@ -116,7 +116,7 @@ void wave_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index,
 	cudaThreadSynchronize();
 	checkCudaErrors(cudaGetLastError());
 }
-void ricci_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
+void ricci(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
 	static const dim3 block(MAXTHREADS, 1, 1);
 	static const dim3 grid(ceil(mesh.x, block.x), ceil(mesh.y, block.y), ceil(mesh.z, block.z));
 	if(time<=2.f){
@@ -129,7 +129,7 @@ void ricci_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index
 	cudaThreadSynchronize();
 	checkCudaErrors(cudaGetLastError());
 }
-void torus_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
+void torus(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
 	static const int n=mesh.x*mesh.y*mesh.z;
 	static const dim3 block(MAXTHREADS, 1, 1);
 	static const dim3 grid(ceil(mesh.x, block.x), ceil(mesh.y, block.y), ceil(mesh.z, block.z));
@@ -156,23 +156,38 @@ void torus_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index
 	cudaThreadSynchronize();
 	checkCudaErrors(cudaGetLastError());
 }
-void harmonic_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
+void harmonic(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
 	static const dim3 block(MAXTHREADS, 1, 1);
 	static const dim3 grid(ceil(mesh.x, block.x), ceil(mesh.y, block.y), ceil(mesh.z, block.z));
 
-	int m=3;
-	int l=7;
-
 	if(time==0){
-		float* d_Pml=NULL;
-		float* h_Pml=new float[l-m+1];
-		legendreA(h_Pml, m, l);
-		float scale=sqrt(float((2*l+1)*factorial(l-abs(m)))/(4*PI*factorial(l+abs(m))));
-		int bytes=(l-m+1)*sizeof(float);
-		checkCudaErrors(cudaMalloc((void**)&d_Pml, bytes));
-		checkCudaErrors(cudaMemcpy(d_Pml, h_Pml, bytes, cudaMemcpyHostToDevice));
+		int k=4;
+
+		int* m=new int[k]{0,1,4,3};
+		int* l=new int[k]{0,1,7,4};
+		float* w=new float[k]{3.f, 1.f, 1.f, 2.f};
+
+		float* d_rho;
+		float* d_Pml;
+
+		checkCudaErrors(cudaMalloc((void**)&d_rho, mesh.x*mesh.y*sizeof(float)));
+		checkCudaErrors(cudaMemset(d_rho, 0.f, mesh.x*mesh.y*sizeof(float)));
+
+		for(int i=0; i<k; i++){
+			int length=l[i]-m[i]+1;
+			int bytes=length*sizeof(float);
+			
+			float* h_Pml=new float[length];
+			legendreA(h_Pml, m[i], l[i]);
+			float scale=sqrt(float((2*l[i]+1)*factorial(l[i]-abs(m[i])))/(4*PI*factorial(l[i]+abs(m[i]))));
+			
+			checkCudaErrors(cudaMalloc((void**)&d_Pml, bytes));
+			checkCudaErrors(cudaMemcpy(d_Pml, h_Pml, bytes, cudaMemcpyHostToDevice));
+			
+			sphericalHarmonic<<<grid, block>>>(d_rho, mesh, d_Pml, m[i], l[i], w[i]*scale);
+		}
 	
-		sphericalHarmonic<<<grid, block>>>(d_pos, mesh, d_Pml, m, l, scale);
+		sphericalPlot<<<grid, block>>>(d_pos, mesh, d_rho);
 		indices<<<grid, block>>>(d_index, mesh);
 		normalMapping<<<grid, block>>>(d_color, d_norm, d_pos, mesh);
 	}
@@ -181,5 +196,5 @@ void harmonic_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_in
 }
 
 void launch_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
-	harmonic_kernel(d_pos, d_norm, d_color, d_index, mesh, time);
+	harmonic(d_pos, d_norm, d_color, d_index, mesh, time);
 }

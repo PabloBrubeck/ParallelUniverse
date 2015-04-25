@@ -53,6 +53,26 @@ void sphere(float4 *d_vertex, dim3 mesh, float r){
 	}
 }
 __global__
+void sphericalPlot(float4 *d_vertex, dim3 mesh, float* d_rho){
+	uint4 gid=gridIdx(mesh);
+	if(fits(gid, mesh)){
+		float v=(PI*gid.x)/mesh.x;
+		float u=(PI*(2*gid.y+1))/mesh.y;
+		spherical(d_vertex[gid.w], d_rho[gid.w], u, v);
+	}
+}
+__global__
+void sphericalHarmonic(float *d_rho, dim3 mesh, float* d_Pml, int m, int l, float scale){
+	uint4 gid=gridIdx(mesh);
+	if(fits(gid, mesh)){
+		float v=(PI*gid.x)/mesh.x;
+		float u=(PI*(2*gid.y+1))/mesh.y;
+		float rho=scale*horner(d_Pml, l-m, cosf(v))*powf(sinf(v),m)*cosf(m*u);
+		d_rho[gid.w]+=rho*rho;
+	}
+}
+
+__global__
 void torus(float4 *d_vertex, dim3 mesh, float c, float a){
 	uint4 gid=gridIdx(mesh);
 	if(fits(gid, mesh)){
@@ -121,13 +141,4 @@ void dampedWave(float4 *d_vertex, dim3 mesh, float r, float t){
 		cylindrical(d_vertex[gid.w], v, u, A);
 	}
 }
-__global__
-void sphericalHarmonic(float4 *d_vertex, dim3 mesh, float* d_Pml, int m, int l, float scale){
-	uint4 gid=gridIdx(mesh);
-	if(fits(gid, mesh)){
-		float u=-((2*gid.x+1)*PI)/mesh.x;
-		float v=(PI*gid.y)/mesh.y;
-		float rho=scale*horner(d_Pml, l-m, cosf(v))*powf(sinf(v),m)*cosf(m*u);
-		spherical(d_vertex[gid.w], rho*rho, u, v);
-	}
-}
+
