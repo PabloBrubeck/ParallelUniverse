@@ -92,14 +92,18 @@ bool initGL(int* argc, char** argv){
 	setVSync(1);
 
 	// Setup lighting
-	float mat_difuse[4]   = { 1.f, 1.f, 1.f, 1.f };
-	float mat_specular[4] =	{ 1.f, 1.f, 1.f, 1.f };
-	float src_position[4] = { 0.f, 1.f, 1.f, 0.f };
+	float mat_difuse[4]   = { 1.f, 1.f, 1.f, 0.f };
+	float mat_specular[4] =	{ 1.f, 1.f, 1.f, 0.f };
+	float src_position[4] = { 0.f, 1.f, 1.f, 1.f };
 
-	glClearColor(0.4f, 0.4f, 0.4f, 0.f);
+	glClearColor(0.f, 0.f, 0.f, 0.f);
+	glEnable(GL_POINT_SMOOTH);
+
 	glShadeModel(GL_SMOOTH);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
+	glDisable(GL_CULL_FACE);
+
 	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_difuse);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat_specular);
 	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 100.f);

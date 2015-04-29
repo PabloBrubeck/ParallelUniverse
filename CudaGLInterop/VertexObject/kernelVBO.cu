@@ -163,9 +163,9 @@ void harmonic(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, di
 	if(time==0){
 		int k=4;
 
-		int* m=new int[k]{0,1,4,3};
-		int* l=new int[k]{0,1,7,4};
-		float* w=new float[k]{3.f, 1.f, 1.f, 2.f};
+		int* m=new int[k]{0,-1,0,1};
+		int* l=new int[k]{0,1,1,1};
+		float* w=new float[k]{0.f, 0.f, 0.f, 1.f};
 
 		float* d_rho;
 		float* d_Pml;
@@ -174,11 +174,11 @@ void harmonic(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, di
 		checkCudaErrors(cudaMemset(d_rho, 0.f, mesh.x*mesh.y*sizeof(float)));
 
 		for(int i=0; i<k; i++){
-			int length=l[i]-m[i]+1;
+			int length=l[i]-abs(m[i])+1;
 			int bytes=length*sizeof(float);
 			
 			float* h_Pml=new float[length];
-			legendreA(h_Pml, m[i], l[i]);
+			legendreA(h_Pml, abs(m[i]), l[i]);
 			float scale=sqrt(float((2*l[i]+1)*factorial(l[i]-abs(m[i])))/(4*PI*factorial(l[i]+abs(m[i]))));
 			
 			checkCudaErrors(cudaMalloc((void**)&d_Pml, bytes));

@@ -3,7 +3,6 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <stdio.h>
-#include <NvAppBase/NvInputTransformer.h>
 
 // The user must create the following routines:
 void initCuda(int argc, char** argv);
@@ -18,11 +17,6 @@ float translate_z = -3.0;
 
 // keyboard controls
 int drawMode=GL_QUADS;
-unsigned int key0=0x00000001;
-unsigned int key1=0x00000002;
-unsigned int key2=0x00000004;
-unsigned int key3=0x00000008;
-unsigned int key4=0x00000010;
 
 unsigned long pressed=0u;
 void recordKey(unsigned char key, int a, int b, int c){

@@ -117,6 +117,7 @@ void initCuda(int argc, char** argv){
 }
  
 void renderCuda(int drawMode){
+	
 	glEnable(GL_COLOR_MATERIAL);
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_NORMAL_ARRAY);
@@ -126,7 +127,6 @@ void renderCuda(int drawMode){
 	switch(drawMode){
 		default:
 		case GL_POINTS:{
-			glPointSize(1); 
 			glDrawArrays(GL_POINTS, 0, n);
 		}break;
 		case GL_LINE_LOOP:{

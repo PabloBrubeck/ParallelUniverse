@@ -60,7 +60,7 @@ void initPos(uchar4 *d_color, Particle *d_body, dim3 mesh){
 		float cos=cosf(theta);
 		float sin=sinf(theta);
 
-		float a=1.0f*h, b=1.5f*h;
+		float a=1.f*h, b=1.5f*h;
 		float x=a*cos;
 		float y=b*sin;
 
@@ -86,7 +86,7 @@ void initVel(Particle *d_body, dim3 mesh){
 		float cos=cosf(theta);
 		float sin=sinf(theta);
 
-		float a=1.0f*h, b=1.5f*h;
+		float a=1.f*h, b=1.5f*h;
 		float3 g=d_body[k].acc;
 		float3 r=d_body[k].pos;
 
@@ -124,9 +124,10 @@ __global__
 void integrate(Particle *d_body, float dt, int n){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	if(i<n){
-		float3 vel=d_body[i].vel+d_body[i].acc*dt;
+		float3 vel=d_body[i].vel;
+		float3 acc=d_body[i].acc;
 		d_body[i].acc=make_float3(0.f, 0.f, 0.f);
-		d_body[i].vel=vel;
+		d_body[i].vel+=acc*dt;
 		d_body[i].pos+=vel*dt;
 	}
 }
@@ -145,8 +146,8 @@ __global__
 void mapMagnitude2(Particle *d_body, float *d_abs, int n){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	if(i<n){
-		float3 acc=d_body[i].acc;
-		d_abs[i]=dot(acc, acc);
+		float3 u=d_body[i].vel;
+		d_abs[i]=dot(u, u);
 	}
 }
 __global__
@@ -209,7 +210,7 @@ void launch_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_inde
 	static const int bytes=p*sizeof(float4);
 	static const dim3 grid2D(ceil(n, p), ceil(n, p));
 
-	static const float dvmax=1.f;
+	static const float dvmax=0.001f;
 	static Particle *d_body=NULL;
 	static float *d_aux=NULL;
 

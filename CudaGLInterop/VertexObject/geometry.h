@@ -67,7 +67,7 @@ void sphericalHarmonic(float *d_rho, dim3 mesh, float* d_Pml, int m, int l, floa
 	if(fits(gid, mesh)){
 		float v=(PI*gid.x)/mesh.x;
 		float u=(PI*(2*gid.y+1))/mesh.y;
-		float rho=scale*horner(d_Pml, l-m, cosf(v))*powf(sinf(v),m)*cosf(m*u);
+		float rho=scale*horner(d_Pml, l-abs(m), cosf(v))*powf(sinf(v),abs(m))*cosf(m*u);
 		d_rho[gid.w]+=rho*rho;
 	}
 }
