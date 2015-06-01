@@ -163,9 +163,9 @@ void harmonic(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, di
 	if(time==0){
 		int k=4;
 
-		int* m=new int[k]{0,-1,0,1};
-		int* l=new int[k]{0,1,1,1};
-		float* w=new float[k]{0.f, 0.f, 0.f, 1.f};
+		int* m=new int[k]{2,-1,0,0};
+		int* l=new int[k]{4,1,1,0};
+		float* w=new float[k]{0.6f, 0.4f, 0.4f, 1.0f};
 
 		float* d_rho;
 		float* d_Pml;
