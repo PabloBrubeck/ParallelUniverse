@@ -19,7 +19,7 @@ struct mappedBuffer_t{
 };
 
 void launch_kernel(float4* d_pos, float4* d_norm, uchar4* d_color, uint4* d_index, dim3 mesh, float time);
- 
+
 // vbo variables
 mappedBuffer_t vertexVBO = {NULL, sizeof(float4), NULL};
 mappedBuffer_t normalVBO = {NULL, sizeof(float4), NULL};
@@ -42,7 +42,7 @@ void createVBO(mappedBuffer_t* mbuf, GLenum mode){
 		mbuf->vbo, cudaGraphicsMapFlagsNone));
 	SDK_CHECK_ERROR_GL();
 }
- 
+
 // Delete VBO
 void deleteVBO(mappedBuffer_t* mbuf){
 	glBindBuffer(1, mbuf->vbo);
@@ -51,7 +51,7 @@ void deleteVBO(mappedBuffer_t* mbuf){
 	mbuf->cudaResource=NULL;
 	mbuf->vbo=NULL;
 }
- 
+
 void cleanupCuda(){
 	deleteVBO(&vertexVBO);
 	deleteVBO(&normalVBO);
@@ -60,17 +60,17 @@ void cleanupCuda(){
 	cudaDeviceReset();
 }
 
-// Run the Cuda part of the computation
+// Run the CUDA part of the computation
 void runCuda(){
 	static float animTime = 0.f;
-	
+
 	// map OpenGL buffer object for writing from CUDA
 	static float4 *d_pos  ;
 	static float4 *d_norm ;
 	static uchar4 *d_color;
 	static uint4  *d_index;
 	static size_t start;
-	
+
 	checkCudaErrors(cudaGraphicsMapResources(1, &vertexVBO.cudaResource));
 	checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void**)&d_pos, &start, vertexVBO.cudaResource));
 	checkCudaErrors(cudaGraphicsMapResources(1, &normalVBO.cudaResource));
@@ -79,7 +79,7 @@ void runCuda(){
 	checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void**)&d_color, &start, colorVBO.cudaResource));
 	checkCudaErrors(cudaGraphicsMapResources(1, &indexVBO.cudaResource));
 	checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void**)&d_index, &start, indexVBO.cudaResource));
-	
+
     // execute the kernel
     launch_kernel(d_pos, d_norm, d_color, d_index, mesh, animTime);
 	animTime+=0.01f;
@@ -90,14 +90,14 @@ void runCuda(){
     checkCudaErrors(cudaGraphicsUnmapResources(1, &colorVBO.cudaResource));
 	checkCudaErrors(cudaGraphicsUnmapResources(1, &indexVBO.cudaResource));
 }
- 
+
 void initCuda(int argc, char** argv){
 	// First initialize OpenGL context, so we can properly set the GL
 	// for CUDA.  NVIDIA notes this is necessary in order to achieve
-	// optimal performance with OpenGL/CUDA interop.  use command-line
+	// optimal performance with OpenGL/CUDA interop.  Use command-line
 	// specified CUDA device, otherwise use device with highest Gflops/s
 	checkCudaErrors(cudaGLSetGLDevice(findCudaDevice(argc, (const char **)argv)));
-   
+
 	createVBO(&vertexVBO, GL_ARRAY_BUFFER);
 	createVBO(&normalVBO, GL_ARRAY_BUFFER);
 	createVBO(&colorVBO,  GL_ARRAY_BUFFER);
@@ -115,9 +115,9 @@ void initCuda(int argc, char** argv){
 
 	runCuda();
 }
- 
+
 void renderCuda(int drawMode){
-	
+
 	glEnable(GL_COLOR_MATERIAL);
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_NORMAL_ARRAY);

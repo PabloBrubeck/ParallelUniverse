@@ -134,7 +134,7 @@ void torus(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 
 	static const dim3 block(MAXTHREADS, 1, 1);
 	static const dim3 grid(ceil(mesh.x, block.x), ceil(mesh.y, block.y), ceil(mesh.z, block.z));
 	static float4 *d_models=NULL;
-	static float last=-FLT_MAX;
+	static float last=-1000.f;
 	static bool shape=true;
 	if(d_models==NULL){
 		checkCudaErrors(cudaMalloc((void**)&d_models, 2*n*sizeof(float4)));
@@ -163,10 +163,11 @@ void harmonic(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, di
 	if(time==0){
 		int k=4;
 
-		int* m=new int[k]{2,-1,0,0};
-		int* l=new int[k]{4,1,1,0};
-		float* w=new float[k]{0.6f, 0.4f, 0.4f, 1.0f};
-
+		int m[4]   = {2,-1,0,0};
+		int l[4]   = {4,1,1,0};
+		float w[4] = {0.6f, 0.4f, 0.4f, 1.0f};
+		
+		
 		float* d_rho;
 		float* d_Pml;
 
@@ -196,5 +197,5 @@ void harmonic(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, di
 }
 
 void launch_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
-	harmonic(d_pos, d_norm, d_color, d_index, mesh, time);
+	torus(d_pos, d_norm, d_color, d_index, mesh, time);
 }

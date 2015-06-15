@@ -2,10 +2,10 @@
 
 #include <GL/glew.h>
 #include <GL/freeglut.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 // The user must create the following routines:
-void initCuda(int argc, char** argv);
 void runCuda();
 void renderCuda(int);
 
@@ -39,10 +39,10 @@ void display(){
 	glTranslatef(0.0, 0.0, translate_z);
 	glRotatef(rotate_x, 1.0, 0.0, 0.0);
 	glRotatef(rotate_y, 0.0, 1.0, 0.0);
-	
+
 	// render the data
 	renderCuda(drawMode);
-	
+
 	glutSwapBuffers();
 	glutReportErrors();
 }
@@ -60,7 +60,7 @@ void keyPressed(unsigned char key, int x, int y){
 	recordKey(key, 65, 90, 10);
 	recordKey(key, 97, 122, 10);
 	if(key==27){
-		exit(EXIT_SUCCESS);
+		exit(0);
 	}if(pressed & 0x00000002){
 		switch(drawMode){
 		case GL_POINTS: drawMode=GL_LINE_LOOP; break;
