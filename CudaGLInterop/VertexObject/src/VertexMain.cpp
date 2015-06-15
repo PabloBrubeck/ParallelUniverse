@@ -11,8 +11,6 @@
 // The user must create the following routines:
 // CUDA methods
 extern void initCuda(int argc, char** argv);
-extern void runCuda();
-extern void renderCuda(int);
 
 // callbacks
 extern void display();
@@ -32,9 +30,9 @@ void computeFPS(){
 	static int fpsCount=0;
 	static int fpsLimit=60;
 	if(++fpsCount==fpsLimit){
-		float ifps=1000.f/sdkGetAverageTimerValue(&timer);	
+		float ifps=1000.f/sdkGetAverageTimerValue(&timer);
 		char fps[256];
-		sprintf_s(fps, "Cuda GL Interop Wrapper: %3.1f fps ", ifps);
+		sprintf(fps, "Cuda GL Interop Wrapper: %3.1f fps ", ifps);
 		glutSetWindowTitle(fps);
 		fpsCount=0;
 		fpsLimit=ifps>1.f? (int)ifps: 1;
@@ -49,21 +47,6 @@ void fpsDisplay(){
 	computeFPS();
 }
 
-// Function to enable/disable vsync
-void setVSync(bool sync){	
-	typedef BOOL (APIENTRY *PFNWGLSWAPINTERVALPROC)(int);
-	PFNWGLSWAPINTERVALPROC wglSwapIntervalEXT = 0;
-	const char *extensions = (char*)glGetString(GL_EXTENSIONS);
-	if(strstr(extensions, "WGL_EXT_swap_control" )==0){
-		return;
-	}else{
-		wglSwapIntervalEXT=(PFNWGLSWAPINTERVALPROC)wglGetProcAddress("wglSwapIntervalEXT");
-		if(wglSwapIntervalEXT){
-			wglSwapIntervalEXT(sync);
-		}
-	}
-}
-
 bool initGL(int* argc, char** argv){
 	// create a window and GL context (also register callbacks)
 	glutInit(argc, argv);
@@ -71,7 +54,7 @@ bool initGL(int* argc, char** argv){
 	glutInitWindowSize(720, 720);
 	glutInitWindowPosition(0, 0);
 	glutCreateWindow("Cuda GL Interop Wrapper (adapted from NVIDIA's simpleGL)");
-	
+
 	// register callbacks
 	glutDisplayFunc(fpsDisplay);
 	glutReshapeFunc(reshape);
@@ -89,25 +72,24 @@ bool initGL(int* argc, char** argv){
 		fflush(stderr);
 		return false;
 	}
-	setVSync(1);
 
 	// Setup lighting
-	float mat_difuse[4]   = { 1.f, 1.f, 1.f, 0.f };
-	float mat_specular[4] =	{ 1.f, 1.f, 1.f, 0.f };
-	float src_position[4] = { 0.f, 1.f, 1.f, 1.f };
+	float difuse[4]   = { 1.f, 1.f, 1.f, 0.f };
+	float specular[4] =	{ 1.f, 1.f, 1.f, 0.f };
+	float lightsrc[4] = { 0.f, 1.f, 1.f, 1.f };
 
 	glClearColor(0.f, 0.f, 0.f, 0.f);
-	glEnable(GL_POINT_SMOOTH);
+	//glEnable(GL_POINT_SMOOTH);
 
 	glShadeModel(GL_SMOOTH);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	glDisable(GL_CULL_FACE);
 
-	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_difuse);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat_specular);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, difuse);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
 	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 100.f);
-	glLightfv(GL_LIGHT0, GL_POSITION, src_position);
+	glLightfv(GL_LIGHT0, GL_POSITION, lightsrc);
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
 
@@ -121,20 +103,24 @@ bool initGL(int* argc, char** argv){
 
 // Main program
 int main(int argc, char** argv){
+	#if defined(__linux__)
+		setenv ("DISPLAY", ":0", 0);
+	#endif
+
 	sdkCreateTimer(&timer);
 
 	if(!initGL(&argc, argv)){
-		exit(EXIT_FAILURE);
+		exit(1);
 	}
 
 	initCuda(argc, argv);
 	SDK_CHECK_ERROR_GL();
 
-	// start rendering mainloop
+	// start rendering main loop
 	glutMainLoop();
 
 	// clean up
 	sdkDeleteTimer(&timer);
 	cudaThreadExit();
-	exit(EXIT_SUCCESS);
+	exit(0);
 }
