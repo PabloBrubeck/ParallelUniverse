@@ -9,33 +9,30 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="geometry.h">
+    <ClCompile Include="src\VertexMain.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendererVBO.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\callbacksVBO.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\geometry.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="linalg.h">
+    <ClInclude Include="src\polynomial.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="skeleton.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="polynomial.h">
+    <ClInclude Include="src\linalg.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="kernelVBO.cu">
+    <CudaCompile Include="src\kernelVBO.cu">
       <Filter>src</Filter>
     </CudaCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="callbacksVBO.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="vertexMain.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="rendererVBO.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
   </ItemGroup>
 </Project>

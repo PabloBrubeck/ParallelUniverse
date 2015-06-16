@@ -13,6 +13,19 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\callbacksVBO.cpp" />
+    <ClCompile Include="src\rendererVBO.cpp" />
+    <ClCompile Include="src\VertexMain.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\geometry.h" />
+    <ClInclude Include="src\linalg.h" />
+    <ClInclude Include="src\polynomial.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="src\kernelVBO.cu" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{E2680A09-5726-69D8-86D1-F0C9B5589868}</ProjectGuid>
     <RootNamespace>simpleGL_vs2013</RootNamespace>
@@ -109,20 +122,6 @@
       <FloatingPointModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Precise</FloatingPointModel>
     </ClCompile>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="geometry.h" />
-    <ClInclude Include="linalg.h" />
-    <ClInclude Include="polynomial.h" />
-    <ClInclude Include="skeleton.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <CudaCompile Include="kernelVBO.cu" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="callbacksVBO.cpp" />
-    <ClCompile Include="rendererVBO.cpp" />
-    <ClCompile Include="vertexMain.cpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(CUDAPropsPath)\CUDA 7.0.targets" />
