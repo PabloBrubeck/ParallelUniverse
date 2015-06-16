@@ -7,6 +7,10 @@ int sign(int x){
 	return (x>0)-(x<0);
 }
 inline __host__ __device__ 
+float4 cross(float4 &a, float4 &b){
+	return make_float4(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x, 0.f);
+}
+inline __host__ __device__
 void eye(float* A, int n){
 	for(int i=0; i<n; i++){
 		for(int j=0; j<n; j++){
@@ -33,10 +37,6 @@ float4 vmult(const float* A, float4 &u){
 	float z=u.x*A[8] +u.y*A[9] +u.z*A[10]+u.w*A[11];
 	float w=u.x*A[12]+u.y*A[13]+u.z*A[14]+u.w*A[15];
 	return make_float4(x, y, z, w);
-}
-inline __host__ __device__ 
-float4 cross(float4 &a, float4 &b){
-	return make_float4(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x, 0.f);
 }
 
 //Rotations

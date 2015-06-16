@@ -60,7 +60,7 @@ inline float rsqrtf(float x)
 // lerp
 inline __device__ __host__ float lerp(float a, float b, float t)
 {
-    return a + t*(b-a);
+	return fma(t, b, fma(-t, a, a));
 }
 
 // clamp
@@ -197,7 +197,7 @@ inline __host__ __device__ void operator/=(float2 &a, float s)
 // lerp
 inline __device__ __host__ float2 lerp(float2 a, float2 b, float t)
 {
-    return a + t*(b-a);
+    return make_float2(lerp(a.x, b.x, t), lerp(a.y, b.y, t));
 }
 
 // clamp
@@ -361,7 +361,7 @@ inline __host__ __device__ void operator/=(float3 &a, float s)
 // lerp
 inline __device__ __host__ float3 lerp(float3 a, float3 b, float t)
 {
-    return a + t*(b-a);
+    return make_float3(lerp(a.x, b.x, t), lerp(a.y, b.y, t), lerp(a.z, b.z, t));
 }
 
 // clamp
@@ -515,7 +515,7 @@ inline __host__ __device__ void operator/=(float4 &a, float s)
 // lerp
 inline __device__ __host__ float4 lerp(float4 a, float4 b, float t)
 {
-    return a + t*(b-a);
+	return make_float4(lerp(a.x, b.x, t), lerp(a.y, b.y, t), lerp(a.z, b.z, t), lerp(a.w, b.w, t));
 }
 
 // clamp
