@@ -1,6 +1,5 @@
  // callbacksVBO.cpp adapted from Rob Farber's code from drdobbs.com
 
-#include <nvGlutManipulators.h>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <stdlib.h>
