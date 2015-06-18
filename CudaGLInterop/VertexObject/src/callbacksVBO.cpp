@@ -1,10 +1,11 @@
  // callbacksVBO.cpp adapted from Rob Farber's code from drdobbs.com
 
+#include <cutil_math.h>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <cutil_math.h>
+
 
 // The user must create the following routines:
 extern void runCuda();
@@ -29,28 +30,24 @@ bool trackballMove = false;
 bool redrawContinue = false;
 
 int mouseButtons = 0;
-int2 mouseStart;
-int2 mouseEnd;
-int2 window;
+int2 mouseStart, window;
 
 float m[16];
 float angle = 0.f;
-float3 axis;
-float3 trans;
-float3 lastPos;
+float3 axis, lastPos;
+float3 trans=make_float3(0.f, 0.f, -5.f);
 
 void trackball(int x, int y, int width, int height, float3 &v){
-	float d, a;
 	v.x=(2.f*x-width)/width;
 	v.y=(height-2.f*y)/height;
-	d=v.x*v.x+v.y*v.y;
-	v.z=d<1? sqrtf(1-d): 0;
+	float r=v.x*v.x+v.y*v.y;
+	v.z=r<1? sqrtf(1-r): 0;
 	v=normalize(v);
 }
 void startMotion(int x, int y){
 	trackingMouse=true;
 	redrawContinue=false;
-	mouseStart=mouseEnd=make_int2(x, y);
+	mouseStart=make_int2(x, y);
 	trackball(x, y, window.x, window.y, lastPos);
 	trackballMove=true;
 }
@@ -80,16 +77,16 @@ void display(){
 	if(trackballMove){
 		glGetFloatv(GL_MODELVIEW_MATRIX, m);
 		glLoadIdentity();
-		glTranslatef(0.f, 0.f, -5.f);
+		glTranslatef(trans.x, trans.y, trans.z);
 		glRotatef(angle, axis.x, axis.y, axis.z);
-		glTranslatef(0.f, 0.f, 5.f);
+		glTranslatef(-trans.x, -trans.y, -trans.z);
 		glMultMatrixf(m);
 	}
-
+	
 	// render the data
-	glTranslatef(0.f, 0.f, -5.f);
+	glTranslatef(trans.x, trans.y, trans.z);
 	renderCuda(drawMode);
-	glTranslatef(0.f, 0.f, 5.f);
+	glTranslatef(-trans.x, -trans.y, -trans.z);
 
 	glutSwapBuffers();
 	glutReportErrors();
@@ -147,13 +144,12 @@ void mouseButton(int button, int state, int x, int y){
 	}else if(state == GLUT_UP) {
 		mouseButtons &= ~(1<<button);
 	}
-	if(button==GLUT_LEFT_BUTTON) switch(state){
-	case GLUT_DOWN:
-		startMotion(x,y);
-		break;
-	case GLUT_UP:
-		stopMotion(x,y);
-		break;
+	if(button == GLUT_LEFT_BUTTON){
+		if(state == GLUT_DOWN) {
+			startMotion(x,y);
+		}else{
+			stopMotion(x,y);
+		}
 	}
 }
 void mouseMotion(int x, int y){
@@ -163,7 +159,7 @@ void mouseMotion(int x, int y){
 		delta=curPos-lastPos;
 		if(delta.x || delta.y || delta.z){
 			axis=cross(lastPos, curPos);
-			angle=573.f*length(axis);
+			angle=57.3f*length(axis);
 			lastPos=curPos;
 		}
 	}
