@@ -4,27 +4,69 @@
 #include <GL/freeglut.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <cutil_math.h>
 
 // The user must create the following routines:
-void runCuda();
-void renderCuda(int);
-
-// mouse controls
-int mouse_old_x, mouse_old_y;
-int mouse_buttons = 0;
-float rotate_x = 0.0, rotate_y = 0.0;
-float translate_z = -3.0;
+extern void runCuda();
+extern void renderCuda(int);
 
 // keyboard controls
 int drawMode=GL_QUADS;
-
 unsigned long pressed=0u;
+
 void recordKey(unsigned char key, int a, int b, int c){
-	if(key>=a && key<=b){ pressed|=(1<<(key-a+c)); }
+	if(key>=a && key<=b){ pressed |= 1<<(key-a+c); }
 }
 void deleteKey(unsigned char key, int a, int b, int c){
-	if(key>=a && key<=b){ pressed-=(1<<(key-a+c)); }
+	if(key>=a && key<=b){ pressed &= ~(1<<(key-a+c)); }
 }
+
+
+
+// mouse controls
+bool trackingMouse = false;
+bool trackballMove = false;
+bool redrawContinue = false;
+
+int mouseButtons = 0;
+int2 mouseStart;
+int2 mouseEnd;
+int2 window;
+
+float m[16];
+float angle = 0.f;
+float3 axis;
+float3 trans;
+float3 lastPos;
+
+void trackball(int x, int y, int width, int height, float3 &v){
+	float d, a;
+	v.x=(2.f*x-width)/width;
+	v.y=(height-2.f*y)/height;
+	d=v.x*v.x+v.y*v.y;
+	v.z=d<1? sqrtf(1-d): 0;
+	v=normalize(v);
+}
+void startMotion(int x, int y){
+	trackingMouse=true;
+	redrawContinue=false;
+	mouseStart=mouseEnd=make_int2(x, y);
+	trackball(x, y, window.x, window.y, lastPos);
+	trackballMove=true;
+}
+void stopMotion(int x, int y){
+	trackingMouse=false;
+	if(mouseStart.x!=x || mouseStart.y!=y){
+		angle/=5.f;
+		redrawContinue=true;
+	}else{
+		angle=0.f;
+		redrawContinue=false;
+		trackballMove=false;
+	}
+}
+
+
 
 // Callbacks for GLUT
 void display(){
@@ -33,26 +75,31 @@ void display(){
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	// set view matrix
+	// transform view matrix
 	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glTranslatef(0.0, 0.0, translate_z);
-	glRotatef(rotate_x, 1.0, 0.0, 0.0);
-	glRotatef(rotate_y, 0.0, 1.0, 0.0);
+	if(trackballMove){
+		glGetFloatv(GL_MODELVIEW_MATRIX, m);
+		glLoadIdentity();
+		glTranslatef(0.f, 0.f, -5.f);
+		glRotatef(angle, axis.x, axis.y, axis.z);
+		glTranslatef(0.f, 0.f, 5.f);
+		glMultMatrixf(m);
+	}
 
 	// render the data
+	glTranslatef(0.f, 0.f, -5.f);
 	renderCuda(drawMode);
+	glTranslatef(0.f, 0.f, 5.f);
 
 	glutSwapBuffers();
 	glutReportErrors();
 }
 void reshape(int w, int h){
+	window=make_int2(w, h);
 	glViewport(0, 0, w, h);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	gluPerspective(60.0, (float)w/(float)h, 0.01, 100.0);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
 }
 
 void keyPressed(unsigned char key, int x, int y){
@@ -94,28 +141,33 @@ void keyReleased(unsigned char key, int x, int y){
 	glutPostRedisplay();
 }
 
-void mouse(int button, int state, int x, int y){
-	if (state == GLUT_DOWN) {
-		mouse_buttons |= 1<<button;
-	} else if (state == GLUT_UP) {
-		mouse_buttons = 0;
+void mouseButton(int button, int state, int x, int y){
+	if(state == GLUT_DOWN) {
+		mouseButtons |= 1<<button;
+	}else if(state == GLUT_UP) {
+		mouseButtons &= ~(1<<button);
 	}
-	mouse_old_x = x;
-	mouse_old_y = y;
-	glutPostRedisplay();
+	if(button==GLUT_LEFT_BUTTON) switch(state){
+	case GLUT_DOWN:
+		startMotion(x,y);
+		break;
+	case GLUT_UP:
+		stopMotion(x,y);
+		break;
+	}
 }
-void motion(int x, int y){
-	float dx, dy;
-	dx = x - mouse_old_x;
-	dy = y - mouse_old_y;
-	if (mouse_buttons & 1) {
-		rotate_x += dy * 0.2f;
-		rotate_y += dx * 0.2f;
-	} else if (mouse_buttons & 4) {
-		translate_z += dy * 0.01f;
+void mouseMotion(int x, int y){
+	float3 curPos, delta;
+	trackball(x, y, window.x, window.y, curPos);
+	if(trackingMouse){
+		delta=curPos-lastPos;
+		if(delta.x || delta.y || delta.z){
+			axis=cross(lastPos, curPos);
+			angle=573.f*length(axis);
+			lastPos=curPos;
+		}
 	}
-	mouse_old_x = x;
-	mouse_old_y = y;
+	glutPostRedisplay();
 }
 
 void timerEvent(int value){
@@ -123,5 +175,7 @@ void timerEvent(int value){
 	glutTimerFunc(10, timerEvent, 0);
 }
 void idle(){
-	glutPostRedisplay();
+	if(redrawContinue){
+		glutPostRedisplay();
+	}
 }

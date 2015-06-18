@@ -18,6 +18,12 @@ void eye(float* A, int n){
 		}
 	}
 }
+inline __host__ __device__
+void zeros(float* A, int n){
+	for(int i=0; i<n*n; i++){
+		A[i]=0;
+	}
+}
 inline __host__ __device__ 
 void mmult(float* C, float* A, float* B, int n){
 	for(int i=0; i<n; i++){

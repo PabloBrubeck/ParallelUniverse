@@ -17,8 +17,8 @@ extern void display();
 extern void reshape(int, int);
 extern void keyPressed(unsigned char, int, int);
 extern void keyReleased(unsigned char, int, int);
-extern void mouse(int, int, int, int);
-extern void motion(int, int);
+extern void mouseButton(int, int, int, int);
+extern void mouseMotion(int, int);
 extern void timerEvent(int);
 extern void idle();
 
@@ -60,8 +60,8 @@ bool initGL(int* argc, char** argv){
 	glutReshapeFunc(reshape);
 	glutKeyboardFunc(keyPressed);
 	glutKeyboardUpFunc(keyReleased);
-	glutMouseFunc(mouse);
-	glutMotionFunc(motion);
+	glutMouseFunc(mouseButton);
+	glutMotionFunc(mouseMotion);
 	glutTimerFunc(10, timerEvent, 0);
 	glutIdleFunc(idle);
 
@@ -79,7 +79,6 @@ bool initGL(int* argc, char** argv){
 	float lightsrc[4] = { 0.f, 1.f, 1.f, 1.f };
 
 	glClearColor(0.f, 0.f, 0.f, 0.f);
-	//glEnable(GL_POINT_SMOOTH);
 
 	glShadeModel(GL_SMOOTH);
 	glEnable(GL_DEPTH_TEST);
@@ -103,10 +102,6 @@ bool initGL(int* argc, char** argv){
 
 // Main program
 int main(int argc, char** argv){
-	#if defined(__linux__)
-		setenv ("DISPLAY", ":0", 0);
-	#endif
-
 	sdkCreateTimer(&timer);
 
 	if(!initGL(&argc, argv)){
