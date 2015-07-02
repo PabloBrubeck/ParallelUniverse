@@ -18,11 +18,10 @@ void indices(uint4* d_index, dim3 mesh){
 		
 		int ii=(i+1)%mesh.x;
 		int jj=(j+1)%mesh.y;
-		int a=(k*mesh.y+j)*mesh.x+i; 
-		int b=(k*mesh.y+j)*mesh.x+ii; 
-		int c=(k*mesh.y+jj)*mesh.x+ii; 
-		int d=(k*mesh.y+jj)*mesh.x+i;
-		d_index[gid]=make_uint4(a, b, c, d);
+		d_index[gid].x=(k*mesh.y+j)*mesh.x+i;
+		d_index[gid].y=(k*mesh.y+j)*mesh.x+ii;
+		d_index[gid].z=(k*mesh.y+jj)*mesh.x+ii;
+		d_index[gid].w=(k*mesh.y+jj)*mesh.x+i;
 	}
 }
 __global__
@@ -104,7 +103,7 @@ void ricciFlow(uchar4 *d_color, float4 *d_norm, float4* d_pos, dim3 mesh){
 
 
 inline uint ceil(uint num, uint den){
-	return (num+den-1u)/den;
+	return (num+den-1)/den;
 }
 
 void wave(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
@@ -163,9 +162,9 @@ void harmonic(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, di
 	if(time==0){
 		int k=4;
 
-		int m[4]   = {2,-1,0,0};
-		int l[4]   = {4,1,1,0};
-		float w[4] = {0.6f, 0.4f, 0.4f, 1.0f};
+		int m[4]   = {5,-1,1,0};
+		int l[4]   = {8,1,1,0};
+		float w[4] = {1.6f, 0.4f, 0.4f, 2.0f};
 		
 		
 		float* d_rho;
@@ -197,5 +196,5 @@ void harmonic(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, di
 }
 
 void launch_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
-	torus(d_pos, d_norm, d_color, d_index, mesh, time);
+	harmonic(d_pos, d_norm, d_color, d_index, mesh, time);
 }

@@ -54,7 +54,7 @@ void startMotion(int x, int y){
 void stopMotion(int x, int y){
 	trackingMouse=false;
 	if(mouseStart.x!=x || mouseStart.y!=y){
-		angle/=5.f;
+		angle/=4.f;
 		redrawContinue=true;
 	}else{
 		angle=0.f;
@@ -159,7 +159,7 @@ void mouseMotion(int x, int y){
 		delta=curPos-lastPos;
 		if(delta.x || delta.y || delta.z){
 			axis=cross(lastPos, curPos);
-			angle=57.3f*length(axis);
+			angle=573.f*length(axis);
 			lastPos=curPos;
 		}
 	}

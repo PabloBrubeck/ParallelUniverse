@@ -11,16 +11,14 @@
 // The user must create the following routines:
 // CUDA methods
 extern void initCuda(int argc, char** argv);
-extern void runCuda();
-extern void renderCuda(int);
 
 // callbacks
 extern void display();
 extern void reshape(int, int);
 extern void keyPressed(unsigned char, int, int);
 extern void keyReleased(unsigned char, int, int);
-extern void mouse(int, int, int, int);
-extern void motion(int, int);
+extern void mouseButton(int, int, int, int);
+extern void mouseMotion(int, int);
 extern void timerEvent(int);
 extern void idle();
 
@@ -35,7 +33,7 @@ void computeFPS(){
 	if(++fpsCount==fpsLimit){
 		float ifps=1000.f/sdkGetAverageTimerValue(&timer);	
 		char fps[256];
-		sprintf_s(fps, "Cuda GL Interop Wrapper: %3.1f fps ", ifps);
+		sprintf(fps, "Cuda GL Interop Wrapper: %3.1f fps ", ifps);
 		glutSetWindowTitle(fps);
 		fpsCount=0;
 		fpsLimit=ifps>1.f? (int)ifps: 1;
@@ -63,8 +61,8 @@ bool initGL(int* argc, char **argv){
 	glutReshapeFunc(reshape);
 	glutKeyboardFunc(keyPressed);
 	glutKeyboardUpFunc(keyReleased);
-	glutMouseFunc(mouse);
-	glutMotionFunc(motion);
+	glutMouseFunc(mouseButton);
+	glutMotionFunc(mouseMotion);
 	glutTimerFunc(10, timerEvent, 0);
 	glutIdleFunc(idle);
 

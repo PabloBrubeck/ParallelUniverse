@@ -11,13 +11,14 @@
 extern float animTime;
 
 // constants (the following should be a const in a header file)
-uint2 image=make_uint2(720u, 720u);
+uint2 image=make_uint2(4096, 4096);
 
-void launch_kernel(uchar4* pos, uint2 image, float time);
+void init_kernel(uint2 image);
+void launch_kernel(uchar4* d_ptr, uint2 image, float time);
 
 // variables
-GLuint pbo = NULL;
-GLuint textureID = NULL;
+GLuint pbo;
+GLuint textureID;
 
 void createPBO(GLuint* pbo){
 	if(pbo){
@@ -40,10 +41,8 @@ void deletePBO(GLuint* pbo){
 	if(pbo){
 		// unregister this buffer object with CUDA
 		cudaGLUnregisterBufferObject(*pbo);
-
 		glBindBuffer(GL_ARRAY_BUFFER, *pbo);
 		glDeleteBuffers(1, pbo);
-
 		*pbo=NULL;
 	}
 }
@@ -114,5 +113,6 @@ void initCuda(int argc, char** argv){
 	// Clean up on program exit
 	atexit(cleanupCuda);
 
+	init_kernel(image);
 	runCuda();
 }

@@ -5,21 +5,33 @@
 #include <cuda_runtime.h>
 #include <helper_cuda.h>
 #include <helper_cuda_gl.h>
+#include <cutil_math.h>
 #include <cuda_gl_interop.h>
 #include <rendercheck_gl.h>
+
+//external variables
+extern GLuint pbo;
+extern GLuint textureID;
+extern uint2 image;
+extern float2 axes;
+extern float2 origin;
 
 // variables for keyboard control
 int animFlag = 1;
 float animTime = 0.0f;
 float animInc = 0.1f;
 
-//external variables
-extern GLuint pbo;
-extern GLuint textureID;
-extern uint2 image;
+// variables for mouse control
+int2 mousePos, window;
 
 // The user must create the following routines:
 void runCuda();
+
+void zoom(int x, int y, float z){
+	origin.x+=((1-z)*axes.x*x)/window.x;
+	origin.y+=((1-z)*axes.y*y)/window.y;
+	axes*=z;
+}
 
 // Callbacks for GLUT
 void display(){
@@ -60,6 +72,7 @@ void display(){
 	}
 }
 void reshape(int w, int h){
+	window=make_int2(w,h);
 	glViewport(0, 0, w, h);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -68,6 +81,7 @@ void reshape(int w, int h){
 	glLoadIdentity();
 }
 void keyPressed(unsigned char key, int x, int y){
+	float2 point;
 	switch(key){
 	case(27) :
 		exit(0);
@@ -85,16 +99,29 @@ void keyPressed(unsigned char key, int x, int y){
 	case 'r': // reset the time increment 
 		animInc = 0.01f;
 		break;
+	case 'z':
+		zoom(x, window.y-y, 0.920f);
+		break;
+	case 'x':
+		zoom(x, window.y-y, 1.087f);
+		break;
 	}
 
 	// indicate the display must be redrawn
 	glutPostRedisplay();
 }
 void keyReleased(unsigned char key, int x, int y){
+
 }
-void mouse(int button, int state, int x, int y){
+void mouseButton(int button, int state, int x, int y){
+	mousePos.x=x;
+	mousePos.y=y;
 }
-void motion(int x, int y){
+void mouseMotion(int x, int y){
+	origin.x-=(x-mousePos.x)*axes.x/window.x;
+	origin.y+=(y-mousePos.y)*axes.y/window.y;
+	mousePos.x=x;
+	mousePos.y=y;
 }
 void timerEvent(int value){
 	glutPostRedisplay();
