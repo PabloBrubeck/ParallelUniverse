@@ -11,22 +11,19 @@
 extern float animTime;
 
 // constants (the following should be a const in a header file)
-uint2 image=make_uint2(4096, 4096);
+int2 image={1<<11, 1<<11};
 
-void init_kernel(uint2 image);
-void launch_kernel(uchar4* d_ptr, uint2 image, float time);
+void init_kernel(int2 image);
+void launch_kernel(uchar4* d_pixel, int2 image, float time);
 
 // variables
 GLuint pbo;
 GLuint textureID;
 
-void createPBO(GLuint* pbo){
+void createPBO(GLuint* pbo, int2 size){
 	if(pbo){
 		// set up vertex data parameter
-		int num_texels=image.x*image.y;
-		int num_values=num_texels*4;
-		int size_tex_data = sizeof(GLubyte) * num_values;
-
+		int size_tex_data = size.x*size.y*sizeof(uchar4);
 		// Generate a buffer ID called a PBO (Pixel Buffer Object)
 		glGenBuffers(1, pbo);
 		// Make this the current UNPACK buffer (OpenGL is state-based)
@@ -43,28 +40,30 @@ void deletePBO(GLuint* pbo){
 		cudaGLUnregisterBufferObject(*pbo);
 		glBindBuffer(GL_ARRAY_BUFFER, *pbo);
 		glDeleteBuffers(1, pbo);
-		*pbo=NULL;
+		pbo=NULL;
+		delete pbo;
 	}
 }
 
-void createTexture(GLuint* textureID, unsigned int size_x, unsigned int size_y){
+void createTexture(GLuint* textureID, int2 size){
 	// Enable Texturing
-	glEnable(GL_TEXTURE_2D);
+	glEnable(GL_TEXTURE_RECTANGLE_ARB);
 
 	// Generate a texture identifier
 	glGenTextures(1, textureID);
 
 	// Make this the current texture (remember that GL is state-based)
-	glBindTexture(GL_TEXTURE_2D, *textureID);
+	glBindTexture(GL_TEXTURE_RECTANGLE_ARB, *textureID);
 
 	// Allocate the texture memory. The last parameter is NULL since we only
 	// want to allocate memory, not initialize it
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, image.x, image.y, 0,
+	glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA8, size.x, size.y, 0,
 		GL_BGRA, GL_UNSIGNED_BYTE, NULL);
 
 	// Must set the filter mode, GL_LINEAR enables interpolation when scaling
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
 	// Note: GL_TEXTURE_RECTANGLE_ARB may be used instead of
 	// GL_TEXTURE_2D for improved performance if linear interpolation is
 	// not desired. Replace GL_LINEAR with GL_NEAREST in the
@@ -73,7 +72,8 @@ void createTexture(GLuint* textureID, unsigned int size_x, unsigned int size_y){
 
 void deleteTexture(GLuint* tex){
 	glDeleteTextures(1, tex);
-	*tex=NULL;
+	tex=NULL;
+	delete tex;
 }
 
 void cleanupCuda(){
@@ -87,15 +87,15 @@ void cleanupCuda(){
 
 // Run the Cuda part of the computation
 void runCuda(){
-	uchar4 *d_ptr=NULL;
+	uchar4 *d_pixel=NULL;
 
 	// map OpenGL buffer object for writing from CUDA on a single GPU
 	// no data is moved (Win & Linux). When mapped to CUDA, OpenGL
 	// should not use this buffer
-	cudaGLMapBufferObject((void**)&d_ptr, pbo);
+	cudaGLMapBufferObject((void**)&d_pixel, pbo);
 
 	// execute the kernel
-	launch_kernel(d_ptr, image, animTime);
+	launch_kernel(d_pixel, image, animTime);
 
 	// unmap buffer object
 	cudaGLUnmapBufferObject(pbo);
@@ -107,8 +107,8 @@ void initCuda(int argc, char** argv){
 	// optimal performance with OpenGL/CUDA interop.  use command-line
 	// specified CUDA device, otherwise use device with highest Gflops/s
 	cudaGLSetGLDevice(findCudaDevice(argc, (const char **)argv));
-	createPBO(&pbo);
-	createTexture(&textureID, image.x, image.y);
+	createPBO(&pbo, image);
+	createTexture(&textureID, image);
 
 	// Clean up on program exit
 	atexit(cleanupCuda);
