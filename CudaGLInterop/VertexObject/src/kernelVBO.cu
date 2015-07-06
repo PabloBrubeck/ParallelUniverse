@@ -196,5 +196,5 @@ void harmonic(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, di
 }
 
 void launch_kernel(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
-	harmonic(d_pos, d_norm, d_color, d_index, mesh, time);
+	torus(d_pos, d_norm, d_color, d_index, mesh, time);
 }

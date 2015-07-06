@@ -76,10 +76,10 @@ void display(){
 
 	// Draw a single Quad with texture coordinates for each vertex.
 	glBegin(GL_QUADS);
-	glTexCoord2i(poi.x, poi.y);				glVertex3f(0.0f, 0.0f, 0.0f);
+	glTexCoord2i(poi.x,       poi.y);		glVertex3f(0.0f, 0.0f, 0.0f);
 	glTexCoord2i(poi.x+roi.x, poi.y);		glVertex3f(1.0f, 0.0f, 0.0f);
 	glTexCoord2i(poi.x+roi.x, poi.y+roi.y);	glVertex3f(1.0f, 1.0f, 0.0f);
-	glTexCoord2i(poi.x, poi.y+roi.y);		glVertex3f(0.0f, 1.0f, 0.0f);
+	glTexCoord2i(poi.x,       poi.y+roi.y);	glVertex3f(0.0f, 1.0f, 0.0f);
 	glEnd();
 
 	// Don't forget to swap the buffers!
@@ -102,9 +102,8 @@ void reshape(int w, int h){
 	glLoadIdentity();
 }
 void keyPressed(unsigned char key, int x, int y){
-	float2 point;
 	switch(key){
-	case(27) :
+	case 27:
 		exit(0);
 		break;
 	case 'z':
@@ -131,7 +130,7 @@ void keyPressed(unsigned char key, int x, int y){
 	case 'd':
 		poi.x=min(poi.x+(roi.x+31)/32, image.x-roi.x);
 		break;
-	case 'p': // toggle animation
+	case 32: // toggle animation
 		animFlag=!animFlag;
 		break;
 	case '-': // decrease the time increment for the CUDA kernel
