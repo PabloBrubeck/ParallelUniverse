@@ -159,7 +159,7 @@ void mouseMotion(int x, int y){
 		delta=curPos-lastPos;
 		if(delta.x || delta.y || delta.z){
 			axis=cross(lastPos, curPos);
-			angle=573.f*length(axis);
+			angle=57.3f*length(axis);
 			lastPos=curPos;
 		}
 	}

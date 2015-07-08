@@ -66,8 +66,8 @@ __global__ void waveSolve(uchar4 *d_pixel, uchar4 *d_cmap, float *d_u, float *d_
 		d_ul[gid]=temp;
 		float x=fma((float)i/image.x, (float)axes.x, (float)origin.x);
 		float y=fma((float)j/image.y, (float)axes.y, (float)origin.y);
-		if(x*x+y*y<1.E-2f){
-			d_u[gid]=sinpi(time/10);
+		if(max(abs(x),abs(y))<1.E-2f){
+			d_u[gid]=sinpif(time);
 		}
 		if(i==0 || j==0 || i==image.x-1 || j==image.y-1){
 			d_u[gid]=0.f;
@@ -77,7 +77,7 @@ __global__ void waveSolve(uchar4 *d_pixel, uchar4 *d_cmap, float *d_u, float *d_
 	}
 }
 void wavePDE(uchar4 *d_pixel, uchar4 *d_cmap, float *d_u, float *d_ul, float *d_lap, double2 origin, double2 axes, int2 image, float time){
-	static dim3 block(MAXTHREADS);
+	static dim3 block(1,MAXTHREADS);
 	static dim3 grid(ceil(image.x, block.x), ceil(image.y, block.y));
 	laplacian<<<grid, block>>>(d_lap, d_u, image);
 	waveSolve<<<grid, block>>>(d_pixel, d_cmap, d_u, d_ul, d_lap, 0.4f, origin, axes, image, time);
