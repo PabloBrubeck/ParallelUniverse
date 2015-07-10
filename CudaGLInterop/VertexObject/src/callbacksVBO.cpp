@@ -23,19 +23,25 @@ void deleteKey(unsigned char key, int a, int b, int c){
 }
 
 
-
 // mouse controls
 bool trackingMouse = false;
 bool trackballMove = false;
 bool redrawContinue = false;
 
 int mouseButtons = 0;
-int2 mouseStart, window;
+int2 mouseStart, mouseEnd, window;
 
-float m[16];
-float angle = 0.f;
-float3 axis, lastPos;
-float3 trans=make_float3(0.f, 0.f, -5.f);
+float3 lastPos;
+float3 trans={0.f, 0.f, -5.f};
+float4 axis, quat={0.f, 0.f, 0.f, 1.f};
+
+float4 quatMult(float4 a, float4 b){
+	float x=a.w*b.x + a.x*b.w + a.y*b.z - a.z*b.y;
+	float y=a.w*b.y - a.x*b.z + a.y*b.w + a.z*b.x;
+	float z=a.w*b.z + a.x*b.y - a.y*b.x + a.z*b.w;
+	float w=a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z;
+	return make_float4(x, y, z, w);
+}
 
 void trackball(int x, int y, int width, int height, float3 &v){
 	v.x=(2.f*x-width)/width;
@@ -54,10 +60,9 @@ void startMotion(int x, int y){
 void stopMotion(int x, int y){
 	trackingMouse=false;
 	if(mouseStart.x!=x || mouseStart.y!=y){
-		angle/=4.f;
 		redrawContinue=true;
 	}else{
-		angle=0.f;
+		axis.w=1.f;
 		redrawContinue=false;
 		trackballMove=false;
 	}
@@ -73,20 +78,16 @@ void display(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// transform view matrix
-	glMatrixMode(GL_MODELVIEW);
-	if(trackballMove){
-		glGetFloatv(GL_MODELVIEW_MATRIX, m);
-		glLoadIdentity();
-		glTranslatef(trans.x, trans.y, trans.z);
-		glRotatef(angle, axis.x, axis.y, axis.z);
-		glTranslatef(-trans.x, -trans.y, -trans.z);
-		glMultMatrixf(m);
+	if(trackballMove && length(axis)>0){
+		quat=normalize(quatMult(axis, quat));
 	}
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glTranslatef(trans.x, trans.y, trans.z);
+	glRotatef(114.592f*acosf(quat.w), quat.x, quat.y, quat.z);
 	
 	// render the data
-	glTranslatef(trans.x, trans.y, trans.z);
 	renderCuda(drawMode);
-	glTranslatef(-trans.x, -trans.y, -trans.z);
 
 	glutSwapBuffers();
 	glutReportErrors();
@@ -151,18 +152,24 @@ void mouseButton(int button, int state, int x, int y){
 			stopMotion(x,y);
 		}
 	}
+	mouseEnd=make_int2(x,y);
 }
 void mouseMotion(int x, int y){
-	float3 curPos, delta;
+	float3 curPos;
 	trackball(x, y, window.x, window.y, curPos);
 	if(trackingMouse){
-		delta=curPos-lastPos;
-		if(delta.x || delta.y || delta.z){
-			axis=cross(lastPos, curPos);
-			angle=57.3f*length(axis);
+		float3 n=cross(lastPos, curPos);
+		float n2=dot(n, n);
+		if(n2 > 0.f){
+			float ch=sqrtf((1.f+sqrtf(1.f-n2))/2.f);
+			axis=make_float4(n/(2.f*ch), ch);
 			lastPos=curPos;
 		}
 	}
+	if(mouseButtons&4){
+		trans.z*=1+(y-mouseEnd.y)/(float)window.y;
+	}
+	mouseEnd=make_int2(x,y);
 	glutPostRedisplay();
 }
 

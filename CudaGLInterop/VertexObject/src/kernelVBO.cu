@@ -165,8 +165,7 @@ void harmonic(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, di
 		int m[4]   = {5,-1,1,0};
 		int l[4]   = {8,1,1,0};
 		float w[4] = {1.6f, 0.4f, 0.4f, 2.0f};
-		
-		
+
 		float* d_rho;
 		float* d_Pml;
 
