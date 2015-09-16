@@ -24,7 +24,7 @@ inline __device__ __host__
 float horner(float* p, int n, float x){
 	float y=0.f;
 	for(int i=n; i>=0; i--){
-		y=y*x+p[i];
+		y=fma(y, x, p[i]);
 	}
 	return y;
 }

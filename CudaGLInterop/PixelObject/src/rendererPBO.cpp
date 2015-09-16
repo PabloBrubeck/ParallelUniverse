@@ -11,7 +11,7 @@
 extern float animTime;
 
 // constants (the following should be a const in a header file)
-int2 image={1<<12, 1<<12};
+int2 image={1<<11, 1<<11};
 
 void init_kernel(int2 image);
 void launch_kernel(uchar4* d_pixel, int2 image, float time);

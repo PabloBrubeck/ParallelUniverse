@@ -74,8 +74,8 @@ bool initGL(int* argc, char** argv){
 	}
 
 	// Setup lighting
-	float difuse[4]   = { 1.f, 1.f, 1.f, 0.f };
-	float specular[4] =	{ 1.f, 1.f, 1.f, 0.f };
+	float difuse[4]   = { 1.f, 1.f, 1.f, 1.f };
+	float specular[4] =	{ 1.f, 1.f, 1.f, 1.f };
 	float lightsrc[4] = { 0.f, 1.f, 1.f, 1.f };
 
 	glClearColor(0.f, 0.f, 0.f, 0.f);
@@ -83,7 +83,11 @@ bool initGL(int* argc, char** argv){
 	glShadeModel(GL_SMOOTH);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glDisable(GL_CULL_FACE);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, difuse);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
@@ -91,10 +95,6 @@ bool initGL(int* argc, char** argv){
 	glLightfv(GL_LIGHT0, GL_POSITION, lightsrc);
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	SDK_CHECK_ERROR_GL();
 	return true;

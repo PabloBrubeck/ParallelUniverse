@@ -123,7 +123,7 @@ __global__ void kernelf(uchar4* d_pixel, uchar4 *d_cmap, double2 origin, double2
 		int gid=j*image.x+i;
 		float x=fma((float)i/image.x, (float)axes.x, (float)origin.x);
 		float y=fma((float)j/image.y, (float)axes.y, (float)origin.y);
-		int k=interference(x, y, time);
+		int k=mandelbrotf(x, y);
 		d_pixel[gid]=d_cmap[clamp(k,0,COLORDEPTH-1)];
 	}
 }
@@ -142,20 +142,22 @@ __global__ void kerneld(uchar4* d_pixel, uchar4 *d_cmap, double2 origin, double2
 
 
 void init_kernel(int2 image){
-	int n=image.x*image.y;
+	/*int n=image.x*image.y;
 	checkCudaErrors(cudaMalloc((void**)&d_u, n*sizeof(float)));
 	checkCudaErrors(cudaMalloc((void**)&d_ul, n*sizeof(float)));
 	checkCudaErrors(cudaMalloc((void**)&d_lap, n*sizeof(float)));
-	checkCudaErrors(cudaMalloc((void**)&d_cmap, COLORDEPTH*sizeof(uchar4)));
 	checkCudaErrors(cudaMemset(d_u, 0.f, n*sizeof(float)));
-	checkCudaErrors(cudaMemset(d_ul, 0.f, n*sizeof(float)));
+	checkCudaErrors(cudaMemset(d_ul, 0.f, n*sizeof(float)));*/
+
+	checkCudaErrors(cudaMalloc((void**)&d_cmap, COLORDEPTH*sizeof(uchar4)));
 	jet<<<1, COLORDEPTH>>>(d_cmap, COLORDEPTH);
 }
 
 void launch_kernel(uchar4* d_pixel, int2 image, float time){
 	static const dim3 block(MAXTHREADS);
 	static const dim3 grid(ceil(image.x, block.x), ceil(image.y, block.y));
-	wavePDE(d_pixel, d_cmap, d_u, d_ul, d_lap, origin, axes, image, time);
+	//wavePDE(d_pixel, d_cmap, d_u, d_ul, d_lap, origin, axes, image, time);
+	kerneld<<<grid, block>>>(d_pixel, d_cmap, origin, axes, image, time);
 	cudaThreadSynchronize();
 	checkCudaErrors(cudaGetLastError());
 }

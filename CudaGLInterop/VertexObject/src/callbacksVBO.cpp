@@ -4,8 +4,6 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <stdlib.h>
-#include <stdio.h>
-
 
 // The user must create the following routines:
 extern void runCuda();
@@ -24,23 +22,22 @@ void deleteKey(unsigned char key, int a, int b, int c){
 
 
 // mouse controls
-bool trackingMouse = false;
 bool trackballMove = false;
-bool redrawContinue = false;
-
 int mouseButtons = 0;
-int2 mouseStart, mouseEnd, window;
+int2 window, mouseStart, mouseEnd;
 
 float3 lastPos;
 float3 trans={0.f, 0.f, -5.f};
-float4 axis, quat={0.f, 0.f, 0.f, 1.f};
+float4 axis={0.f, 0.f, 0.f, 1.f};
+float4 quat={0.f, 0.f, 0.f, 1.f};
+float *m=new float[16];
 
-float4 quatMult(float4 a, float4 b){
-	float x=a.w*b.x + a.x*b.w + a.y*b.z - a.z*b.y;
-	float y=a.w*b.y - a.x*b.z + a.y*b.w + a.z*b.x;
-	float z=a.w*b.z + a.x*b.y - a.y*b.x + a.z*b.w;
-	float w=a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z;
-	return make_float4(x, y, z, w);
+inline float4 quatMult(float4 a, float4 b){
+	return make_float4(
+		a.w*b.x + a.x*b.w + a.y*b.z - a.z*b.y,
+		a.w*b.y - a.x*b.z + a.y*b.w + a.z*b.x,
+		a.w*b.z + a.x*b.y - a.y*b.x + a.z*b.w,
+		a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z);
 }
 
 void trackball(int x, int y, int width, int height, float3 &v){
@@ -50,45 +47,45 @@ void trackball(int x, int y, int width, int height, float3 &v){
 	v.z=r<1? sqrtf(1-r): 0;
 	v=normalize(v);
 }
-void startMotion(int x, int y){
-	trackingMouse=true;
-	redrawContinue=false;
-	mouseStart=make_int2(x, y);
-	trackball(x, y, window.x, window.y, lastPos);
-	trackballMove=true;
-}
-void stopMotion(int x, int y){
-	trackingMouse=false;
-	if(mouseStart.x!=x || mouseStart.y!=y){
-		redrawContinue=true;
-	}else{
-		axis.w=1.f;
-		redrawContinue=false;
-		trackballMove=false;
-	}
-}
+void updateMatrix(){
+	m[0]=m[5]=m[10]=m[15]=1.f;
+	m[3]=m[7]=m[11]=0.f;
+	m[12]=trans.x;
+	m[13]=trans.y;
+	m[14]=trans.z;
 
+	float temp=2.f*quat.x;
+	float xx=temp*quat.x;
+	float xw=temp*quat.w;
+	m[1]=m[4]=temp*quat.y;
+	m[2]=m[8]=temp*quat.z;
+	temp=2.f*quat.y;
+	float yy=temp*quat.y;
+	float yw=temp*quat.w;
+	m[6]=m[9]=temp*quat.z;
+	temp=2.f*quat.z;
+	float zz=temp*quat.z;
+	float zw=temp*quat.w;
+
+	m[0]-=yy+zz;
+	m[5]-=xx+zz;
+	m[10]-=xx+yy;
+	m[1]+=zw; m[4]-=zw;
+	m[2]-=yw; m[8]+=yw;
+	m[6]+=xw; m[9]-=xw;
+	glMatrixMode(GL_MODELVIEW);
+	glLoadMatrixf(m);
+}
 
 
 // Callbacks for GLUT
 void display(){
 	// run CUDA kernel to generate vertex positions
 	runCuda();
-
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	// transform view matrix
-	if(trackballMove && length(axis)>0){
-		quat=normalize(quatMult(axis, quat));
-	}
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glTranslatef(trans.x, trans.y, trans.z);
-	glRotatef(114.592f*acosf(quat.w), quat.x, quat.y, quat.z);
 	
 	// render the data
 	renderCuda(drawMode);
-
 	glutSwapBuffers();
 	glutReportErrors();
 }
@@ -98,6 +95,7 @@ void reshape(int w, int h){
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	gluPerspective(60.0, (float)w/(float)h, 0.01, 100.0);
+	updateMatrix();
 }
 
 void keyPressed(unsigned char key, int x, int y){
@@ -146,28 +144,33 @@ void mouseButton(int button, int state, int x, int y){
 		mouseButtons &= ~(1<<button);
 	}
 	if(button == GLUT_LEFT_BUTTON){
-		if(state == GLUT_DOWN) {
-			startMotion(x,y);
+		if(state==GLUT_DOWN){
+			trackball(x, y, window.x, window.y, lastPos);
+			mouseStart=make_int2(x, y);
+			trackballMove=false;
 		}else{
-			stopMotion(x,y);
+			trackballMove=(mouseStart.x!=x || mouseStart.y!=y);
 		}
 	}
 	mouseEnd=make_int2(x,y);
 }
 void mouseMotion(int x, int y){
-	float3 curPos;
-	trackball(x, y, window.x, window.y, curPos);
-	if(trackingMouse){
-		float3 n=cross(lastPos, curPos);
-		float n2=dot(n, n);
-		if(n2 > 0.f){
-			float ch=sqrtf((1.f+sqrtf(1.f-n2))/2.f);
-			axis=make_float4(n/(2.f*ch), ch);
-			lastPos=curPos;
-		}
+	if(mouseButtons&1){
+		static float3 curPos, n;
+		trackball(x, y, window.x, window.y, curPos);
+		n=cross(lastPos, curPos);
+		lastPos=curPos;
+
+		float w=sqrtf((1.f+sqrtf(1.f-dot(n,n)))/2.f);
+		axis=make_float4(n/(2.f*w), w);
+		quat=normalize(quatMult(axis, quat));
+		updateMatrix();
 	}
 	if(mouseButtons&4){
-		trans.z*=1+(y-mouseEnd.y)/(float)window.y;
+		float dx=(x-mouseEnd.x)/(float)window.x;
+		float dy=(y-mouseEnd.y)/(float)window.y;
+		trans.z*=1.f+dy;
+		updateMatrix();
 	}
 	mouseEnd=make_int2(x,y);
 	glutPostRedisplay();
@@ -178,7 +181,9 @@ void timerEvent(int value){
 	glutTimerFunc(10, timerEvent, 0);
 }
 void idle(){
-	if(redrawContinue){
+	if(trackballMove){
+		quat=normalize(quatMult(axis, quat));
+		updateMatrix();
 		glutPostRedisplay();
 	}
 }

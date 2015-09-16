@@ -10,7 +10,7 @@
 #include <helper_cuda_gl.h>
 
 // constants
-const dim3 mesh(1<<10, 1<<10, 1);
+const dim3 mesh(1<<10, 1<<9);
 
 struct mappedBuffer_t{
   GLuint vbo;
@@ -39,7 +39,7 @@ void createVBO(mappedBuffer_t* mbuf, GLenum mode){
 
 	// register buffer object with CUDA
 	checkCudaErrors(cudaGraphicsGLRegisterBuffer(&(mbuf->cudaResource),
-		mbuf->vbo, cudaGraphicsMapFlagsNone));
+			mbuf->vbo, cudaGraphicsMapFlagsNone));
 	SDK_CHECK_ERROR_GL();
 }
 

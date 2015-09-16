@@ -161,8 +161,8 @@ void mouseMotion(int x, int y){
 	mousePos.y=y;
 }
 void timerEvent(int value){
-	//glutPostRedisplay();
-	//glutTimerFunc(10, timerEvent, 0);
+	glutPostRedisplay();
+	glutTimerFunc(10, timerEvent, 0);
 }
 void idle(){
 	glutPostRedisplay();
