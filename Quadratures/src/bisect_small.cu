@@ -43,10 +43,10 @@
 //! @param  iterations  number of iterations for timing
 ////////////////////////////////////////////////////////////////////////////////
 void
-computeEigenvaluesSmallMatrix(const InputData &input, ResultDataSmall &result,
+computeEigenvaluesSmallMatrix(const Tridiag &input, ResultDataSmall &result,
                               const unsigned int mat_size,
-                              const float lg, const float ug,
-                              const float precision,
+                              const double lg, const double ug,
+                              const double precision,
                               const unsigned int iterations)
 {
     StopWatchInterface *timer = NULL;
@@ -59,10 +59,10 @@ computeEigenvaluesSmallMatrix(const InputData &input, ResultDataSmall &result,
         dim3  blocks(1, 1, 1);
         dim3  threads(MAX_THREADS_BLOCK_SMALL_MATRIX, 1, 1);
 
-        bisectKernel<<< blocks, threads >>>(input.g_a, input.g_b, mat_size,
-                                            result.g_left, result.g_right,
-                                            result.g_left_count,
-                                            result.g_right_count,
+        bisectKernel<<< blocks, threads >>>(input.d_a, input.d_b, mat_size,
+                                            result.d_left, result.d_right,
+                                            result.d_left_count,
+                                            result.d_right_count,
                                             lg, ug, 0, mat_size,
                                             precision
                                            );
@@ -72,7 +72,7 @@ computeEigenvaluesSmallMatrix(const InputData &input, ResultDataSmall &result,
     sdkStopTimer(&timer);
     getLastCudaError("Kernel launch failed");
     printf("Average time: %f ms (%i iterations)\n",
-           sdkGetTimerValue(&timer) / (float) iterations, iterations);
+           sdkGetTimerValue(&timer) / (double) iterations, iterations);
 
     sdkDeleteTimer(&timer);
 }
@@ -86,13 +86,13 @@ void
 initResultSmallMatrix(ResultDataSmall &result, const unsigned int mat_size)
 {
 
-    result.mat_size_f = sizeof(float) * mat_size;
+    result.mat_size_f = sizeof(double) * mat_size;
     result.mat_size_ui = sizeof(unsigned int) * mat_size;
 
-    result.eigenvalues = (float *) malloc(result.mat_size_f);
+    result.eigenvalues = (double *) malloc(result.mat_size_f);
 
     // helper variables
-    result.zero_f = (float *) malloc(result.mat_size_f);
+    result.zero_f = (double *) malloc(result.mat_size_f);
     result.zero_ui = (unsigned int *) malloc(result.mat_size_ui);
 
     for (unsigned int i = 0; i < mat_size; ++i)
@@ -104,23 +104,23 @@ initResultSmallMatrix(ResultDataSmall &result, const unsigned int mat_size)
         result.eigenvalues[i] = 0.0f;
     }
 
-    checkCudaErrors(cudaMalloc((void **) &result.g_left, result.mat_size_f));
-    checkCudaErrors(cudaMalloc((void **) &result.g_right, result.mat_size_f));
+    checkCudaErrors(cudaMalloc((void **) &result.d_left, result.mat_size_f));
+    checkCudaErrors(cudaMalloc((void **) &result.d_right, result.mat_size_f));
 
-    checkCudaErrors(cudaMalloc((void **) &result.g_left_count,
+    checkCudaErrors(cudaMalloc((void **) &result.d_left_count,
                                result.mat_size_ui));
-    checkCudaErrors(cudaMalloc((void **) &result.g_right_count,
+    checkCudaErrors(cudaMalloc((void **) &result.d_right_count,
                                result.mat_size_ui));
 
     // initialize result memory
-    checkCudaErrors(cudaMemcpy(result.g_left, result.zero_f, result.mat_size_f,
+    checkCudaErrors(cudaMemcpy(result.d_left, result.zero_f, result.mat_size_f,
                                cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(result.g_right, result.zero_f, result.mat_size_f,
+    checkCudaErrors(cudaMemcpy(result.d_right, result.zero_f, result.mat_size_f,
                                cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(result.g_right_count, result.zero_ui,
+    checkCudaErrors(cudaMemcpy(result.d_right_count, result.zero_ui,
                                result.mat_size_ui,
                                cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(result.g_left_count, result.zero_ui,
+    checkCudaErrors(cudaMemcpy(result.d_left_count, result.zero_ui,
                                result.mat_size_ui,
                                cudaMemcpyHostToDevice));
 }
@@ -137,10 +137,10 @@ cleanupResultSmallMatrix(ResultDataSmall &result)
     freePtr(result.zero_f);
     freePtr(result.zero_ui);
 
-    checkCudaErrors(cudaFree(result.g_left));
-    checkCudaErrors(cudaFree(result.g_right));
-    checkCudaErrors(cudaFree(result.g_left_count));
-    checkCudaErrors(cudaFree(result.g_right_count));
+    checkCudaErrors(cudaFree(result.d_left));
+    checkCudaErrors(cudaFree(result.d_right));
+    checkCudaErrors(cudaFree(result.d_left_count));
+    checkCudaErrors(cudaFree(result.d_right_count));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -152,24 +152,24 @@ cleanupResultSmallMatrix(ResultDataSmall &result)
 //! @param  filename  output filename
 ////////////////////////////////////////////////////////////////////////////////
 void
-processResultSmallMatrix(const InputData &input, const ResultDataSmall &result,
+processResultSmallMatrix(const Tridiag &input, const ResultDataSmall &result,
                          const unsigned int mat_size,
                          const char *filename)
 {
 
-    const unsigned int mat_size_f = sizeof(float) * mat_size;
+    const unsigned int mat_size_f = sizeof(double) * mat_size;
     const unsigned int mat_size_ui = sizeof(unsigned int) * mat_size;
 
     // copy data back to host
-    float *left = (float *) malloc(mat_size_f);
+    double *left = (double *) malloc(mat_size_f);
     unsigned int *left_count = (unsigned int *) malloc(mat_size_ui);
 
-    checkCudaErrors(cudaMemcpy(left, result.g_left, mat_size_f,
+    checkCudaErrors(cudaMemcpy(left, result.d_left, mat_size_f,
                                cudaMemcpyDeviceToHost));
-    checkCudaErrors(cudaMemcpy(left_count, result.g_left_count, mat_size_ui,
+    checkCudaErrors(cudaMemcpy(left_count, result.d_left_count, mat_size_ui,
                                cudaMemcpyDeviceToHost));
 
-    float *eigenvalues = (float *) malloc(mat_size_f);
+    double *eigenvalues = (double *) malloc(mat_size_f);
 
     for (unsigned int i = 0; i < mat_size; ++i)
     {

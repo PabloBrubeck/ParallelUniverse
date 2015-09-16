@@ -44,21 +44,21 @@
 ////////////////////////////////////////////////////////////////////////////////
 __global__
 void
-bisectKernelLarge_MultIntervals(float *g_d, float *g_s, const unsigned int n,
+bisectKernelLarge_MultIntervals(double *g_d, double *g_s, const unsigned int n,
                                 unsigned int *blocks_mult,
                                 unsigned int *blocks_mult_sum,
-                                float *g_left, float *g_right,
+                                double *g_left, double *g_right,
                                 unsigned int *g_left_count,
                                 unsigned int *g_right_count,
-                                float *g_lambda, unsigned int *g_pos,
-                                float precision
+                                double *g_lambda, unsigned int *g_pos,
+                                double precision
                                )
 {
     const unsigned int tid = threadIdx.x;
 
     // left and right limits of interval
-    __shared__  float  s_left[2 * MAX_THREADS_BLOCK];
-    __shared__  float  s_right[2 * MAX_THREADS_BLOCK];
+    __shared__  double  s_left[2 * MAX_THREADS_BLOCK];
+    __shared__  double  s_right[2 * MAX_THREADS_BLOCK];
 
     // number of eigenvalues smaller than interval limits
     __shared__  unsigned int  s_left_count[2 * MAX_THREADS_BLOCK];
@@ -84,12 +84,12 @@ bisectKernelLarge_MultIntervals(float *g_d, float *g_s, const unsigned int n,
     __shared__  unsigned int  c_block_offset_output;
 
     // midpoint of currently active interval of the thread
-    float mid = 0.0f;
+    double mid = 0.0f;
     // number of eigenvalues smaller than \a mid
     unsigned int  mid_count = 0;
     // current interval parameter
-    float  left;
-    float  right;
+    double  left;
+    double  right;
     unsigned int  left_count;
     unsigned int  right_count;
     // helper for compaction, keep track which threads have a second child

@@ -39,27 +39,27 @@
 ////////////////////////////////////////////////////////////////////////////////
 __global__
 void
-bisectKernelLarge_OneIntervals(float *g_d, float *g_s, const unsigned int n,
+bisectKernelLarge_OneIntervals(double *g_d, double *g_s, const unsigned int n,
                                unsigned int num_intervals,
-                               float *g_left, float *g_right,
+                               double *g_left, double *g_right,
                                unsigned int *g_pos,
-                               float  precision)
+                               double  precision)
 {
     const unsigned int gtid = (blockDim.x * blockIdx.x) + threadIdx.x;
 
-    __shared__  float  s_left_scratch[MAX_THREADS_BLOCK];
-    __shared__  float  s_right_scratch[MAX_THREADS_BLOCK];
+    __shared__  double  s_left_scratch[MAX_THREADS_BLOCK];
+    __shared__  double  s_right_scratch[MAX_THREADS_BLOCK];
 
     // active interval of thread
     // left and right limit of current interval
-    float left, right;
+    double left, right;
     // number of threads smaller than the right limit (also corresponds to the
     // global index of the eigenvalues contained in the active interval)
     unsigned int right_count;
     // flag if current thread converged
     unsigned int converged = 0;
     // midpoint when current interval is subdivided
-    float mid = 0.0f;
+    double mid = 0.0f;
     // number of eigenvalues less than mid
     unsigned int mid_count = 0;
 
@@ -121,13 +121,13 @@ bisectKernelLarge_OneIntervals(float *g_d, float *g_s, const unsigned int n,
             }
 
             // check for convergence
-            float t0 = right - left;
-            float t1 = max(abs(right), abs(left)) * precision;
+            double t0 = right - left;
+            double t1 = max(abs(right), abs(left)) * precision;
 
             if (t0 < min(precision, t1))
             {
 
-                float lambda = computeMidpoint(left, right);
+                double lambda = computeMidpoint(left, right);
                 left = lambda;
                 right = lambda;
 

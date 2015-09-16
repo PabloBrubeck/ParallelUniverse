@@ -37,16 +37,8 @@ char* toString(cuDoubleComplex z){
 	sprintf(s, "% f%+fi", z.x, z.y);
 	return s;
 }
-
-void printMatrix(float *A, int m, int n){
-	for(int i=0; i<m; i++){
-		for(int j=0; j<n; j++){
-			printf("% f\t", A[j*m+i]);
-		}
-		printf("\n");
-	}
-}
-void printMatrix(double *A, int m, int n){
+template<class T>
+void printMatrix(T *A, int m, int n){
 	for(int i=0; i<m; i++){
 		for(int j=0; j<n; j++){
 			printf("% f\t", A[j*m+i]);
@@ -83,7 +75,7 @@ void runTest(int N){
 	cuDoubleComplex *h_C=new cuDoubleComplex[N2];
 	dftmtx(h_W, N);
 
-	cuDoubleComplex alpha = make_cuDoubleComplex(1.f, 0.f);
+	cuDoubleComplex alpha = make_cuDoubleComplex(1.f/N, 0.f);
 	cuDoubleComplex beta  = make_cuDoubleComplex(0.f, 0.f);
 
 	cuDoubleComplex *d_W, *d_C;
@@ -142,7 +134,7 @@ int main(int argc, char **argv){
 	cublasHandle_t handle;
 	cublasCreate(&handle);
 
-	int N=8; int N2=N*N;
+	int N=8, N2=N*N;
 
 	double *d_D, *d_D2, *d_x;
 	checkCudaErrors(cudaMalloc((void**)&d_D,  N2*sizeof(double)));

@@ -42,8 +42,8 @@ namespace
 ///////////////////////////////////////////////////////////////////////////////
 void
 writeTridiagSymMatlab(const char *filename,
-                      float *d, float *s,
-                      float *eigenvals,
+                      double *d, double *s,
+                      double *eigenvals,
                       const unsigned int n)
 {
     std::ofstream file(filename, std::ios::out);

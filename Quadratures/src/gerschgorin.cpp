@@ -28,7 +28,7 @@
 //! @param  ug  upper limit of Gerschgorin interval
 ////////////////////////////////////////////////////////////////////////////////
 void
-computeGerschgorin(float *d, float *s, unsigned int n, float &lg, float &ug)
+computeGerschgorin(double *d, double *s, unsigned int n, double &lg, double &ug)
 {
 
     lg = FLT_MAX;
@@ -39,7 +39,7 @@ computeGerschgorin(float *d, float *s, unsigned int n, float &lg, float &ug)
     {
 
         // sum over the absolute values of all elements of row i
-        float sum_abs_ni = fabsf(s[i-1]) + fabsf(s[i]);
+        double sum_abs_ni = fabsf(s[i-1]) + fabsf(s[i]);
 
         lg = min(lg, d[i] - sum_abs_ni);
         ug = max(ug, d[i] + sum_abs_ni);
@@ -56,12 +56,12 @@ computeGerschgorin(float *d, float *s, unsigned int n, float &lg, float &ug)
     ug = max(ug, d[n-1] + fabsf(s[n-2]));
 
     // increase interval to avoid side effects of fp arithmetic
-    float bnorm = max(fabsf(ug), fabsf(lg));
+    double bnorm = max(fabsf(ug), fabsf(lg));
 
-    // these values depend on the implementation of floating count that is
+    // these values depend on the implementation of doubleing count that is
     // employed in the following
-    float psi_0 = 11 * FLT_EPSILON * bnorm;
-    float psi_n = 11 * FLT_EPSILON * bnorm;
+    double psi_0 = 11 * FLT_EPSILON * bnorm;
+    double psi_n = 11 * FLT_EPSILON * bnorm;
 
     lg = lg - bnorm * 2 * n * FLT_EPSILON - psi_0;
     ug = ug + bnorm * 2 * n * FLT_EPSILON + psi_n;

@@ -31,12 +31,12 @@ __device__
 void writeToGmem(const unsigned int tid, const unsigned int tid_2,
                  const unsigned int num_threads_active,
                  const unsigned int num_blocks_mult,
-                 float *g_left_one, float *g_right_one,
+                 double *g_left_one, double *g_right_one,
                  unsigned int *g_pos_one,
-                 float *g_left_mult, float *g_right_mult,
+                 double *g_left_mult, double *g_right_mult,
                  unsigned int *g_left_count_mult,
                  unsigned int *g_right_count_mult,
-                 float *s_left, float *s_right,
+                 double *s_left, double *s_right,
                  unsigned short *s_left_count, unsigned short *s_right_count,
                  unsigned int *g_blocks_mult,
                  unsigned int *g_blocks_mult_sum,
@@ -53,12 +53,12 @@ void
 compactStreamsFinal(const unsigned int tid, const unsigned int tid_2,
                     const unsigned int num_threads_active,
                     unsigned int &offset_mult_lambda,
-                    float *s_left, float *s_right,
+                    double *s_left, double *s_right,
                     unsigned short *s_left_count, unsigned short *s_right_count,
                     unsigned short *s_cl_one, unsigned short *s_cl_mult,
                     unsigned short *s_cl_blocking, unsigned short *s_cl_helper,
                     unsigned int is_one_lambda, unsigned int is_one_lambda_2,
-                    float &left, float &right, float &left_2, float &right_2,
+                    double &left, double &right, double &left_2, double &right_2,
                     unsigned int &left_count, unsigned int &right_count,
                     unsigned int &left_count_2, unsigned int &right_count_2,
                     unsigned int c_block_iend, unsigned int c_sum_block,
@@ -110,14 +110,14 @@ __device__
 void
 storeNonEmptyIntervalsLarge(unsigned int addr,
                             const unsigned int num_threads_active,
-                            float  *s_left, float *s_right,
+                            double  *s_left, double *s_right,
                             unsigned short  *s_left_count,
                             unsigned short *s_right_count,
-                            float left, float mid, float right,
+                            double left, double mid, double right,
                             const unsigned short left_count,
                             const unsigned short mid_count,
                             const unsigned short right_count,
-                            float epsilon,
+                            double epsilon,
                             unsigned int &compact_second_chunk,
                             unsigned short *s_compaction_list,
                             unsigned int &is_active_second
@@ -137,16 +137,16 @@ storeNonEmptyIntervalsLarge(unsigned int addr,
 ////////////////////////////////////////////////////////////////////////////////
 __global__
 void
-bisectKernelLarge(float *g_d, float *g_s, const unsigned int n,
-                  const float lg, const float ug,
+bisectKernelLarge(double *g_d, double *g_s, const unsigned int n,
+                  const double lg, const double ug,
                   const unsigned int lg_eig_count,
                   const unsigned int ug_eig_count,
-                  float epsilon,
+                  double epsilon,
                   unsigned int *g_num_one,
                   unsigned int *g_num_blocks_mult,
-                  float *g_left_one, float *g_right_one,
+                  double *g_left_one, double *g_right_one,
                   unsigned int *g_pos_one,
-                  float *g_left_mult, float *g_right_mult,
+                  double *g_left_mult, double *g_right_mult,
                   unsigned int *g_left_count_mult,
                   unsigned int *g_right_count_mult,
                   unsigned int *g_blocks_mult,
@@ -157,8 +157,8 @@ bisectKernelLarge(float *g_d, float *g_s, const unsigned int n,
 
     // intervals (store left and right because the subdivision tree is in general
     // not dense
-    __shared__  float  s_left[2 * MAX_THREADS_BLOCK + 1];
-    __shared__  float  s_right[2 * MAX_THREADS_BLOCK + 1];
+    __shared__  double  s_left[2 * MAX_THREADS_BLOCK + 1];
+    __shared__  double  s_right[2 * MAX_THREADS_BLOCK + 1];
 
     // number of eigenvalues that are smaller than s_left / s_right
     // (correspondence is realized via indices)
@@ -187,12 +187,12 @@ bisectKernelLarge(float *g_d, float *g_s, const unsigned int n,
 
     // variables for currently processed interval
     // left and right limit of active interval
-    float left = 0.0f;
-    float right = 0.0f;
+    double left = 0.0f;
+    double right = 0.0f;
     unsigned int left_count = 0;
     unsigned int right_count = 0;
     // midpoint of active interval
-    float  mid = 0.0f;
+    double  mid = 0.0f;
     // number of eigenvalues smaller then mid
     unsigned int mid_count = 0;
     // helper for stream compaction (tracking of threads generating second child)
@@ -478,7 +478,7 @@ bisectKernelLarge(float *g_d, float *g_s, const unsigned int n,
 
     __syncthreads();
 
-    float left_2, right_2;
+    double left_2, right_2;
     --s_cl_one;
     --s_cl_mult;
     --s_cl_blocking;
@@ -518,12 +518,12 @@ __device__
 void writeToGmem(const unsigned int tid, const unsigned int tid_2,
                  const unsigned int num_threads_active,
                  const unsigned int num_blocks_mult,
-                 float *g_left_one, float *g_right_one,
+                 double *g_left_one, double *g_right_one,
                  unsigned int *g_pos_one,
-                 float *g_left_mult, float *g_right_mult,
+                 double *g_left_mult, double *g_right_mult,
                  unsigned int *g_left_count_mult,
                  unsigned int *g_right_count_mult,
-                 float *s_left, float *s_right,
+                 double *s_left, double *s_right,
                  unsigned short *s_left_count, unsigned short *s_right_count,
                  unsigned int *g_blocks_mult,
                  unsigned int *g_blocks_mult_sum,
@@ -595,12 +595,12 @@ void
 compactStreamsFinal(const unsigned int tid, const unsigned int tid_2,
                     const unsigned int num_threads_active,
                     unsigned int &offset_mult_lambda,
-                    float *s_left, float *s_right,
+                    double *s_left, double *s_right,
                     unsigned short *s_left_count, unsigned short *s_right_count,
                     unsigned short *s_cl_one, unsigned short *s_cl_mult,
                     unsigned short *s_cl_blocking, unsigned short *s_cl_helper,
                     unsigned int is_one_lambda, unsigned int is_one_lambda_2,
-                    float &left, float &right, float &left_2, float &right_2,
+                    double &left, double &right, double &left_2, double &right_2,
                     unsigned int &left_count, unsigned int &right_count,
                     unsigned int &left_count_2, unsigned int &right_count_2,
                     unsigned int c_block_iend, unsigned int c_sum_block,
@@ -921,14 +921,14 @@ __device__
 void
 storeNonEmptyIntervalsLarge(unsigned int addr,
                             const unsigned int num_threads_active,
-                            float  *s_left, float *s_right,
+                            double  *s_left, double *s_right,
                             unsigned short  *s_left_count,
                             unsigned short *s_right_count,
-                            float left, float mid, float right,
+                            double left, double mid, double right,
                             const unsigned short left_count,
                             const unsigned short mid_count,
                             const unsigned short right_count,
-                            float epsilon,
+                            double epsilon,
                             unsigned int &compact_second_chunk,
                             unsigned short *s_compaction_list,
                             unsigned int &is_active_second)

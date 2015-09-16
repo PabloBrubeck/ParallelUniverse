@@ -71,13 +71,13 @@ sign_i(const T &val)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-//! Sign of number (float)
+//! Sign of number (double)
 ////////////////////////////////////////////////////////////////////////////////
 #ifdef __CUDACC__
 __host__  __device__
 #endif
-inline float
-sign_f(const float &val)
+inline double
+sign_f(const double &val)
 {
     return (val < 0.0f) ? -1.0f : 1.0f;
 }

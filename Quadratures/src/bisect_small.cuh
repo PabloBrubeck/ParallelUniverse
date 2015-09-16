@@ -28,10 +28,10 @@ extern "C" {
     //! @param  iterations  number of iterations for timing
     ////////////////////////////////////////////////////////////////////////////////
     void
-    computeEigenvaluesSmallMatrix(const InputData &input, ResultDataSmall &result,
+    computeEigenvaluesSmallMatrix(const Tridiag &input, ResultDataSmall &result,
                                   const unsigned int mat_size,
-                                  const float lg, const float ug,
-                                  const float precision,
+                                  const double lg, const double ug,
+                                  const double precision,
                                   const unsigned int iterations);
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -58,7 +58,7 @@ extern "C" {
     //! @param  filename  output filename
     ////////////////////////////////////////////////////////////////////////////////
     void
-    processResultSmallMatrix(const InputData &input, const ResultDataSmall &result,
+    processResultSmallMatrix(const Tridiag &input, const ResultDataSmall &result,
                              const unsigned int mat_size, const char *filename);
 
 }

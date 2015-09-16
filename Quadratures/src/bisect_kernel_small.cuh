@@ -36,18 +36,18 @@
 ////////////////////////////////////////////////////////////////////////////////
 __global__
 void
-bisectKernel(float *g_d, float *g_s, const unsigned int n,
-             float *g_left, float *g_right,
+bisectKernel(double *g_d, double *g_s, const unsigned int n,
+             double *g_left, double *g_right,
              unsigned int *g_left_count, unsigned int *g_right_count,
-             const float lg, const float ug,
+             const double lg, const double ug,
              const unsigned int lg_eig_count, const unsigned int ug_eig_count,
-             float epsilon
+             double epsilon
             )
 {
     // intervals (store left and right because the subdivision tree is in general
     // not dense
-    __shared__  float  s_left[MAX_THREADS_BLOCK_SMALL_MATRIX];
-    __shared__  float  s_right[MAX_THREADS_BLOCK_SMALL_MATRIX];
+    __shared__  double  s_left[MAX_THREADS_BLOCK_SMALL_MATRIX];
+    __shared__  double  s_right[MAX_THREADS_BLOCK_SMALL_MATRIX];
 
     // number of eigenvalues that are smaller than s_left / s_right
     // (correspondence is realized via indices)
@@ -76,12 +76,12 @@ bisectKernel(float *g_d, float *g_s, const unsigned int n,
 
     // variables for currently processed interval
     // left and right limit of active interval
-    float  left = 0.0f;
-    float  right = 0.0f;
+    double  left = 0.0f;
+    double  right = 0.0f;
     unsigned int left_count = 0;
     unsigned int right_count = 0;
     // midpoint of active interval
-    float  mid = 0.0f;
+    double  mid = 0.0f;
     // number of eigenvalues smaller then mid
     unsigned int mid_count = 0;
     // affected from compaction

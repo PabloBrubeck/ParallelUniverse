@@ -27,9 +27,9 @@ extern "C" {
     //! @param  iterations  number of iterations (for timing)
     ////////////////////////////////////////////////////////////////////////////////
     void
-    computeEigenvaluesLargeMatrix(const InputData &input, const ResultDataLarge &result,
-                                  const unsigned int mat_size, const float precision,
-                                  const float lg, const float ug,
+    computeEigenvaluesLargeMatrix(const Tridiag &input, const ResultDataLarge &result,
+                                  const unsigned int mat_size, const double precision,
+                                  const double lg, const double ug,
                                   const unsigned int iterations);
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -56,7 +56,7 @@ extern "C" {
     //! @param  filename  output filename
     ////////////////////////////////////////////////////////////////////////////////
     bool
-    processResultDataLargeMatrix(const InputData &input, const ResultDataLarge &result,
+    processResultDataLargeMatrix(const Tridiag &input, const ResultDataLarge &result,
                                  const unsigned int mat_size,
                                  const char *filename,
                                  const unsigned int user_defined, char *exec_path);

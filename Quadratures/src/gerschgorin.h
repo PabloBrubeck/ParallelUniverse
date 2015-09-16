@@ -23,6 +23,6 @@
 //! @param  ug  upper limit of Gerschgorin interval
 ////////////////////////////////////////////////////////////////////////////////
 extern "C" void
-computeGerschgorin(float *d, float *s, unsigned int n, float &lg, float &ug);
+computeGerschgorin(double *d, double *s, unsigned int n, double &lg, double &ug);
 
 #endif // #ifndef _GERSCHGORIN_H_

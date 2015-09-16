@@ -34,7 +34,7 @@ floorPow2(int n)
     }
 
     int exp;
-    frexp((float)n, &exp);
+    frexp((double)n, &exp);
     return (1 << (exp - 1));
 }
 
@@ -54,7 +54,7 @@ ceilPow2(int n)
     }
 
     int exp;
-    frexp((float)n, &exp);
+    frexp((double)n, &exp);
     return (1 << exp);
 }
 
@@ -65,11 +65,11 @@ ceilPow2(int n)
 //! @param right  right / upper limit of interval
 ////////////////////////////////////////////////////////////////////////////////
 __device__
-inline float
-computeMidpoint(const float left, const float right)
+inline double
+computeMidpoint(const double left, const double right)
 {
 
-    float mid;
+    double mid;
 
     if (sign_f(left) == sign_f(right))
     {
@@ -102,24 +102,24 @@ template<class S, class T>
 __device__
 void
 storeInterval(unsigned int addr,
-              float *s_left, float *s_right,
+              double *s_left, double *s_right,
               T *s_left_count, T *s_right_count,
-              float left, float right,
+              double left, double right,
               S left_count, S right_count,
-              float precision)
+              double precision)
 {
     s_left_count[addr] = left_count;
     s_right_count[addr] = right_count;
 
     // check if interval converged
-    float t0 = abs(right - left);
-    float t1 = max(abs(left), abs(right)) * precision;
+    double t0 = abs(right - left);
+    double t1 = max(abs(left), abs(right)) * precision;
 
     if (t0 <= max(MIN_ABS_INTERVAL, t1))
     {
 
         // compute mid point
-        float lambda = computeMidpoint(left, right);
+        double lambda = computeMidpoint(left, right);
 
         // mark as converged
         s_left[addr] = lambda;
@@ -154,16 +154,16 @@ storeInterval(unsigned int addr,
 ////////////////////////////////////////////////////////////////////////////////
 __device__
 inline unsigned int
-computeNumSmallerEigenvals(float *g_d, float *g_s, const unsigned int n,
-                           const float x,
+computeNumSmallerEigenvals(double *g_d, double *g_s, const unsigned int n,
+                           const double x,
                            const unsigned int tid,
                            const unsigned int num_intervals_active,
-                           float *s_d, float *s_s,
+                           double *s_d, double *s_s,
                            unsigned int converged
                           )
 {
 
-    float  delta = 1.0f;
+    double  delta = 1.0f;
     unsigned int count = 0;
 
     __syncthreads();
@@ -214,15 +214,15 @@ computeNumSmallerEigenvals(float *g_d, float *g_s, const unsigned int n,
 ////////////////////////////////////////////////////////////////////////////////
 __device__
 inline unsigned int
-computeNumSmallerEigenvalsLarge(float *g_d, float *g_s, const unsigned int n,
-                                const float x,
+computeNumSmallerEigenvalsLarge(double *g_d, double *g_s, const unsigned int n,
+                                const double x,
                                 const unsigned int tid,
                                 const unsigned int num_intervals_active,
-                                float *s_d, float *s_s,
+                                double *s_d, double *s_s,
                                 unsigned int converged
                                )
 {
-    float  delta = 1.0f;
+    double  delta = 1.0f;
     unsigned int count = 0;
 
     unsigned int rem = n;
@@ -294,13 +294,13 @@ __device__
 void
 storeNonEmptyIntervals(unsigned int addr,
                        const unsigned int num_threads_active,
-                       float  *s_left, float *s_right,
+                       double  *s_left, double *s_right,
                        T  *s_left_count, T *s_right_count,
-                       float left, float mid, float right,
+                       double left, double mid, double right,
                        const S left_count,
                        const S mid_count,
                        const S right_count,
-                       float precision,
+                       double precision,
                        unsigned int &compact_second_chunk,
                        T *s_compaction_list_exc,
                        unsigned int &is_active_second)
@@ -423,9 +423,9 @@ createIndicesCompaction(T *s_compaction_list_exc,
 template<class T>
 __device__
 void
-compactIntervals(float *s_left, float *s_right,
+compactIntervals(double *s_left, double *s_right,
                  T *s_left_count, T *s_right_count,
-                 float mid, float right,
+                 double mid, double right,
                  unsigned int mid_count, unsigned int right_count,
                  T *s_compaction_list,
                  unsigned int num_threads_active,
@@ -470,9 +470,9 @@ compactIntervals(float *s_left, float *s_right,
 template<class T, class S>
 __device__
 void
-storeIntervalConverged(float *s_left, float *s_right,
+storeIntervalConverged(double *s_left, double *s_right,
                        T *s_left_count, T *s_right_count,
-                       float &left, float &mid, float &right,
+                       double &left, double &mid, double &right,
                        S &left_count, S &mid_count, S &right_count,
                        T *s_compaction_list_exc,
                        unsigned int &compact_second_chunk,
@@ -519,9 +519,9 @@ storeIntervalConverged(float *s_left, float *s_right,
 template<class T, class S>
 __device__
 void
-storeIntervalConverged(float *s_left, float *s_right,
+storeIntervalConverged(double *s_left, double *s_right,
                        T *s_left_count, T *s_right_count,
-                       float &left, float &mid, float &right,
+                       double &left, double &mid, double &right,
                        S &left_count, S &mid_count, S &right_count,
                        T *s_compaction_list_exc,
                        unsigned int &compact_second_chunk,
@@ -587,12 +587,12 @@ template<class T>
 __device__
 void
 subdivideActiveInterval(const unsigned int tid,
-                        float *s_left, float *s_right,
+                        double *s_left, double *s_right,
                         T *s_left_count, T *s_right_count,
                         const unsigned int num_threads_active,
-                        float &left, float &right,
+                        double &left, double &right,
                         unsigned int &left_count, unsigned int &right_count,
-                        float &mid, unsigned int &all_threads_converged)
+                        double &mid, unsigned int &all_threads_converged)
 {
     // for all active threads
     if (tid < num_threads_active)

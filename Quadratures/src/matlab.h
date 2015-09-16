@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <iomanip>
 
 // includes, project
 
@@ -38,8 +39,8 @@
 extern "C"
 void
 writeTridiagSymMatlab(const char *filename,
-                      float *d, float *s,
-                      float *eigenvals,
+                      double *d, double *s,
+                      double *eigenvals,
                       const unsigned int n);
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -78,27 +79,18 @@ writeVectorMatlab(T &file,  const char *vec_name,
 template<class T, class S>
 void
 writeMatrixMatlab(T &file,  const char *mat_name,
-                  S *&mat, const unsigned int mat_size)
-{
-
+                  S *&mat, const unsigned int mat_size){
     const unsigned int pitch = sizeof(S) * mat_size;
-
     file << mat_name << " = [";
-
-    for (unsigned int i = 0; i < mat_size; ++i)
-    {
-        for (unsigned int j = 0; j < mat_size; ++j)
-        {
-
-            file << getMatrix(mat, pitch, i, j)  << " ";
+    file << std::setprecision(15);
+    for (unsigned int i = 0; i < mat_size; ++i){
+        for (unsigned int j = 0; j < mat_size; ++j){
+        	file << getMatrix(mat, pitch, i, j)  << " ";
         }
-
-        if (i != mat_size - 1)
-        {
+        if (i != mat_size - 1){
             file << "; ";
         }
     }
-
     file << "];\n";
 }
 
@@ -115,7 +107,7 @@ writeVectorMatlab(T &file,  const char *vec_name,
                   S *&vec, const unsigned int vec_len)
 {
     file << vec_name << " = [";
-
+    file << std::setprecision(15);
     for (unsigned int i = 0; i < vec_len; ++i)
     {
         file << vec[i] << " ";
