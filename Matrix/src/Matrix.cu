@@ -1,5 +1,3 @@
-// Simple demonstration on cuBLAS usage
-
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include <helper_functions.h>

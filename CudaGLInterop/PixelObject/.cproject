@@ -27,23 +27,22 @@
 								<option id="nvcc.compiler.option.level.1467532197" name="Generate host debug information (-g)" superClass="nvcc.compiler.option.level" value="true" valueType="boolean"/>
 								<option defaultValue="nvcc.compiler.optimization.level.none" id="nvcc.compiler.optimization.level.1548076496" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.1017057003" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
-								<option id="nvcc.compiler.machine.364804667" superClass="nvcc.compiler.machine" value="nvcc.compiler.machine64" valueType="enumerated"/>
-								<option id="nvcc.compiler.include.paths.1378569526" superClass="nvcc.compiler.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${cuda_samples_dir:/PixelObject}/2_Graphics&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${cuda_samples_dir:/PixelObject}/common/inc&quot;"/>
+								<option id="nvcc.compiler.machine.364804667" name="Architecture (--machine)" superClass="nvcc.compiler.machine" value="nvcc.compiler.machine64" valueType="enumerated"/>
+								<option id="nvcc.compiler.include.paths.1378569526" name="Include paths (-I)" superClass="nvcc.compiler.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PixelObject}&quot;"/>
+									<listOptionValue builtIn="false" value="/home/pablo/ParallelUniverse/common/inc"/>
 								</option>
 								<inputType id="nvcc.compiler.input.cu.60856608" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.1768190148" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.409905528" superClass="nvcc.compiler.input.c"/>
 							</tool>
 							<tool id="nvcc.linker.base.1702616753" name="NVCC Linker" superClass="nvcc.linker.base">
-								<option id="nvcc.linker.option.machine.128122061" superClass="nvcc.linker.option.machine" value="nvcc.linker.machine64" valueType="enumerated"/>
-								<option id="nvcc.linker.option.paths.273069821" superClass="nvcc.linker.option.paths" valueType="libPaths">
+								<option id="nvcc.linker.option.machine.128122061" name="Architecture (--machine)" superClass="nvcc.linker.option.machine" value="nvcc.linker.machine64" valueType="enumerated"/>
+								<option id="nvcc.linker.option.paths.273069821" name="Library search path (-L)" superClass="nvcc.linker.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${cuda_samples_dir:/PixelObject}/common/lib/linux/x86_64&quot;"/>
 								</option>
-								<option id="nvcc.linker.option.linkgl.1740556581" superClass="nvcc.linker.option.linkgl" value="true" valueType="boolean"/>
-								<option id="nvcc.linker.option.userobjs.1010149395" superClass="nvcc.linker.option.userobjs" valueType="userObjs">
+								<option id="nvcc.linker.option.linkgl.1740556581" name="Link with OpenGL libraries" superClass="nvcc.linker.option.linkgl" value="true" valueType="boolean"/>
+								<option id="nvcc.linker.option.userobjs.1010149395" name="Other objects" superClass="nvcc.linker.option.userobjs" valueType="userObjs">
 									<listOptionValue builtIn="false" value="${cuda_samples_common_lib_dir:/PixelObject}/libGLEW.a"/>
 								</option>
 								<inputType id="nvcc.linker.input.595067032" superClass="nvcc.linker.input">
@@ -163,7 +162,14 @@
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 	<storageModule cpu="Native" moduleId="nsight.localTarget"/>
-	<storageModule moduleId="refreshScope"/>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="Release">
+			<resource resourceType="PROJECT" workspacePath="/PixelObject"/>
+		</configuration>
+		<configuration configurationName="Debug">
+			<resource resourceType="PROJECT" workspacePath="/PixelObject"/>
+		</configuration>
+	</storageModule>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		<scannerConfigBuildInfo instanceId="com.nvidia.cuda.ide.seven_five.configuration.debug.740946103;com.nvidia.cuda.ide.seven_five.configuration.debug.740946103.;nvcc.compiler.base.79387948;nvcc.compiler.input.c.409905528">
@@ -185,4 +191,5 @@
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.nvidia.cuda.ide.build.NVCCPerProjectProfile"/>
 		</scannerConfigBuildInfo>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 </cproject>
