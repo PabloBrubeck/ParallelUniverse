@@ -35,7 +35,7 @@ __global__ void heatSolve(uchar4 *d_pixel, uchar4 *d_cmap, float *d_u, float *d_
 	int i=blockDim.x*blockIdx.x+threadIdx.x;
 	int j=blockDim.y*blockIdx.y+threadIdx.y;
 	if(i<image.x && j<image.y){
-		int gid=j*image.x+i;
+		int gid=i*image.y+j;
 		d_u[gid]+=c*d_lap[gid];
 		float x=fma((float)i/image.x, (float)axes.x, (float)origin.x);
 		float y=fma((float)j/image.y, (float)axes.y, (float)origin.y);

@@ -23,7 +23,7 @@ extern void timerEvent(int);
 extern void idle();
 
 // Timer for FPS calculations
-StopWatchInterface* timer = NULL;
+StopWatchInterface *timer = NULL;
 
 // Simple method to display the Frames Per Second in the window title
 void computeFPS(){

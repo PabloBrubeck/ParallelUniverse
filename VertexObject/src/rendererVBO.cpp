@@ -47,9 +47,8 @@ void createVBO(mappedBuffer_t* mbuf, GLenum mode){
 void deleteVBO(mappedBuffer_t* mbuf){
 	glBindBuffer(1, mbuf->vbo);
 	glDeleteBuffers(1, &(mbuf->vbo));
-	checkCudaErrors(cudaGraphicsUnregisterResource(mbuf->cudaResource));
-	mbuf->cudaResource=NULL;
-	mbuf->vbo=NULL;
+	cudaGLUnregisterBufferObject(mbuf->vbo);
+	mbuf->vbo=0;
 }
 
 void cleanupCuda(){

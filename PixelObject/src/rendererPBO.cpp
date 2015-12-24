@@ -41,7 +41,6 @@ void deletePBO(GLuint* pbo){
 		glBindBuffer(GL_ARRAY_BUFFER, *pbo);
 		glDeleteBuffers(1, pbo);
 		pbo=NULL;
-		delete pbo;
 	}
 }
 
