@@ -43,7 +43,7 @@ __global__ void heatSolve(uchar4 *d_pixel, uchar4 *d_cmap, float *d_u, float *d_
 			d_u[gid]=1.f;
 		}
 		if(i==0 || j==0 || i==image.x-1 || j==image.y-1){
-			d_u[gid]=0.f;
+			d_u[gid]=0;
 		}
 		int k=(int)(COLORDEPTH*d_u[gid]);
 		d_pixel[gid]=d_cmap[clamp(k, 0, COLORDEPTH-1)];
@@ -70,7 +70,9 @@ __global__ void waveSolve(uchar4 *d_pixel, uchar4 *d_cmap, float *d_u, float *d_
 			d_u[gid]=sinpif(time);
 		}
 		if(i==0 || j==0 || i==image.x-1 || j==image.y-1){
-			d_u[gid]=0.f;
+			int ii=i+(i==0)-(i==image.x-1);
+			int jj=j+(j==0)-(j==image.y-1);
+			d_u[gid]=lerp(d_ul[gid], d_ul[jj*image.x+ii],c);
 		}
 		int k=(int)(COLORDEPTH*(1+d_u[gid])/2);
 		d_pixel[gid]=d_cmap[clamp(k, 0, COLORDEPTH-1)];
@@ -80,7 +82,7 @@ void wavePDE(uchar4 *d_pixel, uchar4 *d_cmap, float *d_u, float *d_ul, float *d_
 	static dim3 block(1,MAXTHREADS);
 	static dim3 grid(ceil(image.x, block.x), ceil(image.y, block.y));
 	laplacian<<<grid, block>>>(d_lap, d_u, image);
-	waveSolve<<<grid, block>>>(d_pixel, d_cmap, d_u, d_ul, d_lap, 0.4f, origin, axes, image, time);
+	waveSolve<<<grid, block>>>(d_pixel, d_cmap, d_u, d_ul, d_lap, 0.45f, origin, axes, image, time);
 }
 
 
