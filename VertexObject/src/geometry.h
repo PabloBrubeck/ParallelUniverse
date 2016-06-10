@@ -70,12 +70,17 @@ __global__ void sphericalPlot(float4 *d_vertex, dim3 mesh, float* d_rho){
 		cylindrical(d_vertex[gid.w], t*d_rho[gid.w], u, z*d_rho[gid.w]);
 	}
 }
-__global__ void sphericalHarmonic(float *d_rho, dim3 mesh, float* d_Pml, int m, int l, float scale){
+__global__ void sphericalHarmonic(float *d_rho, dim3 mesh, int l, int m, float scale){
 	uint4 gid=gridIdx(mesh);
 	if(inside(gid, mesh)){
 		float u=(M_PI*(2*gid.x+1))/mesh.x;
 		float v=(float)(2*gid.y)/(mesh.y-1)-1.f;
-		float rho=scale*horner(d_Pml, l-abs(m), v)*powf(1.f-v*v, abs(m)/2)*cosf(m*u);
+		float a[64];
+		for(int i=0; i<l; i++){
+			a[i]=0;
+		}
+		a[l]=scale;
+		float rho=LegendreP(a, l+1, m, v)*cosf(m*u);
 		d_rho[gid.w]+=rho*rho;
 	}
 }

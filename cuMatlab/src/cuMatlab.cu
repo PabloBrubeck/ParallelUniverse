@@ -26,10 +26,12 @@ void poisson(double ua, double ub, int n){
 	// compute second derivative operator D2=D*D
 	cublasHandle_t cublasH;
 	cublasCreate(&cublasH);
-	double alpha=1, beta=0;
+	double alpha=1;
+	double beta=0;
 	cublasDgemm(cublasH, CUBLAS_OP_N, CUBLAS_OP_N, n, n, n, &alpha, d_D, n, d_D, n, &beta, d_D2, n);
 
 	// right hand side
+	// TODO: map on device, heterogeneous lambda
 	double *h_b=new double[n];
 	auto f=[](double x)->double{return 1.0;};
 	map(h_b, h_b, n, f);
@@ -49,7 +51,6 @@ void poisson(double ua, double ub, int n){
 	cusolverDnCreate(&cusolverH);
 	int lwork;
 	int m=n-2, lda=n, ldb=n, nrhs=1;
-
 	cusolverDnDgetrf_bufferSize(cusolverH, m, m, d_D2+n+1, lda, &lwork);
 
 	int    *d_info; cudaMalloc((void**)&d_info, sizeof(int));
@@ -81,6 +82,6 @@ void poisson(double ua, double ub, int n){
 }
 
 int main(int argc, char **argv){
-	poisson(-1, 1, 16);
+	poisson(-1, 1, 32);
 	return 0;
 }

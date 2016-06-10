@@ -24,7 +24,7 @@ inline __device__ __host__
 float horner(float* p, int n, float x){
 	float y=0.f;
 	for(int i=n; i>=0; i--){
-		y=fma(y, x, p[i]);
+		y=y*x+p[i];
 	}
 	return y;
 }
@@ -38,21 +38,19 @@ void derive(float* d, float* p, int n, int k=1){
 		d[i]=c*p[i+k];
 	}
 }
-void legendre(float* P, int n){
-	for(int k=0; k<=2*n; k++){
-		P[k]=0.f;
+
+__host__ __device__ float LegendreP(float* a, int n, int m, float x){
+	float temp, yy=0;
+	float y=(n>m+1)?a[n-1]:0;
+	for(int k=n-2; k>m; k--){
+		temp=y;
+		y=a[k]+(2*k+1)*x*y/(k-m+1)-(k+m+1)*yy/(k-m+2);
+		yy=temp;
 	}
-	P[n*0+0]=P[n*1+1]=1.f;
-	for(int i=1; i<n-1; i++){
-		P[n*(i+1)+0]=-i*P[n*(i-1)+0]/(i+1);
-		for(int j=1; j<=n; j++){
-			P[n*(i+1)+j]=((2*i+1)*P[n*(i)+(j-1)]-i*P[n*(i-1)+j])/(i+1);
-		}
+	int prod=1;
+	for(int i=1; i<2*m; i+=2){
+		prod*=i;
 	}
-}
-void legendreA(float* Pml, int m, int l){
-	int n=l+1;
-	float* P=new float[n*n];
-	legendre(P, n);
-	derive(Pml, P+n*l, n, m);
+	float p0=(m%2==0?1:-1)*prod*powf(1-x*x,m/2.0);
+	return p0*(a[m]+(2*m+1)*(x*y-yy/2));
 }

@@ -48,12 +48,12 @@ float4 vmult(const float* A, float4 &u){
 //Rotations
 void givens(float* Q, int i, int j, float theta){
 	int k=3-i-j;
-    float cos=cosf(theta);
-    float sin=sign(i-j)*sinf(theta);
-    Q[i*4+i]=cos;
-    Q[j*4+j]=cos;
-    Q[i*4+j]=sin;
-    Q[j*4+i]=-sin;
+    float c=cosf(theta);
+    float s=sign(i-j)*sinf(theta);
+    Q[i*4+i]=c;
+    Q[j*4+j]=c;
+    Q[i*4+j]=s;
+    Q[j*4+i]=-s;
     Q[k*4+k]=1.f;
 }
 void rotateXYZ(float* Q, float3 angle){

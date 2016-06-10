@@ -113,32 +113,13 @@ void harmonic(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, di
 	static const dim3 grid(ceil(mesh.x, block.x), ceil(mesh.y, block.y), ceil(mesh.z, block.z));
 
 	if(time==0){
-		int k=4;
-
-		int m[4]   = {0,4,3,2};
-		int l[4]   = {0,8,9,10};
-		float w[4] = {1.6f, 1.4f, 0.5f, 1.0f};
+		int l=4, m=2;
+		float w=0.1;
 
 		float* d_rho;
-		float* d_Pml;
-
 		checkCudaErrors(cudaMalloc((void**)&d_rho, mesh.x*mesh.y*sizeof(float)));
 		checkCudaErrors(cudaMemset(d_rho, 0.f, mesh.x*mesh.y*sizeof(float)));
-
-		for(int i=0; i<k; i++){
-			int length=l[i]-abs(m[i])+1;
-			int bytes=length*sizeof(float);
-			
-			float* h_Pml=new float[length];
-			legendreA(h_Pml, abs(m[i]), l[i]);
-			float scale=sqrt(float((2*l[i]+1)*factorial(l[i]-abs(m[i])))/(4*M_PI*factorial(l[i]+abs(m[i]))));
-			
-			checkCudaErrors(cudaMalloc((void**)&d_Pml, bytes));
-			checkCudaErrors(cudaMemcpy(d_Pml, h_Pml, bytes, cudaMemcpyHostToDevice));
-			
-			sphericalHarmonic<<<grid, block>>>(d_rho, mesh, d_Pml, m[i], l[i], w[i]*scale);
-		}
-	
+		sphericalHarmonic<<<grid, block>>>(d_rho, mesh, l, m, w);
 		sphericalPlot<<<grid, block>>>(d_pos, mesh, d_rho);
 		indices<<<grid, block>>>(d_index, mesh);
 		normalMapping<<<grid, block>>>(d_color, d_norm, d_pos, mesh);

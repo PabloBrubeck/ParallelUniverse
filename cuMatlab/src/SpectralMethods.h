@@ -12,9 +12,9 @@
 
 __global__
 void chebNodes(double *d_x, int n){
-	int gid=blockIdx.x*blockDim.x+threadIdx.x;
-	if(gid<n){
-		d_x[gid]=cospi(gid/(n-1.0));
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	if(i<n){
+		d_x[i]=cospi(i/(n-1.0));
 	}
 }
 
@@ -25,13 +25,13 @@ void chebDelem(double *d_D, double *d_x, int n){
 	if(i<n && j<n){
 		int gid=j*n+i;
 		if(i!=j){
-			int ci=1+(i==0 || i==n-1);
-			int cj=1+(j==0 || j==n-1);
+			int ci=(i==0 || i==n-1)?2:1;
+			int cj=(j==0 || j==n-1)?2:1;
 			d_D[gid]=(ci*((i+j)&1?-1:1))/(cj*(d_x[i]-d_x[j]));
 		}else if(j>0 && j<n-1){
 			d_D[gid]=-d_x[j]/(2*(1-d_x[j]*d_x[j]));
 		}else{
-			d_D[gid]=(j==0?1:-1)*(2*(n-1)*(n-1)+1.0)/6;
+			d_D[gid]=(j==0?1:-1)*(2*(n-1)*(n-1)+1)/6.0;
 		}
 	}
 }
