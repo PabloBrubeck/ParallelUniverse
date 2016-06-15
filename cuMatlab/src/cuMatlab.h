@@ -14,15 +14,17 @@
 #include <stdlib.h>
 #include <functional>
 
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
+#include <helper_cuda.h>
+
 #include "kernel.h"
 #include "LinearAlgebra.h"
 #include "Integration.h"
 #include "SpecialFunctions.h"
 #include "SpectralMethods.h"
+#include "RungeKutta.h"
 
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
-#include <helper_cuda.h>
 
 using namespace std;
 
@@ -32,7 +34,7 @@ using namespace std;
 void disp(double* A, int m, int n, int lda){
 	for(int i=0; i<m; i++){
 		for(int j=0; j<n; j++){
-			printf("% .5e\t", A[j*lda+i]);
+			printf("% .15e\t", A[j*lda+i]);
 		}
 		printf("\n");
 	}

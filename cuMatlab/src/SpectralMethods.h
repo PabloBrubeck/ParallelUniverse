@@ -9,6 +9,40 @@
 #define SPECTRALMETHODS_H_
 
 #include "kernel.h"
+#include "cufft.h"
+
+__global__ void evenSymmetric(double *d_u, int n){
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	if(i>0 && i<n){
+		d_u[2*(n-1)-i]=d_u[i];
+	}
+}
+
+
+__global__ void diffFilter(cufftDoubleComplex *d_uhat, int n){
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	if(i<n){
+		int k=2*i<n?i:i-n;
+		double re=-k*d_uhat[i].y;
+		double im=k*d_uhat[i].x;
+		d_uhat[i].x=re/n;
+		d_uhat[i].y=im/n;
+	}
+}
+
+void fftD(cufftHandle fftPlan, cufftHandle ifftPlan, double *d_u, cufftDoubleComplex *d_uhat, int length, int order){
+	cufftExecD2Z(fftPlan, d_u, d_uhat);
+	diffFilter<<<grid(length), MAXTHREADS>>>(d_uhat, length);
+	cufftExecZ2D(ifftPlan, d_uhat, d_u);
+}
+
+void chebfftD(double *d_u, int length){
+
+}
+
+void chebfttD2(double *d_u, int length){
+
+}
 
 __global__
 void chebNodes(double *d_x, int n){
@@ -39,18 +73,6 @@ void chebDelem(double *d_D, double *d_x, int n){
 void chebD(double *d_D, double *d_x, int n){
 	chebNodes<<<grid(n), MAXTHREADS>>>(d_x, n);
 	chebDelem<<<grid(n,n), MAXTHREADS>>>(d_D, d_x, n);
-}
-
-void chebfftD(double *u, int length){
-
-}
-
-void chebfttD2(double *u, int length){
-
-}
-
-void fftD(double *u, int length, int order){
-
 }
 
 #endif /* SPECTRALMETHODS_H_ */

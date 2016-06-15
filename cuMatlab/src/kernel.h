@@ -8,7 +8,6 @@
 #ifndef KERNEL_H_
 #define KERNEL_H_
 
-
 #define MAXTHREADS 512
 
 inline int ceil(int num, int den){

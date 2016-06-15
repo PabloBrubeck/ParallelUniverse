@@ -29,7 +29,6 @@
 								<option id="nvcc.compiler.pic.1364634756" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
 								<option id="nvcc.compiler.include.paths.781723947" name="Include paths (-I)" superClass="nvcc.compiler.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="../../common/inc"/>
-									<listOptionValue builtIn="false" value="/usr/local/magma/include"/>
 								</option>
 								<option id="nvcc.compiler.cpp11option.780397645" name="Enable C++11 support (-std=c++11)" superClass="nvcc.compiler.cpp11option" value="true" valueType="boolean"/>
 								<option id="nvcc.compiler.optionsfile.1605709110" name="Command line options file (-optf)" superClass="nvcc.compiler.optionsfile" value="" valueType="string"/>
@@ -39,13 +38,15 @@
 							</tool>
 							<tool id="nvcc.linker.base.660924333" name="NVCC Linker" superClass="nvcc.linker.base">
 								<option id="nvcc.linker.option.libs.640543010" name="Libraries (-l)" superClass="nvcc.linker.option.libs" valueType="libs">
-									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="cublas"/>
-									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="cusolver"/>
-									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="gomp"/>
+									<listOptionValue builtIn="false" value="cublas"/>
+									<listOptionValue builtIn="false" value="cusolver"/>
+									<listOptionValue builtIn="false" value="gomp"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="cufft"/>
 								</option>
 								<option id="nvcc.linker.option.paths.1991542541" name="Library search path (-L)" superClass="nvcc.linker.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="/usr/local/cuda/lib64"/>
 								</option>
+								<option id="com.nvidia.cuda.ide.build.linker.ccbin.1817546558" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.linker.ccbin" value="" valueType="string"/>
 								<inputType id="nvcc.linker.input.455246644" superClass="nvcc.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -132,18 +133,34 @@
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
 		<project id="cuMatlab.com.nvidia.cuda.ide.seven_five.exe.526768173" name="Executable" projectType="com.nvidia.cuda.ide.seven_five.exe"/>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="Debug">
+			<resource resourceType="PROJECT" workspacePath="/cuMatlab"/>
+		</configuration>
+		<configuration configurationName="Release">
+			<resource resourceType="PROJECT" workspacePath="/cuMatlab"/>
+		</configuration>
+	</storageModule>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		<scannerConfigBuildInfo instanceId="com.nvidia.cuda.ide.seven_five.configuration.debug.1095655419;com.nvidia.cuda.ide.seven_five.configuration.debug.1095655419.;nvcc.compiler.base.1020003304;nvcc.compiler.input.c.604871430">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.nvidia.cuda.ide.build.NVCCPerProjectProfile"/>
 		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="com.nvidia.cuda.ide.seven_five.configuration.release.225734306;com.nvidia.cuda.ide.seven_five.configuration.release.225734306.;nvcc.compiler.base.118421247;nvcc.compiler.input.cu.568571195">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.nvidia.cuda.ide.build.NVCCPerProjectProfile"/>
+		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="com.nvidia.cuda.ide.seven_five.configuration.debug.1095655419;com.nvidia.cuda.ide.seven_five.configuration.debug.1095655419.;nvcc.compiler.base.1020003304;nvcc.compiler.input.cpp.735327979">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.nvidia.cuda.ide.build.NVCCPerProjectProfile"/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="com.nvidia.cuda.ide.seven_five.configuration.release.225734306;com.nvidia.cuda.ide.seven_five.configuration.release.225734306.;nvcc.compiler.base.118421247;nvcc.compiler.input.cpp.159798765">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.nvidia.cuda.ide.build.NVCCPerProjectProfile"/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="com.nvidia.cuda.ide.seven_five.configuration.release.225734306;com.nvidia.cuda.ide.seven_five.configuration.release.225734306.;nvcc.compiler.base.118421247;nvcc.compiler.input.c.436592083">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.nvidia.cuda.ide.build.NVCCPerProjectProfile"/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="com.nvidia.cuda.ide.seven_five.configuration.debug.1095655419;com.nvidia.cuda.ide.seven_five.configuration.debug.1095655419.;nvcc.compiler.base.1020003304;nvcc.compiler.input.cu.1272258500">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.nvidia.cuda.ide.build.NVCCPerProjectProfile"/>
 		</scannerConfigBuildInfo>
 	</storageModule>
-	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
-	<storageModule moduleId="refreshScope"/>
 </cproject>

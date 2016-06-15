@@ -5,6 +5,55 @@
 
 using namespace std;
 
+
+void cufftExample(int N){
+	double *u=new double[N];
+	linspace(u, -pi, pi, N);
+	auto f=[](double th)->double{return cos(th);};
+	map(u, u, N, f);
+	double *d_u;
+	cudaMalloc((void**)&d_u, N*sizeof(double));
+	cudaMemcpy(d_u, u, N*sizeof(double), cudaMemcpyHostToDevice);
+
+	cufftHandle fftPlan, ifftPlan;
+	cufftPlan1d(&fftPlan, N, CUFFT_D2Z, 1);
+	cufftPlan1d(&ifftPlan, N, CUFFT_Z2D, 1);
+
+	cufftDoubleComplex *d_uhat;
+	cudaMalloc((void**)&d_uhat, N*sizeof(cufftDoubleComplex));
+
+	fftD(fftPlan, ifftPlan, d_u, d_uhat, N, 1);
+	cudaMemcpy(u, d_u, N*sizeof(double), cudaMemcpyDeviceToHost);
+	disp(u, N, 1, 1);
+
+	cufftDestroy(fftPlan);
+	cufftDestroy(ifftPlan);
+}
+
+void RungeKuttaExample(int N){
+	double *u=new double[N];
+	linspace(u, -1, 1, N);
+	double *d_u;
+	cudaMalloc((void**)&d_u, N*sizeof(double));
+	cudaMemcpy(d_u, u, N*sizeof(double), cudaMemcpyHostToDevice);
+
+	cublasHandle_t handle;
+	cublasCreate(&handle);
+	RungeKutta solver(handle, N, d_u, 0.0);
+
+	int frames=144*10;
+	double dt=1.0/frames;
+	for(int i=0; i<frames; i++){
+		solver.solve(dt);
+		if(i%144==0){
+			printf("i=%d \n", i);
+		}
+	}
+	cudaMemcpy(u, d_u, N*sizeof(double), cudaMemcpyDeviceToHost);
+	disp(u, 1, 1, 1);
+	cublasDestroy(handle);
+}
+
 void mapExample(int N){
 	double *x=new double[N];
 	double *y=new double[N];
@@ -82,6 +131,6 @@ void poisson(double ua, double ub, int n){
 }
 
 int main(int argc, char **argv){
-	poisson(-1, 1, 32);
+	cufftExample(1<<5);
 	return 0;
 }
