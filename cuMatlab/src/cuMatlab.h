@@ -34,7 +34,7 @@ using namespace std;
 void disp(double* A, int m, int n, int lda){
 	for(int i=0; i<m; i++){
 		for(int j=0; j<n; j++){
-			printf("% .15e\t", A[j*lda+i]);
+			printf("% .6e\t", A[j*lda+i]);
 		}
 		printf("\n");
 	}

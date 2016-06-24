@@ -11,7 +11,7 @@
 #include "kernel.h"
 #include "cufft.h"
 
-__global__ void evenSymmetric(double *d_u, int n){
+__global__ void evenSymmetric(int n, double *d_u){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	if(i>0 && i<n){
 		d_u[2*(n-1)-i]=d_u[i];
@@ -19,7 +19,7 @@ __global__ void evenSymmetric(double *d_u, int n){
 }
 
 
-__global__ void diffFilter(cufftDoubleComplex *d_uhat, int n){
+__global__ void diffFilter(int n, cufftDoubleComplex *d_uhat){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	if(i<n){
 		int k=2*i<n?i:i-n;
@@ -30,22 +30,22 @@ __global__ void diffFilter(cufftDoubleComplex *d_uhat, int n){
 	}
 }
 
-void fftD(cufftHandle fftPlan, cufftHandle ifftPlan, double *d_u, cufftDoubleComplex *d_uhat, int length, int order){
+void fftD(cufftHandle fftPlan, cufftHandle ifftPlan, int length, int order, double *d_v, double *d_u, cufftDoubleComplex *d_uhat){
 	cufftExecD2Z(fftPlan, d_u, d_uhat);
-	diffFilter<<<grid(length), MAXTHREADS>>>(d_uhat, length);
-	cufftExecZ2D(ifftPlan, d_uhat, d_u);
+	diffFilter<<<grid(length), MAXTHREADS>>>(length, d_uhat);
+	cufftExecZ2D(ifftPlan, d_uhat, d_v);
 }
 
-void chebfftD(double *d_u, int length){
+void chebfftD(int length, double *d_u){
 
 }
 
-void chebfttD2(double *d_u, int length){
+void chebfttD2(int length, double *d_u){
 
 }
 
 __global__
-void chebNodes(double *d_x, int n){
+void chebNodes(int n, double *d_x){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	if(i<n){
 		d_x[i]=cospi(i/(n-1.0));
@@ -53,7 +53,7 @@ void chebNodes(double *d_x, int n){
 }
 
 __global__
-void chebDelem(double *d_D, double *d_x, int n){
+void chebDelem(int n, double *d_D, double *d_x){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
 	if(i<n && j<n){
@@ -70,9 +70,9 @@ void chebDelem(double *d_D, double *d_x, int n){
 	}
 }
 
-void chebD(double *d_D, double *d_x, int n){
-	chebNodes<<<grid(n), MAXTHREADS>>>(d_x, n);
-	chebDelem<<<grid(n,n), MAXTHREADS>>>(d_D, d_x, n);
+void chebD(int n, double *d_D, double *d_x){
+	chebNodes<<<grid(n), MAXTHREADS>>>(n, d_x);
+	chebDelem<<<grid(n,n), MAXTHREADS>>>(n, d_D, d_x);
 }
 
 #endif /* SPECTRALMETHODS_H_ */

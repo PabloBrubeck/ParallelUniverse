@@ -145,13 +145,4 @@ __global__ void torusKnot(float4 *d_vertex, dim3 mesh, float r, float p, float q
 		cylindrical(d_vertex[gid.w], r*(cosf(q*u)+2.f), p*u, -sinf(q*u));
 	}
 }
-__global__ void dampedWave(float4 *d_vertex, dim3 mesh, float r, float t){
-	uint4 gid=gridIdx(mesh);
-	if(inside(gid, mesh)){
-		float u=(2*gid.x*M_PI)/mesh.x;
-		float v=(r*gid.y)/(mesh.y-1);
-		float A=expf(-v*v/(r*r))*cosf(2*M_PI/(0.75*r)*v)*sinf(2*M_PI*t);
-		cylindrical(d_vertex[gid.w], v, u, A);
-	}
-}
 

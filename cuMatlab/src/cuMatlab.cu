@@ -2,9 +2,33 @@
 #include <stdlib.h>
 #include <cuda.h>
 #include "cuMatlab.h"
+#include "WaveSolver.h"
 
 using namespace std;
 
+void waveExample(int N){
+	double *u=new double[N];
+	linspace(u, -pi, pi, N);
+	auto f=[](double th)->double{return th>0?0:(1-cos(2*th))/2;};
+	map(u, u, N, f);
+	double *d_u;
+	cudaMalloc((void**)&d_u, 2*N*sizeof(double));
+	cudaMemset(d_u, 0.0, 2*N*sizeof(double));
+	cudaMemcpy(d_u, u, N*sizeof(double), cudaMemcpyHostToDevice);
+
+	cublasHandle_t handle;
+	cublasCreate(&handle);
+	WaveSolver wave(handle, N, d_u, 0.0);
+
+	int frames=144*10;
+	double dt=6.0/(N*N);
+	for(int i=0; i<frames; i++){
+		wave.solve(dt);
+	}
+	cudaMemcpy(u, d_u, N*sizeof(double), cudaMemcpyDeviceToHost);
+	disp(u, N, 1, 1);
+	cublasDestroy(handle);
+}
 
 void cufftExample(int N){
 	double *u=new double[N];
@@ -22,36 +46,12 @@ void cufftExample(int N){
 	cufftDoubleComplex *d_uhat;
 	cudaMalloc((void**)&d_uhat, N*sizeof(cufftDoubleComplex));
 
-	fftD(fftPlan, ifftPlan, d_u, d_uhat, N, 1);
+	fftD(fftPlan, ifftPlan, N, 1, d_u, d_u, d_uhat);
 	cudaMemcpy(u, d_u, N*sizeof(double), cudaMemcpyDeviceToHost);
 	disp(u, N, 1, 1);
 
 	cufftDestroy(fftPlan);
 	cufftDestroy(ifftPlan);
-}
-
-void RungeKuttaExample(int N){
-	double *u=new double[N];
-	linspace(u, -1, 1, N);
-	double *d_u;
-	cudaMalloc((void**)&d_u, N*sizeof(double));
-	cudaMemcpy(d_u, u, N*sizeof(double), cudaMemcpyHostToDevice);
-
-	cublasHandle_t handle;
-	cublasCreate(&handle);
-	RungeKutta solver(handle, N, d_u, 0.0);
-
-	int frames=144*10;
-	double dt=1.0/frames;
-	for(int i=0; i<frames; i++){
-		solver.solve(dt);
-		if(i%144==0){
-			printf("i=%d \n", i);
-		}
-	}
-	cudaMemcpy(u, d_u, N*sizeof(double), cudaMemcpyDeviceToHost);
-	disp(u, 1, 1, 1);
-	cublasDestroy(handle);
 }
 
 void mapExample(int N){
@@ -70,7 +70,7 @@ void poisson(double ua, double ub, int n){
 	cudaMalloc((void**)&d_x, n*sizeof(double));
 	cudaMalloc((void**)&d_D, n*n*sizeof(double));
 	cudaMalloc((void**)&d_D2, n*n*sizeof(double));
-	chebD(d_D, d_x, n);
+	chebD(n, d_D, d_x);
 
 	// compute second derivative operator D2=D*D
 	cublasHandle_t cublasH;
@@ -131,6 +131,6 @@ void poisson(double ua, double ub, int n){
 }
 
 int main(int argc, char **argv){
-	cufftExample(1<<5);
+	waveExample(1<<8);
 	return 0;
 }

@@ -72,15 +72,6 @@ inline uint ceil(uint num, uint den){
 	return (num+den-1)/den;
 }
 
-void wave(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
-	static const dim3 block(MAXTHREADS, 1, 1);
-	static const dim3 grid(ceil(mesh.x, block.x), ceil(mesh.y, block.y), ceil(mesh.z, block.z));
-	dampedWave<<<grid, block>>>(d_pos, mesh, 2.f, time);
-	indices<<<grid, block>>>(d_index, mesh);
-	normalMapping<<<grid, block>>>(d_color, d_norm, d_pos, mesh);
-	cudaThreadSynchronize();
-	checkCudaErrors(cudaGetLastError());
-}
 void morph(float4 *d_pos, float4 *d_norm, uchar4 *d_color, uint4 *d_index, dim3 mesh, float time){
 	static const int n=mesh.x*mesh.y*mesh.z;
 	static const dim3 block(MAXTHREADS, 1, 1);
