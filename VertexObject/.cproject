@@ -17,7 +17,7 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.seven_five.configuration.debug.1869212274" name="Debug" parent="com.nvidia.cuda.ide.seven_five.configuration.debug">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.seven_five.configuration.debug.1869212274" name="Debug" parent="com.nvidia.cuda.ide.seven_five.configuration.debug">
 					<folderInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.1869212274." name="/" resourcePath="">
 						<toolChain id="com.nvidia.cuda.tools.toolchain.seven_five.exe.debug.1430965886" name="CUDA Toolkit 8.0" superClass="com.nvidia.cuda.tools.toolchain.seven_five.exe.debug">
 							<targetPlatform archList="all" binaryParser="com.nvidia.cuda.ide.elf;com.nvidia.cuda.ide.macho;com.nvidia.cuda.ide.cubin" id="com.nvidia.cuda.ide.targetPlatform.56900054" isAbstract="false" name="Debug Platform" osList="linux,macosx" superClass="com.nvidia.cuda.ide.targetPlatform"/>
@@ -32,6 +32,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/VertexObject}&quot;"/>
 									<listOptionValue builtIn="false" value="../../common/inc"/>
 								</option>
+								<option id="com.nvidia.cuda.ide.build.option1.1126825523" superClass="com.nvidia.cuda.ide.build.option1" value="/usr/bin/g++-4.9" valueType="string"/>
 								<inputType id="nvcc.compiler.input.cu.616456844" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.2097484043" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.369620025" superClass="nvcc.compiler.input.c"/>
@@ -85,7 +86,7 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.seven_five.configuration.release.1716860875" name="Release" parent="com.nvidia.cuda.ide.seven_five.configuration.release">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.seven_five.configuration.release.1716860875" name="Release" parent="com.nvidia.cuda.ide.seven_five.configuration.release">
 					<folderInfo id="com.nvidia.cuda.ide.seven_five.configuration.release.1716860875." name="/" resourcePath="">
 						<toolChain id="com.nvidia.cuda.ide.toolchain.seven_five.exe.release.345538174" name="CUDA Toolkit 8.0" superClass="com.nvidia.cuda.ide.toolchain.seven_five.exe.release">
 							<targetPlatform archList="all" binaryParser="com.nvidia.cuda.ide.elf;com.nvidia.cuda.ide.macho;com.nvidia.cuda.ide.cubin" id="com.nvidia.cuda.ide.targetPlatform.276326163" isAbstract="false" name="Debug Platform" osList="linux,macosx" superClass="com.nvidia.cuda.ide.targetPlatform"/>
@@ -95,8 +96,8 @@
 								<option id="nvcc.compiler.option.level.816776763" name="Generate host debug information (-g)" superClass="nvcc.compiler.option.level"/>
 								<option defaultValue="nvcc.compiler.optimization.level.most" id="nvcc.compiler.optimization.level.706786661" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.110333899" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
-								<option id="nvcc.compiler.machine.662483858" superClass="nvcc.compiler.machine" value="nvcc.compiler.machine64" valueType="enumerated"/>
-								<option id="nvcc.compiler.include.paths.592712745" superClass="nvcc.compiler.include.paths" valueType="includePath">
+								<option id="nvcc.compiler.machine.662483858" name="Architecture (--machine)" superClass="nvcc.compiler.machine" value="nvcc.compiler.machine64" valueType="enumerated"/>
+								<option id="nvcc.compiler.include.paths.592712745" name="Include paths (-I)" superClass="nvcc.compiler.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${cuda_samples_dir:/VertexObject}/2_Graphics&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${cuda_samples_dir:/VertexObject}/common/inc&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/VertexObject}&quot;"/>
@@ -106,12 +107,12 @@
 								<inputType id="nvcc.compiler.input.c.232184074" superClass="nvcc.compiler.input.c"/>
 							</tool>
 							<tool id="nvcc.linker.base.528643551" name="NVCC Linker" superClass="nvcc.linker.base">
-								<option id="nvcc.linker.option.machine.546773673" superClass="nvcc.linker.option.machine" value="nvcc.linker.machine64" valueType="enumerated"/>
-								<option id="nvcc.linker.option.paths.436342935" superClass="nvcc.linker.option.paths" valueType="libPaths">
+								<option id="nvcc.linker.option.machine.546773673" name="Architecture (--machine)" superClass="nvcc.linker.option.machine" value="nvcc.linker.machine64" valueType="enumerated"/>
+								<option id="nvcc.linker.option.paths.436342935" name="Library search path (-L)" superClass="nvcc.linker.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${cuda_samples_dir:/VertexObject}/common/lib/linux/x86_64&quot;"/>
 								</option>
-								<option id="nvcc.linker.option.linkgl.1603092919" superClass="nvcc.linker.option.linkgl" value="true" valueType="boolean"/>
-								<option id="nvcc.linker.option.userobjs.204371565" superClass="nvcc.linker.option.userobjs" valueType="userObjs">
+								<option id="nvcc.linker.option.linkgl.1603092919" name="Link with OpenGL libraries" superClass="nvcc.linker.option.linkgl" value="true" valueType="boolean"/>
+								<option id="nvcc.linker.option.userobjs.204371565" name="Other objects" superClass="nvcc.linker.option.userobjs" valueType="userObjs">
 									<listOptionValue builtIn="false" value="${cuda_samples_common_lib_dir:/VertexObject}/libGLEW.a"/>
 								</option>
 								<inputType id="nvcc.linker.input.1228724934" superClass="nvcc.linker.input">

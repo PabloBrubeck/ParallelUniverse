@@ -155,7 +155,7 @@ void init_kernel(int2 image){
 	jet<<<1, COLORDEPTH>>>(d_cmap, COLORDEPTH);
 }
 
-void launch_kernel(uchar4* d_pixel, int2 image, float time){
+void launch_kernel(int2 image, uchar4* d_pixel, float time){
 	static const dim3 block(MAXTHREADS);
 	static const dim3 grid(ceil(image.x, block.x), ceil(image.y, block.y));
 	wavePDE(d_pixel, d_cmap, d_u, d_ul, d_lap, origin, axes, image, time);
