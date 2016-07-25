@@ -6,66 +6,51 @@
 
 using namespace std;
 
-void waveExample(int N){
-	double *u=new double[N];
-	linspace(u, -pi, pi, N);
-	auto f=[](double th)->double{return th>0?0:(1-cos(2*th))/2;};
-	map(u, u, N, f);
-	double *d_u;
-	cudaMalloc((void**)&d_u, 2*N*sizeof(double));
-	cudaMemset(d_u, 0.0, 2*N*sizeof(double));
-	cudaMemcpy(d_u, u, N*sizeof(double), cudaMemcpyHostToDevice);
+void mapExample(int n){
+	// Maps a function f(x) on the domain [0, pi]
 
-	cublasHandle_t handle;
-	cublasCreate(&handle);
-	WaveSolver wave(handle, N, d_u, 0.0);
+	double *d_x;
+	cudaMalloc((void**)&d_x, n*sizeof(double));
+	linspace(0.0, pi, n, d_x);
 
-	int frames=144*10;
-	double dt=6.0/(N*N);
-	for(int i=0; i<frames; i++){
-		wave.solve(dt);
-	}
-	cudaMemcpy(u, d_u, N*sizeof(double), cudaMemcpyDeviceToHost);
-	disp(u, N, 1, 1);
-	cublasDestroy(handle);
+	int len=4;
+	double *h_a, *d_a;
+	h_a=new double[len]; h_a[len-1]=1;
+	cudaMalloc((void**)&d_a, n*sizeof(double));
+	cudaMemcpy(d_a, h_a, len*sizeof(double), cudaMemcpyHostToDevice);
+
+	int m=0;
+	auto lambda = [len, d_a, m] __device__ (double t){
+		return LegendreP(len,d_a,m,cos(t));
+	};
+	cudaMap(lambda, n, d_x, d_x);
+
+
+	double *h_x=new double[n];
+	cudaMemcpy(h_x, d_x, n*sizeof(double), cudaMemcpyDeviceToHost);
+	disp(h_x, n, 1, 1);
 }
 
-void cufftExample(int N){
-	double *u=new double[N];
-	linspace(u, -pi, pi, N);
-	auto f=[](double th)->double{return cos(th);};
-	map(u, u, N, f);
-	double *d_u;
-	cudaMalloc((void**)&d_u, N*sizeof(double));
-	cudaMemcpy(d_u, u, N*sizeof(double), cudaMemcpyHostToDevice);
+void quadratureExample(int n){
+	// Computes the integral of f(x) on [-1,1]
 
-	cufftHandle fftPlan, ifftPlan;
-	cufftPlan1d(&fftPlan, N, CUFFT_D2Z, 1);
-	cufftPlan1d(&ifftPlan, N, CUFFT_Z2D, 1);
+	double *x=new double[n];
+	double *w=new double[n];
+	gauleg(n,x,w,-1,1);
 
-	cufftDoubleComplex *d_uhat;
-	cudaMalloc((void**)&d_uhat, N*sizeof(cufftDoubleComplex));
+	auto f=[] (double x){
+		return x*x;
+	};
 
-	fftD(fftPlan, ifftPlan, N, 1, d_u, d_u, d_uhat);
-	cudaMemcpy(u, d_u, N*sizeof(double), cudaMemcpyDeviceToHost);
-	disp(u, N, 1, 1);
-
-	cufftDestroy(fftPlan);
-	cufftDestroy(ifftPlan);
-}
-
-void mapExample(int N){
-	double *x=new double[N];
-	double *y=new double[N];
-	linspace(x, 0, pi, N);
-	int m=0, deg=5;
-	double *a=new double[deg]; a[deg-1]=1;
-	auto f1=[a,deg,m](double th)->double{return LegendreP(a, deg, m, cos(th));};
-	map(y, x, N, f1);
-	disp(y,N,1,1);
+	map(f,n,x,x);
+	int inc=1;
+	double J=ddot(&n,x,&inc,w,&inc);
+	printf("%.15f\n",J);
 }
 
 void poisson(double ua, double ub, int n){
+	// Solves the Dirichlet problem u_xx = 1, u(a)=ua, u(b)=ub
+
 	double *d_x, *d_D, *d_D2;
 	cudaMalloc((void**)&d_x, n*sizeof(double));
 	cudaMalloc((void**)&d_D, n*n*sizeof(double));
@@ -80,13 +65,9 @@ void poisson(double ua, double ub, int n){
 	cublasDgemm(cublasH, CUBLAS_OP_N, CUBLAS_OP_N, n, n, n, &alpha, d_D, n, d_D, n, &beta, d_D2, n);
 
 	// right hand side
-	// TODO: map on device, heterogeneous lambda
-	double *h_b=new double[n];
-	auto f=[](double x)->double{return 1.0;};
-	map(h_b, h_b, n, f);
 	double *d_b;
 	cudaMalloc((void**)&d_b, n*sizeof(double));
-	cudaMemcpy(d_b, h_b, n*sizeof(double), cudaMemcpyHostToDevice);
+	ones(n, d_b);
 
 	alpha=-ua;
 	cublasDaxpy(cublasH, n, &alpha, d_D2+n*(n-1), 1, d_b, 1);
@@ -110,9 +91,9 @@ void poisson(double ua, double ub, int n){
 	cusolverDnDgetrs(cusolverH, CUBLAS_OP_N, m, nrhs, d_D2+n+1, lda, d_Ipiv, d_b+1, ldb, d_info);
 
 	// display u
-	cudaMemcpy(h_b, d_b, n*sizeof(double), cudaMemcpyDeviceToHost);
-	disp(h_b, n, 1, 1);
-	free(h_b);
+	double *h_u=new double[n];
+	cudaMemcpy(h_u, d_b, n*sizeof(double), cudaMemcpyDeviceToHost);
+	disp(h_u, n, 1, 1);
 
 	// free auxiliary variables
 	cudaFree(d_Work);
@@ -130,7 +111,60 @@ void poisson(double ua, double ub, int n){
 	cusolverDnDestroy(cusolverH);
 }
 
+void waveExample(int N){
+	// Solves the one-dimensional wave equation u_xx = u_tt, given initial u(x) and du/dt
+
+	double *h_u=new double[N];
+	linspace(-pi, pi, N, h_u);
+	auto f=[](double th){return th>0?0:(1-cos(2*th))/2;};
+	map(f, N, h_u, h_u);
+	double *d_u;
+	cudaMalloc((void**)&d_u, 2*N*sizeof(double));
+	cudaMemset(d_u, 0, 2*N*sizeof(double));
+
+	cublasHandle_t handle;
+	cublasCreate(&handle);
+	WaveSolver wave(handle, N, d_u, 0.0);
+
+	int frames=144*10;
+	double dt=6.0/(N*N);
+	for(int i=0; i<frames; i++){
+		wave.solve(dt);
+	}
+	cudaMemcpy(h_u, d_u, N*sizeof(double), cudaMemcpyDeviceToHost);
+	disp(h_u, N, 1, 1);
+	cublasDestroy(handle);
+}
+
+void cufftExample(int N){
+	// Computes first derivative of a periodic function f(x) on [-pi, pi]
+
+	double *u=new double[N];
+	linspace(-pi, pi, N, u);
+	auto f=[](double th)->double{return cos(th);};
+	map(f, N, u, u);
+	double *d_u;
+	cudaMalloc((void**)&d_u, N*sizeof(double));
+	cudaMemcpy(d_u, u, N*sizeof(double), cudaMemcpyHostToDevice);
+
+	cufftHandle fftPlan, ifftPlan;
+	cufftPlan1d(&fftPlan, N, CUFFT_D2Z, 1);
+	cufftPlan1d(&ifftPlan, N, CUFFT_Z2D, 1);
+
+	cufftDoubleComplex *d_uhat;
+	cudaMalloc((void**)&d_uhat, N*sizeof(cufftDoubleComplex));
+
+	fftD(fftPlan, ifftPlan, N, 1, d_u, d_u, d_uhat);
+	cudaMemcpy(u, d_u, N*sizeof(double), cudaMemcpyDeviceToHost);
+	disp(u, N, 1, 1);
+
+	cufftDestroy(fftPlan);
+	cufftDestroy(ifftPlan);
+}
+
+
+
 int main(int argc, char **argv){
-	waveExample(1<<8);
+	mapExample(32);
 	return 0;
 }

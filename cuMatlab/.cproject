@@ -17,7 +17,7 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.seven_five.configuration.debug.1095655419" name="Debug" parent="com.nvidia.cuda.ide.seven_five.configuration.debug">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.seven_five.configuration.debug.1095655419" name="Debug" parent="com.nvidia.cuda.ide.seven_five.configuration.debug" prebuildStep="">
 					<folderInfo id="com.nvidia.cuda.ide.seven_five.configuration.debug.1095655419." name="/" resourcePath="">
 						<toolChain id="com.nvidia.cuda.tools.toolchain.seven_five.exe.debug.970141462" name="CUDA Toolkit 8.0" superClass="com.nvidia.cuda.tools.toolchain.seven_five.exe.debug">
 							<targetPlatform archList="all" binaryParser="com.nvidia.cuda.ide.elf;com.nvidia.cuda.ide.macho;com.nvidia.cuda.ide.cubin" id="com.nvidia.cuda.ide.targetPlatform.1939318771" isAbstract="false" name="Debug Platform" osList="linux,macosx" superClass="com.nvidia.cuda.ide.targetPlatform"/>
@@ -29,10 +29,15 @@
 								<option id="nvcc.compiler.pic.1364634756" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
 								<option id="nvcc.compiler.include.paths.781723947" name="Include paths (-I)" superClass="nvcc.compiler.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="../../common/inc"/>
+									<listOptionValue builtIn="false" value="/opt/intel/mkl/include"/>
 								</option>
 								<option id="nvcc.compiler.cpp11option.780397645" name="Enable C++11 support (-std=c++11)" superClass="nvcc.compiler.cpp11option" value="true" valueType="boolean"/>
-								<option id="nvcc.compiler.optionsfile.1605709110" name="Command line options file (-optf)" superClass="nvcc.compiler.optionsfile" value="" valueType="string"/>
-								<option id="com.nvidia.cuda.ide.build.option1.701531590" superClass="com.nvidia.cuda.ide.build.option1" value="/usr/bin/g++-4.9" valueType="string"/>
+								<option id="nvcc.compiler.optionsfile.1605709110" name="Command line options file (-optf)" superClass="nvcc.compiler.optionsfile" value="/home/pbrubeck/ParallelUniverse/cuMatlab/options" valueType="string"/>
+								<option id="com.nvidia.cuda.ide.build.option1.701531590" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="/usr/bin/g++-4.9" valueType="string"/>
+								<option id="nvcc.compiler.compileroptions.256216720" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions" valueType="stringList"/>
+								<option id="nvcc.compiler.openccoptions.1224918290" name="nvopencc options (-Xopencc)" superClass="nvcc.compiler.openccoptions"/>
+								<option id="nvcc.compiler.cudafeoptions.182564031" name="cudafe options (-Xcudafe)" superClass="nvcc.compiler.cudafeoptions"/>
+								<option id="nvcc.compiler.ptxasoptions.844652497" name="ptaxas options (-Xptxas)" superClass="nvcc.compiler.ptxasoptions"/>
 								<inputType id="nvcc.compiler.input.cu.1272258500" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.735327979" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.604871430" superClass="nvcc.compiler.input.c"/>
@@ -41,13 +46,22 @@
 								<option id="nvcc.linker.option.libs.640543010" name="Libraries (-l)" superClass="nvcc.linker.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="cublas"/>
 									<listOptionValue builtIn="false" value="cusolver"/>
+									<listOptionValue builtIn="false" value="cufft"/>
 									<listOptionValue builtIn="false" value="gomp"/>
-									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="cufft"/>
+									<listOptionValue builtIn="false" value="mkl_intel_lp64"/>
+									<listOptionValue builtIn="false" value="mkl_intel_thread"/>
+									<listOptionValue builtIn="false" value="mkl_core"/>
+									<listOptionValue builtIn="false" value="iomp5"/>
 								</option>
 								<option id="nvcc.linker.option.paths.1991542541" name="Library search path (-L)" superClass="nvcc.linker.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="/usr/local/cuda/lib64"/>
+									<listOptionValue builtIn="false" value="/opt/intel/mkl/lib/intel64_lin"/>
 								</option>
-								<option id="com.nvidia.cuda.ide.build.linker.ccbin.1817546558" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.linker.ccbin" value="" valueType="string"/>
+								<option id="com.nvidia.cuda.ide.build.linker.ccbin.1817546558" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.linker.ccbin" value="/usr/bin/g++-4.9" valueType="string"/>
+								<option id="nvcc.linker.option.other.262181629" name="Other options (-Xlinker [option])" superClass="nvcc.linker.option.other"/>
+								<option id="nvcc.linker.option.userobjs.1296652799" name="Other objects" superClass="nvcc.linker.option.userobjs"/>
+								<option id="nvcc.linker.option.cudart.659848481" name="CUDA Runtime Library:" superClass="nvcc.linker.option.cudart" value="nvcc.linker.option.cudart.shared" valueType="enumerated"/>
+								<option id="nvcc.linker.option.shared.1855972497" name="Shared (-shared)" superClass="nvcc.linker.option.shared" value="false" valueType="boolean"/>
 								<inputType id="nvcc.linker.input.455246644" superClass="nvcc.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -100,11 +114,31 @@
 								<option id="nvcc.compiler.option.level.1334348286" name="Generate host debug information (-g)" superClass="nvcc.compiler.option.level"/>
 								<option defaultValue="nvcc.compiler.optimization.level.most" id="nvcc.compiler.optimization.level.563488899" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.1563913903" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
+								<option id="com.nvidia.cuda.ide.build.option1.180830023" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="/opt/intel/bin/icc" valueType="string"/>
+								<option id="nvcc.compiler.compileroptions.1116546185" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions" valueType="stringList">
+									<listOptionValue builtIn="false" value="-mkl"/>
+								</option>
 								<inputType id="nvcc.compiler.input.cu.568571195" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.159798765" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.436592083" superClass="nvcc.compiler.input.c"/>
 							</tool>
 							<tool id="nvcc.linker.base.168811777" name="NVCC Linker" superClass="nvcc.linker.base">
+								<option id="nvcc.linker.option.libs.1301775853" name="Libraries (-l)" superClass="nvcc.linker.option.libs" valueType="libs">
+									<listOptionValue builtIn="false" value="cublas"/>
+									<listOptionValue builtIn="false" value="cusolver"/>
+									<listOptionValue builtIn="false" value="cufft"/>
+									<listOptionValue builtIn="false" value="gomp"/>
+									<listOptionValue builtIn="false" value="mkl_intel_lp64"/>
+									<listOptionValue builtIn="false" value="mkl_intel_thread"/>
+									<listOptionValue builtIn="false" value="mkl_core"/>
+									<listOptionValue builtIn="false" value="iomp5"/>
+								</option>
+								<option id="nvcc.linker.option.paths.1955738504" name="Library search path (-L)" superClass="nvcc.linker.option.paths" valueType="libPaths">
+									<listOptionValue builtIn="false" value="/usr/local/cuda/lib64"/>
+									<listOptionValue builtIn="false" value="/opt/intel/mkl/lib/intel64_lin"/>
+								</option>
+								<option id="com.nvidia.cuda.ide.build.linker.ccbin.49164795" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.linker.ccbin" value="/opt/intel/bin/icc" valueType="string"/>
+								<option id="nvcc.linker.option.cudart.106515711" name="CUDA Runtime Library:" superClass="nvcc.linker.option.cudart" value="nvcc.linker.option.cudart.shared" valueType="enumerated"/>
 								<inputType id="nvcc.linker.input.651949869" superClass="nvcc.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -127,6 +161,7 @@
 					<sass major="5" minor="2"/>
 					<ptx major="5" minor="2"/>
 				</executable>
+				<editor-arch major="5" minor="2"/>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 		</cconfiguration>
@@ -136,10 +171,10 @@
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 	<storageModule moduleId="refreshScope" versionNumber="2">
-		<configuration configurationName="Debug">
+		<configuration configurationName="Release">
 			<resource resourceType="PROJECT" workspacePath="/cuMatlab"/>
 		</configuration>
-		<configuration configurationName="Release">
+		<configuration configurationName="Debug">
 			<resource resourceType="PROJECT" workspacePath="/cuMatlab"/>
 		</configuration>
 	</storageModule>

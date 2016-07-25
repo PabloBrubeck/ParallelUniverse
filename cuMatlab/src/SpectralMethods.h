@@ -19,28 +19,43 @@ __global__ void evenSymmetric(int n, double *d_u){
 }
 
 
-__global__ void diffFilter(int n, cufftDoubleComplex *d_uhat){
+__global__ void diffFilter(int order, int n, cufftDoubleComplex *d_uhat){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	if(i<n){
 		int k=2*i<n?i:i-n;
-		double re=-k*d_uhat[i].y;
-		double im=k*d_uhat[i].x;
-		d_uhat[i].x=re/n;
-		d_uhat[i].y=im/n;
+		k=pow(k,order);
+		switch(order%4){
+		case 0: // 1
+			d_uhat[i].x=k*d_uhat[i].x/n;
+			d_uhat[i].y=k*d_uhat[i].y/n;
+			break;
+		case 1: // -i
+			d_uhat[i].x=-k*d_uhat[i].y/n;
+			d_uhat[i].y=k*d_uhat[i].x/n;
+			break;
+		case 2: // -1
+			d_uhat[i].x=-k*d_uhat[i].x/n;
+			d_uhat[i].y=-k*d_uhat[i].y/n;
+			break;
+		case 3: // i
+			d_uhat[i].x=k*d_uhat[i].y/n;
+			d_uhat[i].y=-k*d_uhat[i].x/n;
+			break;
+		}
 	}
 }
 
 void fftD(cufftHandle fftPlan, cufftHandle ifftPlan, int length, int order, double *d_v, double *d_u, cufftDoubleComplex *d_uhat){
 	cufftExecD2Z(fftPlan, d_u, d_uhat);
-	diffFilter<<<grid(length), MAXTHREADS>>>(length, d_uhat);
+	diffFilter<<<grid(length), MAXTHREADS>>>(order, length, d_uhat);
 	cufftExecZ2D(ifftPlan, d_uhat, d_v);
 }
 
-void chebfftD(int length, double *d_u){
+void chebfftD(int n, double *d_u){
 
 }
 
-void chebfttD2(int length, double *d_u){
+void chebfttD2(int n, double *d_u){
 
 }
 

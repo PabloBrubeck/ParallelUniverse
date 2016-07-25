@@ -16,7 +16,7 @@
 
 // Gaussian quadratures using the Golub-Welsch algorithm
 
-void gaucheb(double *x, double *w, int n, double a, double b){
+void gaucheb(int n, double *x, double *w, double a, double b){
 	double x0=(b+a)/2;
 	double dx=(b-a)/2;
 	double wi=(b-a)*M_PI/(2*n);
@@ -26,7 +26,7 @@ void gaucheb(double *x, double *w, int n, double a, double b){
 	}
 }
 
-void gauleg(double *x, double *w, int n, double a, double b){
+void gauleg(int n, double *x, double *w, double a, double b){
 	double *D=new double[n];
 	double *E=new double[n];
 	double *W=new double[n*n];
@@ -35,7 +35,8 @@ void gauleg(double *x, double *w, int n, double a, double b){
 		D[i]=0;
 		E[i]=k/sqrt(4*k*k-1);
 	}
-	trideigs(x, W, D, E, n);
+
+	trideig(n, W, x, D, E);
 	double x0=(b+a)/2;
 	double dx=(b-a)/2;
 	double dw=b-a;
@@ -45,7 +46,7 @@ void gauleg(double *x, double *w, int n, double a, double b){
 	}
 }
 
-void gaulag(double *x, double *w, int n){
+void gaulag(int n, double *x, double *w){
 	double *D=new double[n];
 	double *E=new double[n];
 	double *W=new double[n*n];
@@ -54,13 +55,13 @@ void gaulag(double *x, double *w, int n){
 		D[i]=2*k-1;
 		E[i]=k;
 	}
-	trideigs(x, W, D, E, n);
+	trideig(n, W, x, D, E);
 	for(int i=0; i<n; i++){
 		w[i]=W[i*n]*W[i*n];
 	}
 }
 
-void gauherm(double *x, double *w, int n, double mu, double sigma){
+void gauherm(int n, double *x, double *w, double mu, double sigma){
 	double *D=new double[n];
 	double *E=new double[n];
 	double *W=new double[n*n];
@@ -68,7 +69,7 @@ void gauherm(double *x, double *w, int n, double mu, double sigma){
 		D[i]=0;
 		E[i]=sqrt((i+1)/2.0);
 	}
-	trideigs(x, W, D, E, n);
+	trideig(n, W, x, D, E);
 	double dw=sqrt(2*M_PI);
 	double dx=M_SQRT2*sigma;
 	for(int i=0; i<n; i++){
