@@ -30,6 +30,7 @@
 #include "SpecialFunctions.h"
 #include "SpectralMethods.h"
 #include "RungeKutta.h"
+#include "image.h"
 
 using namespace std;
 
@@ -58,26 +59,71 @@ void linspaceHost(double a, double b, int n, double* x){
 }
 
 void map(function<double(double)> fun, int n, double* y, double* x){
-  for(int i=0; i<n; i++) {
+	for(int i=0; i<n; i++) {
 	  y[i]=fun(x[i]);
-  }
+	}
 }
 
 /*
  * CUDA helper functions (device)
  */
 
-template<typename F, typename T> __global__ void apply(F fun, int n, T *d_x, T *d_y){
+template<typename F, typename T1, typename T2>
+__global__ void apply(F fun, int n, T1 *d_x, T2 *d_y){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	if(i<n){
 		d_y[i]=fun(d_x[i]);
 	}
 }
 
-template<typename F, typename T> void cudaMap(F fun, int n, T* d_x, T* d_y){
+template<typename F, typename T1, typename T2>
+void cudaMap(F fun, int n, T1* d_x, T2* d_y){
 	apply<<<grid(n), MAXTHREADS>>>(fun, n, d_x, d_y);
 }
 
+template<typename F, typename T1, typename T2>
+__global__ void apply(F fun, int m, int n, T1* d_x, int ldx, T2* d_y, int ldy){
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	int j=blockIdx.y*blockDim.y+threadIdx.y;
+	if(i<m && j<n){
+		d_y[j*ldy+i]=fun(d_x[i*ldx+j]);
+	}
+}
+
+template<typename F, typename T1, typename T2>
+void cudaMap(F fun, int m, int n, T1* d_x, int ldx, T2* d_y, int ldy){
+	apply<<<grid(m,n), MAXTHREADS>>>(fun, m, n, d_x, ldx, d_y, ldy);
+}
+
+template<typename F, typename T1, typename T2>
+__global__ void apply(F fun, int n, T1* d_A, T2 xmin, T2 xmax){
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	if(i<n){
+		T2 x=xmin+i*(xmax-xmin)/(n-1);
+		d_A[i]=fun(x);
+	}
+}
+
+template<typename F,typename T1, typename T2>
+void cudaMap(F fun, int n, T1* d_A, T2 xmin, T2 xmax){
+	apply<<<grid(n), MAXTHREADS>>>(fun, n, d_A, xmin, xmax);
+}
+
+template<typename F, typename T1, typename T2>
+__global__ void apply(F fun, int m, int n, T1* d_A, int lda, T2 xmin, T2 xmax, T2 ymin, T2 ymax){
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	int j=blockIdx.y*blockDim.y+threadIdx.y;
+	if(i<m && j<n){
+		T2 x=xmin+i*(xmax-xmin)/(m-1);
+		T2 y=ymin+j*(ymax-ymin)/(n-1);
+		d_A[j*lda+i]=fun(x,y);
+	}
+}
+
+template<typename F,typename T1, typename T2>
+void cudaMap(F fun, int m, int n, T1* d_A, int lda, T2 xmin, T2 xmax, T2 ymin, T2 ymax){
+	apply<<<grid(m,n), MAXTHREADS>>>(fun, m, n, d_A, lda, xmin, xmax, ymin, ymax);
+}
 
 /*
  * Thrust helper functions (device)
@@ -133,13 +179,11 @@ template<typename T> T min(int n, T* d_x){
 	return thrust::reduce(t_x, t_x+n, numeric_limits<T>::max(), thrust::minimum<T>());
 }
 
-template<typename T> void minmax(T *xmin, T *xmax, int n, T* d_x){
+template<typename T> void minmax(T *minptr, T *maxptr, int n, T* d_x){
 	thrust::device_ptr<T> t_x(d_x);
-	*xmin=thrust::reduce(t_x, t_x+n, numeric_limits<T>::max(), thrust::minimum<T>());
-	*xmax=thrust::reduce(t_x, t_x+n, numeric_limits<T>::min(), thrust::maximum<T>());
+	*minptr=thrust::reduce(t_x, t_x+n, numeric_limits<T>::max(), thrust::minimum<T>());
+	*maxptr=thrust::reduce(t_x, t_x+n, numeric_limits<T>::min(), thrust::maximum<T>());
 }
-
-
 
 
 #endif /* CUMATLAB_H_ */

@@ -35,15 +35,33 @@ void gauleg(int n, double *x, double *w, double a, double b){
 		D[i]=0;
 		E[i]=k/sqrt(4*k*k-1);
 	}
-
 	trideig(n, W, x, D, E);
 	double x0=(b+a)/2;
 	double dx=(b-a)/2;
-	double dw=b-a;
+	double w0=b-a;
 	for(int i=0; i<n; i++){
 		x[i]=x0+dx*x[i];
-		w[i]=dw*W[i*n]*W[i*n];
+		w[i]=w0*W[i*n]*W[i*n];
 	}
+	delete[] D, E, W;
+}
+
+void gaujac(int n, double *x, double *w, double a, double b){
+	double *D=new double[n];
+	double *E=new double[n];
+	double *W=new double[n*n];
+	for(int i=0; i<n; i++){
+		int k=i+1;
+		double c=2*k+a+b;
+		D[i]=(b*b-a*a)/(c*(c-2)+(b*b==a*a));
+		E[i]=2/c*sqrt(k*(k+a)*(k+b)*(k+a+b)/(c*c-1));
+	}
+	trideig(n, W, x, D, E);
+	double w0=pow(2.0,a+b+1)*gamma(a+1)*gamma(b+1)/gamma(a+b+2);
+	for(int i=0; i<n; i++){
+		w[i]=w0*W[i*n]*W[i*n];
+	}
+	delete[] D, E, W;
 }
 
 void gaulag(int n, double *x, double *w){
@@ -59,6 +77,7 @@ void gaulag(int n, double *x, double *w){
 	for(int i=0; i<n; i++){
 		w[i]=W[i*n]*W[i*n];
 	}
+	delete[] D, E, W;
 }
 
 void gauherm(int n, double *x, double *w, double mu, double sigma){
@@ -70,12 +89,13 @@ void gauherm(int n, double *x, double *w, double mu, double sigma){
 		E[i]=sqrt((i+1)/2.0);
 	}
 	trideig(n, W, x, D, E);
-	double dw=sqrt(2*M_PI);
 	double dx=M_SQRT2*sigma;
+	double w0=sqrt(2*M_PI);
 	for(int i=0; i<n; i++){
 		x[i]=mu+dx*x[i];
-		w[i]=dw*W[i*n]*W[i*n];
+		w[i]=w0*W[i*n]*W[i*n];
 	}
+	delete[] D, E, W;
 }
 
 #endif /* INTEGRATION_H_ */

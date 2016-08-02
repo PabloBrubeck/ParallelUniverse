@@ -34,7 +34,7 @@
 								<option id="nvcc.compiler.cpp11option.780397645" name="Enable C++11 support (-std=c++11)" superClass="nvcc.compiler.cpp11option" value="true" valueType="boolean"/>
 								<option id="nvcc.compiler.optionsfile.1605709110" name="Command line options file (-optf)" superClass="nvcc.compiler.optionsfile" value="/home/pbrubeck/ParallelUniverse/cuMatlab/options" valueType="string"/>
 								<option id="com.nvidia.cuda.ide.build.option1.701531590" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="/usr/bin/g++-4.9" valueType="string"/>
-								<option id="nvcc.compiler.compileroptions.256216720" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions" valueType="stringList"/>
+								<option id="nvcc.compiler.compileroptions.256216720" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions"/>
 								<option id="nvcc.compiler.openccoptions.1224918290" name="nvopencc options (-Xopencc)" superClass="nvcc.compiler.openccoptions"/>
 								<option id="nvcc.compiler.cudafeoptions.182564031" name="cudafe options (-Xcudafe)" superClass="nvcc.compiler.cudafeoptions"/>
 								<option id="nvcc.compiler.ptxasoptions.844652497" name="ptaxas options (-Xptxas)" superClass="nvcc.compiler.ptxasoptions"/>
@@ -62,6 +62,7 @@
 								<option id="nvcc.linker.option.userobjs.1296652799" name="Other objects" superClass="nvcc.linker.option.userobjs"/>
 								<option id="nvcc.linker.option.cudart.659848481" name="CUDA Runtime Library:" superClass="nvcc.linker.option.cudart" value="nvcc.linker.option.cudart.shared" valueType="enumerated"/>
 								<option id="nvcc.linker.option.shared.1855972497" name="Shared (-shared)" superClass="nvcc.linker.option.shared" value="false" valueType="boolean"/>
+								<option id="nvcc.linker.option.linkgl.1668053649" superClass="nvcc.linker.option.linkgl" value="true" valueType="boolean"/>
 								<inputType id="nvcc.linker.input.455246644" superClass="nvcc.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -199,4 +200,5 @@
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.nvidia.cuda.ide.build.NVCCPerProjectProfile"/>
 		</scannerConfigBuildInfo>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 </cproject>
