@@ -59,7 +59,7 @@ void linspaceHost(double a, double b, int n, double* x){
 	}
 }
 
-void map(function<double(double)> fun, int n, double* y, double* x){
+void mapHost(function<double(double)> fun, int n, double* y, double* x){
 	for(int i=0; i<n; i++) {
 	  y[i]=fun(x[i]);
 	}

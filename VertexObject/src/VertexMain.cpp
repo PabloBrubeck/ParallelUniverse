@@ -26,25 +26,21 @@ extern void idle();
 StopWatchInterface *timer = NULL;
 
 // Simple method to display the Frames Per Second in the window title
-void computeFPS(){
+void fpsDisplay(){
 	static int fpsCount=0;
 	static int fpsLimit=60;
+	sdkStartTimer(&timer);
+	display();
+	sdkStopTimer(&timer);
 	if(++fpsCount==fpsLimit){
 		float ifps=1000.f/sdkGetAverageTimerValue(&timer);
 		char fps[256];
 		sprintf(fps, "Cuda GL Interop Wrapper: %3.1f fps ", ifps);
 		glutSetWindowTitle(fps);
 		fpsCount=0;
-		fpsLimit=ifps>1.f? (int)ifps: 1;
+		fpsLimit=(ifps<1)? 1:((ifps>200)? 200:(int)ifps);
 		sdkResetTimer(&timer);
 	}
-}
-
-void fpsDisplay(){
-	sdkStartTimer(&timer);
-	display();
-	sdkStopTimer(&timer);
-	computeFPS();
 }
 
 bool initGL(int* argc, char** argv){

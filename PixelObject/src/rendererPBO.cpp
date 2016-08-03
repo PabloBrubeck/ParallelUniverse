@@ -7,23 +7,22 @@
 #include <helper_cuda.h>
 #include <cuda_gl_interop.h>
 
-// external variables
-extern float animTime;
 
 // constants (the following should be a const in a header file)
-int2 image={1<<10, 1<<10};
+int width =1<<10;
+int height=1<<10;
 
-void init_kernel(int2 image);
-void launch_kernel(int2 image, uchar4* d_pixel, float time);
+void init_kernel(int width, int height);
+void launch_kernel(int width, int height, uchar4* d_pixel);
 
 // variables
 GLuint pbo;
 GLuint textureID;
 
-void createPBO(GLuint* pbo, int2 size){
+void createPBO(GLuint* pbo, int size){
 	if(pbo){
 		// set up vertex data parameter
-		int size_tex_data = size.x*size.y*sizeof(uchar4);
+		int size_tex_data = size*sizeof(uchar4);
 		// Generate a buffer ID called a PBO (Pixel Buffer Object)
 		glGenBuffers(1, pbo);
 		// Make this the current UNPACK buffer (OpenGL is state-based)
@@ -44,7 +43,7 @@ void deletePBO(GLuint* pbo){
 	}
 }
 
-void createTexture(GLuint* textureID, int2 size){
+void createTexture(GLuint* textureID, int width, int height){
 	// Enable Texturing
 	glEnable(GL_TEXTURE_RECTANGLE_ARB);
 
@@ -56,7 +55,7 @@ void createTexture(GLuint* textureID, int2 size){
 
 	// Allocate the texture memory. The last parameter is NULL since we only
 	// want to allocate memory, not initialize it
-	glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA8, size.x, size.y, 0,
+	glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA8, width, height, 0,
 		GL_BGRA, GL_UNSIGNED_BYTE, NULL);
 
 	// Must set the filter mode, GL_LINEAR enables interpolation when scaling
@@ -94,7 +93,7 @@ void runCuda(){
 	cudaGLMapBufferObject((void**)&d_pixel, pbo);
 
 	// execute the kernel
-	launch_kernel(image, d_pixel, animTime);
+	launch_kernel(width, height, d_pixel);
 
 	// unmap buffer object
 	cudaGLUnmapBufferObject(pbo);
@@ -106,12 +105,12 @@ void initCuda(int argc, char** argv){
 	// optimal performance with OpenGL/CUDA interop.  use command-line
 	// specified CUDA device, otherwise use device with highest Gflops/s
 	cudaGLSetGLDevice(findCudaDevice(argc, (const char **)argv));
-	createPBO(&pbo, image);
-	createTexture(&textureID, image);
+	createPBO(&pbo, width*height);
+	createTexture(&textureID, width, height);
 
 	// Clean up on program exit
 	atexit(cleanupCuda);
 
-	init_kernel(image);
+	init_kernel(width, height);
 	runCuda();
 }

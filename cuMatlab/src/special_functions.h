@@ -12,12 +12,12 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-static __inline__ __host__ __device__
+__host__ __device__ static __inline__
 double sinc(double x){
 	return x==0?1:sin(x)/x;
 }
 
-static __inline__ __host__ __device__
+__host__ __device__ static __inline__
 double jinc(double x){
 	return x==0?1:j0(x)/x;
 }
@@ -26,7 +26,7 @@ double jinc(double x){
  * Orthogonal polynomial series using the Clenshaw algorithm
  */
 
-static __inline__ __host__ __device__
+__host__ __device__ static __inline__
 double ChebT(int n, double* a, double x){
 	double temp, yy=0;
 	double y=(n>1)?a[n-1]:0;
@@ -38,7 +38,7 @@ double ChebT(int n, double* a, double x){
 	return a[0]+x*y-yy;
 }
 
-static __inline__ __host__ __device__
+__host__ __device__ static __inline__
 double LegendreP(int n, double* a, int m, double x){
 	double temp, yy=0;
 	double y=(n>m+1)?a[n-1]:0;
@@ -55,7 +55,7 @@ double LegendreP(int n, double* a, int m, double x){
 	return p0*(a[m]+(2*m+1)*(x*y-yy/2));
 }
 
-static __inline__ __host__ __device__
+__host__ __device__ static __inline__
 double LaguerreL(int n, double* a, double alpha, double x){
 	double temp, yy=0;
 	double y=(n>1)?a[n-1]:0;
@@ -67,7 +67,7 @@ double LaguerreL(int n, double* a, double alpha, double x){
 	return a[0]+(1+alpha-x)*y-(1+alpha)*yy/2;
 }
 
-static __inline__ __host__ __device__
+__host__ __device__ static __inline__
 double HermiteH(int n, double* a, double x){
 	double temp, yy=0;
 	double y=(n>1)?a[n-1]:0;
@@ -79,13 +79,13 @@ double HermiteH(int n, double* a, double x){
 	return a[0]+2*(x*y-yy);
 }
 
-static __inline__ __host__ __device__
+__host__ __device__ static __inline__
 double HermitePsi(int n, double* a, double x){
 	double temp, yy=0;
 	double y=(n>1)?a[n-1]:0;
 	for(int k=n-2; k>0; k--){
 		temp=y;
-		y=a[k]+sqrt(2.0/(k+1.0))*x*y-sqrt((k+1.0)/(k+2.0))*yy;
+		y=a[k]+sqrt(2.0/(k+1))*x*y-sqrt((k+1.0)/(k+2))*yy;
 		yy=temp;
 	}
 	double h0=pow(M_PI,-0.25)*exp(-x*x/2);

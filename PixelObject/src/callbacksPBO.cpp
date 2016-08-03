@@ -12,45 +12,45 @@
 //external variables
 extern GLuint pbo;
 extern GLuint textureID;
-extern int2 image;
+extern int width;
+extern int height;
 extern double2 axes;
 extern double2 origin;
 
 // variables for keyboard control
 int animFlag = 1;
-float animTime = 0.0f;
-float animInc = 0.01f;
+int animTime = 0;
 
 // variables for mouse control
 int2 window;
 int2 mousePos;
 int2 poi={0,0};
-int2 roi=image;
+int2 roi={width, height};
 
 
 // The user must create the following routines:
 void runCuda();
 
 void zoom(int x, int y, double z){
-	origin.x+=(1-z)*axes.x*(poi.x+(double)(x*roi.x)/window.x)/image.x;
-	origin.y+=(1-z)*axes.y*(poi.y+(double)(y*roi.y)/window.y)/image.y;
+	origin.x+=(1-z)*axes.x*(poi.x+(double)(x*roi.x)/window.x)/width;
+	origin.y+=(1-z)*axes.y*(poi.y+(double)(y*roi.y)/window.y)/height;
 	axes.x*=z;
 	axes.y*=z;
 }
 void setROI(int x, int y, double z){
 	poi.x+=((1-z)*(x*roi.x))/window.x;
 	poi.y+=((1-z)*(y*roi.y))/window.y;
-	roi.x=clamp(z*roi.x, 1, image.x);
-	roi.y=clamp(z*roi.y, 1, image.y);
+	roi.x=clamp(z*roi.x, 1, width);
+	roi.y=clamp(z*roi.y, 1, height);
 	if(poi.x<0){
 		poi.x=0;
-	}else if(poi.x+roi.x>image.x){
-		poi.x=image.x-roi.x;
+	}else if(poi.x+roi.x>width){
+		poi.x=width-roi.x;
 	}
 	if(poi.y<0){
 		poi.y=0;
-	}else if(poi.y+roi.y>image.y){
-		poi.y=image.y-roi.y;
+	}else if(poi.y+roi.y>height){
+		poi.y=height-roi.y;
 	}
 }
 
@@ -71,7 +71,7 @@ void display(){
 	// GL_BGRA and GL_UNSIGNED_INT. This is a fast-path combination
 
 	// Note: NULL indicates the data resides in device memory
-	glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, image.x, image.y,
+	glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, width, height,
 		GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
 	// Draw a single Quad with texture coordinates for each vertex.
@@ -89,7 +89,7 @@ void display(){
 	// if animFlag is true, then indicate the display needs to be redrawn
 	if(animFlag){
 		glutPostRedisplay();
-		animTime+=animInc;
+		animTime++;
 	}
 }
 void reshape(int w, int h){
@@ -119,7 +119,7 @@ void keyPressed(unsigned char key, int x, int y){
 		setROI(x, window.y-y, 2.0);
 		break;
 	case 'w':
-		poi.y=min(poi.y+(roi.y+31)/32, image.y-roi.y);
+		poi.y=min(poi.y+(roi.y+31)/32, height-roi.y);
 		break;
 	case 'a':
 		poi.x=max(poi.x-(roi.x+31)/32, 0);
@@ -128,19 +128,10 @@ void keyPressed(unsigned char key, int x, int y){
 		poi.y=max(poi.y-(roi.y+31)/32, 0);
 		break;
 	case 'd':
-		poi.x=min(poi.x+(roi.x+31)/32, image.x-roi.x);
+		poi.x=min(poi.x+(roi.x+31)/32, width-roi.x);
 		break;
 	case 32: // toggle animation
 		animFlag=!animFlag;
-		break;
-	case '-': // decrease the time increment for the CUDA kernel
-		animInc-=0.01f;
-		break;
-	case '+': // increase the time increment for the CUDA kernel
-		animInc+=0.01f;
-		break;
-	case 'r': // reset the time increment 
-		animInc=0.01f;
 		break;
 	}
 
@@ -155,8 +146,8 @@ void mouseButton(int button, int state, int x, int y){
 	mousePos.y=y;
 }
 void mouseMotion(int x, int y){
-	origin.x-=(x-mousePos.x)*roi.x*axes.x/(image.x*window.x);
-	origin.y+=(y-mousePos.y)*roi.y*axes.y/(image.y*window.y);
+	origin.x-=(x-mousePos.x)*roi.x*axes.x/(width*window.x);
+	origin.y+=(y-mousePos.y)*roi.y*axes.y/(height*window.y);
 	mousePos.x=x;
 	mousePos.y=y;
 }

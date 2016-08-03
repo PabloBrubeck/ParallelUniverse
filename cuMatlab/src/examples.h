@@ -47,7 +47,7 @@ void quadratureExample(int n){
 		return x*x;
 	};
 
-	map(f,n,x,x);
+	mapHost(f,n,x,x);
 	int inc=1;
 	double J=ddot(&n,x,&inc,w,&inc);
 	printf("%.15f\n",J);
@@ -122,7 +122,7 @@ void waveExample(int N){
 	double *h_u=new double[N];
 	linspace(-pi, pi, N, h_u);
 	auto f=[](double th){return th>0?0:(1-cos(2*th))/2;};
-	map(f, N, h_u, h_u);
+	mapHost(f, N, h_u, h_u);
 	double *d_u;
 	cudaMalloc((void**)&d_u, 2*N*sizeof(double));
 	cudaMemset(d_u, 0, 2*N*sizeof(double));
@@ -147,7 +147,7 @@ void cufftExample(int N){
 	double *u=new double[N];
 	linspace(-pi, pi, N, u);
 	auto f=[](double th)->double{return cos(th);};
-	map(f, N, u, u);
+	mapHost(f, N, u, u);
 	double *d_u;
 	cudaMalloc((void**)&d_u, N*sizeof(double));
 	cudaMemcpy(d_u, u, N*sizeof(double), cudaMemcpyHostToDevice);

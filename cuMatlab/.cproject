@@ -59,10 +59,12 @@
 								</option>
 								<option id="com.nvidia.cuda.ide.build.linker.ccbin.1817546558" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.linker.ccbin" value="/usr/bin/g++-4.9" valueType="string"/>
 								<option id="nvcc.linker.option.other.262181629" name="Other options (-Xlinker [option])" superClass="nvcc.linker.option.other"/>
-								<option id="nvcc.linker.option.userobjs.1296652799" name="Other objects" superClass="nvcc.linker.option.userobjs"/>
+								<option id="nvcc.linker.option.userobjs.1296652799" name="Other objects" superClass="nvcc.linker.option.userobjs" valueType="userObjs">
+									<listOptionValue builtIn="false" value="/home/pbrubeck/ParallelUniverse/common/lib/linux64/libGLEW.a"/>
+								</option>
 								<option id="nvcc.linker.option.cudart.659848481" name="CUDA Runtime Library:" superClass="nvcc.linker.option.cudart" value="nvcc.linker.option.cudart.shared" valueType="enumerated"/>
 								<option id="nvcc.linker.option.shared.1855972497" name="Shared (-shared)" superClass="nvcc.linker.option.shared" value="false" valueType="boolean"/>
-								<option id="nvcc.linker.option.linkgl.1668053649" superClass="nvcc.linker.option.linkgl" value="true" valueType="boolean"/>
+								<option id="nvcc.linker.option.linkgl.1668053649" name="Link with OpenGL libraries" superClass="nvcc.linker.option.linkgl" value="true" valueType="boolean"/>
 								<inputType id="nvcc.linker.input.455246644" superClass="nvcc.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -201,4 +203,5 @@
 		</scannerConfigBuildInfo>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
+	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
 </cproject>

@@ -16,73 +16,73 @@ inline int ceil(int num, int den){
 	return (num+den-1)/den;
 }
 
-__global__ void laplacian(float *d_lap, float *d_u, int2 image){
+__global__ void laplacian(int width, int height, float *d_lap, float *d_u){
 	int i=blockDim.x*blockIdx.x+threadIdx.x;
 	int j=blockDim.y*blockIdx.y+threadIdx.y;
-	if(i<image.x && j<image.y){
-		int ip=(i+1)%image.x;
-		int im=(i-1+image.x)%image.x;
-		int jp=(j+1)%image.y;
-		int jm=(j-1+image.y)%image.y;
-		d_lap[i*image.y+j]=d_u[ip*image.y+j]
-				+d_u[im*image.y+j]
-				+d_u[i*image.y+jp]
-				+d_u[i*image.y+jm]
-				-4*d_u[i*image.y+j];
+	if(i<width && j<height){
+		int ip=(i+1)%width;
+		int im=(i-1+width)%width;
+		int jp=(j+1)%height;
+		int jm=(j-1+height)%height;
+		d_lap[i*height+j]=d_u[ip*height+j]
+				+d_u[im*height+j]
+				+d_u[i*height+jp]
+				+d_u[i*height+jm]
+				-4*d_u[i*height+j];
 	}
 }
-__global__ void heatSolve(uchar4 *d_pixel, uchar4 *d_cmap, float *d_u, float *d_lap, float c, double2 origin, double2 axes, int2 image, float time){
+__global__ void heatSolve(int width, int height, uchar4 *d_pixel, uchar4 *d_cmap, float *d_u, float *d_lap, float c, double2 origin, double2 axes, float time){
 	int i=blockDim.x*blockIdx.x+threadIdx.x;
 	int j=blockDim.y*blockIdx.y+threadIdx.y;
-	if(i<image.x && j<image.y){
-		int gid=i*image.y+j;
+	if(i<width && j<height){
+		int gid=i*height+j;
 		d_u[gid]+=c*d_lap[gid];
-		float x=fma((float)i/image.x, (float)axes.x, (float)origin.x);
-		float y=fma((float)j/image.y, (float)axes.y, (float)origin.y);
+		float x=fma((float)i/width, (float)axes.x, (float)origin.x);
+		float y=fma((float)j/height, (float)axes.y, (float)origin.y);
 		if(x*x+y*y<1.E-2f){
 			d_u[gid]=1.f;
 		}
-		if(i==0 || j==0 || i==image.x-1 || j==image.y-1){
+		if(i==0 || j==0 || i==width-1 || j==height-1){
 			d_u[gid]=0;
 		}
 		int k=(int)(COLORDEPTH*d_u[gid]);
 		d_pixel[gid]=d_cmap[clamp(k, 0, COLORDEPTH-1)];
 	}
 }
-void heatPDE(uchar4 *d_pixel, uchar4 *d_cmap, float *d_u, float *d_lap, double2 origin, double2 axes, int2 image, float time){
+void heatPDE(int width, int height, uchar4 *d_pixel, uchar4 *d_cmap, float *d_u, float *d_lap, double2 origin, double2 axes, float time){
 	static dim3 block(MAXTHREADS);
-	static dim3 grid(ceil(image.x, block.x), ceil(image.y, block.y));
-	laplacian<<<grid, block>>>(d_lap, d_u, image);
-	heatSolve<<<grid, block>>>(d_pixel, d_cmap, d_u, d_lap, 0.2f, origin, axes, image, time);
+	static dim3 grid(ceil(width, block.x), ceil(height, block.y));
+	laplacian<<<grid, block>>>(width, height, d_lap, d_u);
+	heatSolve<<<grid, block>>>(width, height, d_pixel, d_cmap, d_u, d_lap, 0.2f, origin, axes, time);
 }
 
-__global__ void waveSolve(uchar4 *d_pixel, uchar4 *d_cmap, float *d_u, float *d_ul, float *d_lap, float c, double2 origin, double2 axes, int2 image, float time){
+__global__ void waveSolve(int width, int height, uchar4 *d_pixel, uchar4 *d_cmap, float *d_u, float *d_ul, float *d_lap, float c, double2 origin, double2 axes, float time){
 	int i=blockDim.x*blockIdx.x+threadIdx.x;
 	int j=blockDim.y*blockIdx.y+threadIdx.y;
-	if(i<image.x && j<image.y){
-		int gid=j*image.x+i;
+	if(i<width && j<height){
+		int gid=j*width+i;
 		float temp=d_u[gid];
 		d_u[gid]=2*temp-d_ul[gid]+c*d_lap[gid];
 		d_ul[gid]=temp;
-		float x=fma((float)i/image.x, (float)axes.x, (float)origin.x);
-		float y=fma((float)j/image.y, (float)axes.y, (float)origin.y);
+		float x=fma((float)i/width, (float)axes.x, (float)origin.x);
+		float y=fma((float)j/height, (float)axes.y, (float)origin.y);
 		if(max(abs(x),abs(y))<1.E-2f){
 			d_u[gid]=sinpif(time);
 		}
-		if(i==0 || j==0 || i==image.x-1 || j==image.y-1){
-			int ii=i+(i==0)-(i==image.x-1);
-			int jj=j+(j==0)-(j==image.y-1);
-			d_u[gid]=lerp(d_ul[gid], d_ul[jj*image.x+ii],c);
+		if(i==0 || j==0 || i==width-1 || j==height-1){
+			int ii=i+(i==0)-(i==width-1);
+			int jj=j+(j==0)-(j==height-1);
+			d_u[gid]=lerp(d_ul[gid], d_ul[jj*width+ii],c);
 		}
 		int k=(int)(COLORDEPTH*(1+d_u[gid])/2);
 		d_pixel[gid]=d_cmap[clamp(k, 0, COLORDEPTH-1)];
 	}
 }
-void wavePDE(uchar4 *d_pixel, uchar4 *d_cmap, float *d_u, float *d_ul, float *d_lap, double2 origin, double2 axes, int2 image, float time){
+void wavePDE(int width, int height, uchar4 *d_pixel, uchar4 *d_cmap, float *d_u, float *d_ul, float *d_lap, double2 origin, double2 axes, float time){
 	static dim3 block(1,MAXTHREADS);
-	static dim3 grid(ceil(image.x, block.x), ceil(image.y, block.y));
-	laplacian<<<grid, block>>>(d_lap, d_u, image);
-	waveSolve<<<grid, block>>>(d_pixel, d_cmap, d_u, d_ul, d_lap, 0.45f, origin, axes, image, time);
+	static dim3 grid(ceil(width, block.x), ceil(height, block.y));
+	laplacian<<<grid, block>>>(width, height, d_lap, d_u);
+	waveSolve<<<grid, block>>>(width, height, d_pixel, d_cmap, d_u, d_ul, d_lap, 0.45f, origin, axes, time);
 }
 
 
@@ -118,24 +118,24 @@ __device__ int mandelbrotd(double x, double y){
 	return k-1;
 }
 
-__global__ void kernelf(uchar4* d_pixel, uchar4 *d_cmap, double2 origin, double2 axes, int2 image, float time){
+__global__ void kernelf(int width, int height, uchar4* d_pixel, uchar4 *d_cmap, double2 origin, double2 axes){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
-	if(i<image.x && j<image.y){
-		int gid=j*image.x+i;
-		float x=fma((float)i/image.x, (float)axes.x, (float)origin.x);
-		float y=fma((float)j/image.y, (float)axes.y, (float)origin.y);
+	if(i<width && j<height){
+		int gid=j*width+i;
+		float x=fma((float)i/width, (float)axes.x, (float)origin.x);
+		float y=fma((float)j/height, (float)axes.y, (float)origin.y);
 		int k=mandelbrotf(x, y);
 		d_pixel[gid]=d_cmap[clamp(k,0,COLORDEPTH-1)];
 	}
 }
-__global__ void kerneld(uchar4* d_pixel, uchar4 *d_cmap, double2 origin, double2 axes, int2 image, float time){
+__global__ void kerneld(int width, int height, uchar4* d_pixel, uchar4 *d_cmap, double2 origin, double2 axes){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
-	if(i<image.x && j<image.y){
-		int k, gid=j*image.x+i;
-		double x=(double)i/image.x*axes.x+origin.x;
-		double y=(double)j/image.y*axes.y+origin.y;
+	if(i<width && j<height){
+		int k, gid=j*width+i;
+		double x=(double)i/width*axes.x+origin.x;
+		double y=(double)j/height*axes.y+origin.y;
 		k=mandelbrotd(x, y);
 		d_pixel[gid]=d_cmap[clamp(k,0,COLORDEPTH-1)];
 	}
@@ -143,8 +143,8 @@ __global__ void kerneld(uchar4* d_pixel, uchar4 *d_cmap, double2 origin, double2
 
 
 
-void init_kernel(int2 image){
-	int n=image.x*image.y;
+void init_kernel(int width, int height){
+	int n=width*height;
 	checkCudaErrors(cudaMalloc((void**)&d_u, n*sizeof(float)));
 	checkCudaErrors(cudaMalloc((void**)&d_ul, n*sizeof(float)));
 	checkCudaErrors(cudaMalloc((void**)&d_lap, n*sizeof(float)));
@@ -155,11 +155,14 @@ void init_kernel(int2 image){
 	jet<<<1, COLORDEPTH>>>(d_cmap, COLORDEPTH);
 }
 
-void launch_kernel(int2 image, uchar4* d_pixel, float time){
+void launch_kernel(int width, int height, uchar4* d_pixel){
 	static const dim3 block(MAXTHREADS);
-	static const dim3 grid(ceil(image.x, block.x), ceil(image.y, block.y));
-	wavePDE(d_pixel, d_cmap, d_u, d_ul, d_lap, origin, axes, image, time);
-	//kerneld<<<grid, block>>>(d_pixel, d_cmap, origin, axes, image, time);
+	static const dim3 grid(ceil(width, block.x), ceil(height, block.y));
+	static int nframes=0;
+	float time=nframes/100.0;
+	wavePDE(width, height, d_pixel, d_cmap, d_u, d_ul, d_lap, origin, axes, time);
+	//kerneld<<<grid, block>>>(width, height, d_pixel, d_cmap, origin, axes);
 	cudaThreadSynchronize();
 	checkCudaErrors(cudaGetLastError());
+	nframes++;
 }
