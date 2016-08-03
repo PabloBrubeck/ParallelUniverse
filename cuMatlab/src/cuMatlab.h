@@ -25,10 +25,11 @@
 #include <thrust/functional.h>
 
 #include "kernel.h"
-#include "LinearAlgebra.h"
-#include "Integration.h"
-#include "SpecialFunctions.h"
-#include "SpectralMethods.h"
+#include "linalg.h"
+#include "integration.h"
+#include "complex_functions.h"
+#include "special_functions.h"
+#include "spectral.h"
 #include "RungeKutta.h"
 #include "image.h"
 

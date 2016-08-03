@@ -1,18 +1,19 @@
 /*
- * Integration.h
+ * integration.h
  *
- *  Created on: May 25, 2016
+ *  Created on: Aug 2, 2016
  *      Author: pbrubeck
  */
 
 #ifndef INTEGRATION_H_
 #define INTEGRATION_H_
 
+
 #define __CUDA_INTERNAL_COMPILATION__
 #include "math_functions.h"
 #undef __CUDA_INTERNAL_COMPILATION__
 
-#include "LinearAlgebra.h"
+#include "linalg.h"
 
 // Gaussian quadratures using the Golub-Welsch algorithm
 
@@ -97,5 +98,6 @@ void gauherm(int n, double *x, double *w, double mu, double sigma){
 	}
 	delete[] D, E, W;
 }
+
 
 #endif /* INTEGRATION_H_ */

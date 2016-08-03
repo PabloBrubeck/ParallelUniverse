@@ -1,12 +1,13 @@
 /*
- * SpectralMethods.h
+ * spectral.h
  *
- *  Created on: May 25, 2016
+ *  Created on: Aug 2, 2016
  *      Author: pbrubeck
  */
 
-#ifndef SPECTRALMETHODS_H_
-#define SPECTRALMETHODS_H_
+#ifndef SPECTRAL_H_
+#define SPECTRAL_H_
+
 
 #include "kernel.h"
 #include "cufft.h"
@@ -90,4 +91,5 @@ void chebD(int n, double *d_D, double *d_x){
 	chebDelem<<<grid(n,n), MAXTHREADS>>>(n, d_D, d_x);
 }
 
-#endif /* SPECTRALMETHODS_H_ */
+
+#endif /* SPECTRAL_H_ */

@@ -9,30 +9,29 @@ using namespace std;
 
 
 void imageExample(const int w, const int h){
-	uchar4 *d_out;
-	cudaMalloc((void**)&d_out, w*h*sizeof(uchar4));
+	uchar4 *d_rgba;
+	cudaMalloc((void**)&d_rgba, w*h*sizeof(uchar4));
 
-	auto lambda = [] __device__ (float x, float y){
-		cuComplex w=make_cuComplex(sin(x)*cosh(y), cos(x)*sinh(y));
-		float h=atan2f(w.y, w.x)/(2*pi);
-		return hsv2rgb(h,1,1);
+	auto lambda = [] __device__ (double x, double y){
+		cuDoubleComplex z=make_cuDoubleComplex(x, y);
+		cuDoubleComplex w=acos(z);
+		return hsv2rgb(angle(w)/(2*pi),1,1);
 	};
 
-	float xmin=-3*pi, xmax=3*pi, ymin=-4, ymax=4;
-	cudaMap(lambda, w, h, d_out, w, xmin, xmax, ymin, ymax);
+	double L=3*pi;
+	double xmin=-L, xmax=L, ymin=-h*L/w, ymax=h*L/w;
+	cudaMap(lambda, w, h, d_rgba, w, xmin, xmax, ymax, ymin);
 
-	string path="/home/pbrubeck/ParallelUniverse/cuMatlab/doc/DomainColor.png";
-	imwrite(w,h,d_out,path);
-
-	printf("Image saved!\n");
-	cudaFree(d_out);
+	string path="/home/pbrubeck/ParallelUniverse/cuMatlab/data/DomainColor.png";
+	imwrite(w,h,d_rgba,path);
+	cudaFree(d_rgba);
 }
 
 void fractalExample(const int w, const int h){
-	uchar4 *d_out;
-	cudaMalloc((void**)&d_out, w*h*sizeof(uchar4));
+	uchar4 *d_rgba;
+	cudaMalloc((void**)&d_rgba, w*h*sizeof(uchar4));
 
-	auto lambda = [] __device__ (float x, float y){
+	auto mandelbrot = [] __device__ (float x, float y){
 		cuComplex z=make_cuComplex(x,y);
 		cuComplex w=make_cuComplex(x,y);
 		float w2=0;
@@ -41,22 +40,21 @@ void fractalExample(const int w, const int h){
 			w=cuCfmaf(w,w,z);
 			w2=w.x*w.x+w.y*w.y;
 			i++;
-		}while(i<64 && w2<4);
-		float h=i/63.0;
+		}while(i<256 && w2<4);
+		float h=(i%64)/64.0;
 		return jet(h);
 	};
 
 	float xmin=-(2.f*w)/h, xmax=(2.f*w)/h, ymin=-2.f, ymax=2.f;
-	cudaMap(lambda, w, h, d_out, w, xmin, xmax, ymin, ymax);
+	cudaMap(mandelbrot, w, h, d_rgba, w, xmin, xmax, ymax, ymin);
 
-	string path="/home/pbrubeck/ParallelUniverse/cuMatlab/doc/Fractal.png";
-	imwrite(w,h,d_out,path);
-
-	printf("Fractal completed!\n");
-	cudaFree(d_out);
+	string path="/home/pbrubeck/ParallelUniverse/cuMatlab/data/Fractal.png";
+	imwrite(w,h,d_rgba,path);
+	cudaFree(d_rgba);
 }
 
 int main(int argc, char **argv){
-	fractalExample(4*1920, 4*1080);
+	fractalExample(1<<13, 1<<13);
+	printf("Program terminated.\n");
 	return 0;
 }

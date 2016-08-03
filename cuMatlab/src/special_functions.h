@@ -1,22 +1,24 @@
 /*
- * SpecialFunctions.h
+ * special_functions.h
  *
- *  Created on: May 25, 2016
+ *  Created on: Aug 2, 2016
  *      Author: pbrubeck
  */
 
-#ifndef SPECIALFUNCTIONS_H_
-#define SPECIALFUNCTIONS_H_
+#ifndef SPECIAL_FUNCTIONS_H_
+#define SPECIAL_FUNCTIONS_H_
 
 #include "math.h"
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-__host__ __device__ double sinc(double x){
+static __inline__ __host__ __device__
+double sinc(double x){
 	return x==0?1:sin(x)/x;
 }
 
-__host__ __device__ double jinc(double x){
+static __inline__ __host__ __device__
+double jinc(double x){
 	return x==0?1:j0(x)/x;
 }
 
@@ -24,7 +26,8 @@ __host__ __device__ double jinc(double x){
  * Orthogonal polynomial series using the Clenshaw algorithm
  */
 
-__host__ __device__ double ChebT(int n, double* a, double x){
+static __inline__ __host__ __device__
+double ChebT(int n, double* a, double x){
 	double temp, yy=0;
 	double y=(n>1)?a[n-1]:0;
 	for(int k=n-2; k>0; k--){
@@ -35,7 +38,8 @@ __host__ __device__ double ChebT(int n, double* a, double x){
 	return a[0]+x*y-yy;
 }
 
-__host__ __device__ double LegendreP(int n, double* a, int m, double x){
+static __inline__ __host__ __device__
+double LegendreP(int n, double* a, int m, double x){
 	double temp, yy=0;
 	double y=(n>m+1)?a[n-1]:0;
 	for(int k=n-2; k>m; k--){
@@ -51,7 +55,8 @@ __host__ __device__ double LegendreP(int n, double* a, int m, double x){
 	return p0*(a[m]+(2*m+1)*(x*y-yy/2));
 }
 
-__host__ __device__ double LaguerreL(int n, double* a, double alpha, double x){
+static __inline__ __host__ __device__
+double LaguerreL(int n, double* a, double alpha, double x){
 	double temp, yy=0;
 	double y=(n>1)?a[n-1]:0;
 	for(int k=n-2; k>0; k--){
@@ -62,7 +67,8 @@ __host__ __device__ double LaguerreL(int n, double* a, double alpha, double x){
 	return a[0]+(1+alpha-x)*y-(1+alpha)*yy/2;
 }
 
-__host__ __device__ double HermiteH(int n, double* a, double x){
+static __inline__ __host__ __device__
+double HermiteH(int n, double* a, double x){
 	double temp, yy=0;
 	double y=(n>1)?a[n-1]:0;
 	for(int k=n-2; k>0; k--){
@@ -73,7 +79,8 @@ __host__ __device__ double HermiteH(int n, double* a, double x){
 	return a[0]+2*(x*y-yy);
 }
 
-__host__ __device__ double HermitePsi(int n, double* a, double x){
+static __inline__ __host__ __device__
+double HermitePsi(int n, double* a, double x){
 	double temp, yy=0;
 	double y=(n>1)?a[n-1]:0;
 	for(int k=n-2; k>0; k--){
@@ -86,4 +93,4 @@ __host__ __device__ double HermitePsi(int n, double* a, double x){
 }
 
 
-#endif /* SPECIALFUNCTIONS_H_ */
+#endif /* SPECIAL_FUNCTIONS_H_ */

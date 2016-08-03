@@ -1,12 +1,13 @@
 /*
- * LinearAlgebra.h
+ * linalg.h
  *
- *  Created on: May 25, 2016
+ *  Created on: Aug 2, 2016
  *      Author: pbrubeck
  */
 
-#ifndef LINEARALGEBRA_H_
-#define LINEARALGEBRA_H_
+#ifndef LINALG_H_
+#define LINALG_H_
+
 
 #include "cublas_v2.h"
 #include "cusolverDn.h"
@@ -80,4 +81,4 @@ void sylvester(int m, int n, double *A, int lda, double *B, int ldb, double *C, 
 }
 
 
-#endif /* LINEARALGEBRA_H_ */
+#endif /* LINALG_H_ */
