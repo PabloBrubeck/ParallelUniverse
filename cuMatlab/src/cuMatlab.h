@@ -42,7 +42,14 @@ using namespace std;
  * Helper functions (host)
  */
 
-void disp(double* A, int m, int n, int lda){
+void disp(int m, double* A){
+	for(int i=0; i<m; i++){
+		printf("% .6e\n", A[i]);
+	}
+	printf("\n");
+}
+
+void disp(int m, int n, double* A, int lda){
 	for(int i=0; i<m; i++){
 		for(int j=0; j<n; j++){
 			printf("% .6e\t", A[j*lda+i]);
@@ -59,7 +66,8 @@ void linspaceHost(double a, double b, int n, double* x){
 	}
 }
 
-void mapHost(function<double(double)> fun, int n, double* y, double* x){
+template<typename F>
+void mapHost(F fun, int n, double* x, double* y){
 	for(int i=0; i<n; i++) {
 	  y[i]=fun(x[i]);
 	}
@@ -70,60 +78,60 @@ void mapHost(function<double(double)> fun, int n, double* y, double* x){
  */
 
 template<typename F, typename T1, typename T2>
-__global__ void apply(F fun, int n, T1 *d_x, T2 *d_y){
+__global__ void apply(F fun, int n, T1 *x, T2 *y){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	if(i<n){
-		d_y[i]=fun(d_x[i]);
+		y[i]=fun(x[i]);
 	}
 }
 
 template<typename F, typename T1, typename T2>
-void cudaMap(F fun, int n, T1* d_x, T2* d_y){
-	apply<<<grid(n), MAXTHREADS>>>(fun, n, d_x, d_y);
+void cudaMap(F fun, int n, T1* x, T2* y){
+	apply<<<grid(n), MAXTHREADS>>>(fun, n, x, y);
 }
 
 template<typename F, typename T1, typename T2>
-__global__ void apply(F fun, int m, int n, T1* d_x, int ldx, T2* d_y, int ldy){
+__global__ void apply(F fun, int m, int n, T1* X, int ldx, T2* Y, int ldy){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
 	if(i<m && j<n){
-		d_y[j*ldy+i]=fun(d_x[i*ldx+j]);
+		Y[j*ldy+i]=fun(X[j*ldx+i]);
 	}
 }
 
 template<typename F, typename T1, typename T2>
-void cudaMap(F fun, int m, int n, T1* d_x, int ldx, T2* d_y, int ldy){
-	apply<<<grid(m,n), MAXTHREADS>>>(fun, m, n, d_x, ldx, d_y, ldy);
+void cudaMap(F fun, int m, int n, T1* X, int ldx, T2* Y, int ldy){
+	apply<<<grid(m,n), MAXTHREADS>>>(fun, m, n, X, ldx, Y, ldy);
 }
 
 template<typename F, typename T1, typename T2>
-__global__ void apply(F fun, int n, T1* d_A, T2 xmin, T2 xmax){
+__global__ void apply(F fun, int n, T1* y, T2 xmin, T2 xmax){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	if(i<n){
 		T2 x=xmin+i*(xmax-xmin)/(n-1);
-		d_A[i]=fun(x);
+		y[i]=fun(x);
 	}
 }
 
 template<typename F,typename T1, typename T2>
-void cudaMap(F fun, int n, T1* d_A, T2 xmin, T2 xmax){
-	apply<<<grid(n), MAXTHREADS>>>(fun, n, d_A, xmin, xmax);
+void cudaMap(F fun, int n, T1* y, T2 xmin, T2 xmax){
+	apply<<<grid(n), MAXTHREADS>>>(fun, n, y, xmin, xmax);
 }
 
 template<typename F, typename T1, typename T2>
-__global__ void apply(F fun, int m, int n, T1* d_A, int lda, T2 xmin, T2 xmax, T2 ymin, T2 ymax){
+__global__ void apply(F fun, int m, int n, T1* A, int lda, T2 xmin, T2 xmax, T2 ymin, T2 ymax){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
 	if(i<m && j<n){
 		T2 x=xmin+i*(xmax-xmin)/(m-1);
 		T2 y=ymin+j*(ymax-ymin)/(n-1);
-		d_A[j*lda+i]=fun(x,y);
+		A[j*lda+i]=fun(x,y);
 	}
 }
 
 template<typename F,typename T1, typename T2>
-void cudaMap(F fun, int m, int n, T1* d_A, int lda, T2 xmin, T2 xmax, T2 ymin, T2 ymax){
-	apply<<<grid(m,n), MAXTHREADS>>>(fun, m, n, d_A, lda, xmin, xmax, ymin, ymax);
+void cudaMap(F fun, int m, int n, T1* A, int lda, T2 xmin, T2 xmax, T2 ymin, T2 ymax){
+	apply<<<grid(m,n), MAXTHREADS>>>(fun, m, n, A, lda, xmin, xmax, ymin, ymax);
 }
 
 /*

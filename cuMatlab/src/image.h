@@ -45,35 +45,35 @@ __host__ __device__ uchar4 hsv2rgb(float h, float s, float v){
 	}
 }
 
-template<typename T> void mat2gray(int m, int n, uchar4* d_rgba, T* d_A, int lda){
+template<typename T> void mat2gray(int m, int n, uchar4* rgba, T* A, int lda){
 	T minval, maxval;
-	minmax(&minval, &maxval, m*lda, d_A);
+	minmax(&minval, &maxval, m*lda, A);
 	auto lambda = [minval, maxval] __device__ (T x){
 		unsigned char t=(unsigned char)(255*(x-minval)/(maxval-minval));
 		return make_uchar4(t, t, t, 255);
 	};
-	cudaMap(lambda, m, n, d_A, lda, d_rgba, n);
+	cudaMap(lambda, m, n, A, lda, rgba, n);
 }
 
-void imwrite(int w, int h, uchar4* d_rgba, string path){
-	unsigned char *h_out=new unsigned char[4*w*h];
-	cudaMemcpy(h_out, d_rgba, w*h*sizeof(uchar4), cudaMemcpyDeviceToHost);
+void imwrite(int w, int h, uchar4* rgba, string path){
+	unsigned char *temp=new unsigned char[4*w*h];
+	cudaMemcpy(temp, rgba, w*h*sizeof(uchar4), cudaMemcpyDeviceToHost);
 
 	PNG outPng;
 	outPng.Create(w, h);
-	std::copy(&h_out[0], &h_out[4*w*h], std::back_inserter(outPng.data));
+	std::copy(temp, temp+4*w*h, std::back_inserter(outPng.data));
 	outPng.Save(path);
 	outPng.Free();
-	delete[] h_out;
+	delete[] temp;
 }
 
-void imread(int* w, int* h, uchar4* d_rgba, string path){
+void imread(int* w, int* h, uchar4* rgba, string path){
 	PNG inPng(path);
 	*w=inPng.w;
 	*h=inPng.h;
 	int npixels=inPng.w*inPng.h;
-	cudaMalloc((void**)&d_rgba, npixels*sizeof(uchar4));
-	cudaMemcpy(d_rgba, &inPng.data[0], npixels*sizeof(uchar4), cudaMemcpyHostToDevice);
+	cudaMalloc((void**)&rgba, npixels*sizeof(uchar4));
+	cudaMemcpy(rgba, &inPng.data[0], npixels*sizeof(uchar4), cudaMemcpyHostToDevice);
 	inPng.Free();
 }
 

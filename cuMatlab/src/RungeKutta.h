@@ -9,27 +9,26 @@
 #define RUNGEKUTTA_H_
 
 class RungeKutta{
-private:
-	int length;
 public:
+	cublasHandle_t handle;
+	int length;
 	double *u, *y, t;
 	double *k1, *k2, *k3, *k4;
-	cublasHandle_t handle;
-    RungeKutta(cublasHandle_t h, int n, double *u0, double t0){
-    	handle=h;
-    	length=n;
-    	u=u0;
-    	t=t0;
-    	cudaMalloc((void**)&y, n*sizeof(double));
-    	cudaMalloc((void**)&k1, n*sizeof(double));
-    	cudaMalloc((void**)&k2, n*sizeof(double));
-    	cudaMalloc((void**)&k3, n*sizeof(double));
-    	cudaMalloc((void**)&k4, n*sizeof(double));
-    }
-    virtual void partialD(int n, double *dy, double *y, double ti) = 0;
+	void (*partialD)(int, double*, double*, double);
+
+    RungeKutta(cublasHandle_t h, int n, double *u0, double t0, void (*f)(int, double*, double*, double));
     void step(double *ka, double *kb, double alpha);
 	void solve(double dt);
 };
+
+RungeKutta::RungeKutta(cublasHandle_t h, int n, double *u0, double t0, void (*f)(int, double*, double*, double))
+: handle(h), length(n), u(u0), t(t0), partialD(f){
+	cudaMalloc((void**)&y,  n*sizeof(double));
+	cudaMalloc((void**)&k1, n*sizeof(double));
+	cudaMalloc((void**)&k2, n*sizeof(double));
+	cudaMalloc((void**)&k3, n*sizeof(double));
+	cudaMalloc((void**)&k4, n*sizeof(double));
+}
 
 void RungeKutta::step(double *ka, double *kb, double alpha){
 	cublasDcopy(handle, length, u, 1, y, 1);

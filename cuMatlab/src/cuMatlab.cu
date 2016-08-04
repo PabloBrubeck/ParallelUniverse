@@ -52,7 +52,11 @@ void fractal(int w, int h, uchar4* d_rgba, double x1, double x2, double y1, doub
 
 
 int main(int argc, char **argv){
-	animation(argc, argv, 1024, 1024, fractal);
+	//animation(argc, argv, 1024, 1024, fractal);
+	//auto f=[] __device__ (double x){return sinpi(x);};
+	//poisson(f, -1, 1, 32);
+
+	waveExample(512);
 
 	printf("Program terminated.\n");
 	return 0;

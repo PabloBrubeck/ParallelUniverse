@@ -13,6 +13,25 @@
 #include "cusolverDn.h"
 #include "mkl.h"
 
+
+void linsolve(cusolverDnHandle_t h, int m, double *A, int lda, double *B, int ldb, int nrhs){
+	int lwork;
+	cusolverDnDgetrf_bufferSize(h, m, m, A, lda, &lwork);
+
+	int *info, *Ipiv;
+	double *Work;
+	cudaMalloc((void**)&info, sizeof(int));
+	cudaMalloc((void**)&Ipiv, m*sizeof(int));
+	cudaMalloc((void**)&Work, lwork*sizeof(double));
+
+	cusolverDnDgetrf(h, m, m, A, lda, Work, Ipiv, info);
+	cusolverDnDgetrs(h, CUBLAS_OP_N, m, nrhs, A, lda, Ipiv, B, ldb, info);
+
+	cudaFree(info);
+	cudaFree(Ipiv);
+	cudaFree(Work);
+}
+
 void trideig(int n, double *Z, double *W, double *D, double *E){
 	char jobvz='V', range='A';
 	int info=1, il=1, iu=n, m=n, ldz=n, lwork=20*n, liwork=10*n;
