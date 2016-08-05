@@ -15,20 +15,30 @@
 
 using namespace std;
 
-__host__ __device__ uchar4 jet(float x){
+__host__ __device__ static __inline__
+uchar4 gray(float x){
+	unsigned char t=(unsigned char)(255*clamp(x,0.f,1.f));
+	return make_uchar4(t,t,t,255);
+}
+
+__host__ __device__ static __inline__
+uchar4 jet(float x){
 	unsigned char r=(unsigned char)(255*clamp(1.5f-fabsf(4*x-3),0.f,1.f));
 	unsigned char g=(unsigned char)(255*clamp(1.5f-fabsf(4*x-2),0.f,1.f));
 	unsigned char b=(unsigned char)(255*clamp(1.5f-fabsf(4*x-1),0.f,1.f));
 	return make_uchar4(r,g,b,255);
 }
 
-__host__ __device__ uchar4 gray(float x){
-	unsigned char t=(unsigned char)(255*clamp(x,0.f,1.f));
-	return make_uchar4(t,t,t,255);
+__host__ __device__ static __inline__
+uchar4 hot(float x){
+	unsigned char r=(unsigned char)(255*clamp(8*x/3  , 0.f, 1.f));
+	unsigned char g=(unsigned char)(255*clamp(8*x/3-1, 0.f, 1.f));
+	unsigned char b=(unsigned char)(255*clamp(4*x-3  , 0.f, 1.f));
+	return make_uchar4(r,g,b,255);
 }
 
-
-__host__ __device__ uchar4 hsv2rgb(float h, float s, float v){
+__host__ __device__ static __inline__
+uchar4 hsv2rgb(float h, float s, float v){
 	h-=floorf(h);
 	float c=v*s;
 	unsigned char M=(unsigned char)(255*(v-c));
@@ -45,7 +55,8 @@ __host__ __device__ uchar4 hsv2rgb(float h, float s, float v){
 	}
 }
 
-template<typename T> void mat2gray(int m, int n, uchar4* rgba, T* A, int lda){
+template<typename T>
+void mat2gray(int m, int n, uchar4* rgba, T* A, int lda){
 	T minval, maxval;
 	minmax(&minval, &maxval, m*lda, A);
 	auto lambda = [minval, maxval] __device__ (T x){

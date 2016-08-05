@@ -46,7 +46,6 @@ void quadratureExample(F f, int n){
 template<typename F>
 void poisson(F f, double ua, double ub, int n){
 	// Solves the Dirichlet problem u_xx = f(x), u(a)=ua, u(b)=ub
-
 	double *x, *D, *D2;
 	cudaMalloc((void**)&x, n*sizeof(double));
 	cudaMalloc((void**)&D, n*n*sizeof(double));
@@ -94,13 +93,13 @@ void poisson(F f, double ua, double ub, int n){
 
 void waveD(int N, double *v, double *u, double ti){
 	static cufftHandle fftPlan, ifftPlan;
-	static cufftDoubleComplex *u_hat=NULL;
+	static cufftDoubleComplex *u_hat;
 	// very important length(u)=length(v)=N
 	int n=N/2;
-	if(u_hat==NULL){
+	if(!u_hat){
 		cufftPlan1d(&fftPlan,  n, CUFFT_D2Z, 1);
 		cufftPlan1d(&ifftPlan, n, CUFFT_Z2D, 1);
-		cudaMalloc((void**)&u_hat, n*sizeof(cufftDoubleComplex));
+		cudaMalloc((void**)&u_hat, n/2*sizeof(cufftDoubleComplex));
 	}
 	fftD(fftPlan, ifftPlan, n, 1, v, u+n, u_hat);
 	fftD(fftPlan, ifftPlan, n, 1, v+n, u, u_hat);
@@ -112,9 +111,17 @@ void waveExample(int N){
 	// Initial conditions
 	double *u;
 	cudaMalloc((void**)&u, 2*N*sizeof(double));
-	auto f1=[] __device__ (double x){return exp(-40*x*x);};
+	auto f1=[] __device__ (double x){
+		double x1=x-pi/2;
+		double x2=x+pi/2;
+		return exp(-40*x1*x1)+exp(-40*x2*x2);
+	};
 	cudaMap(f1, N, u, -pi, pi-2*pi/N);
-	auto f2=[] __device__ (double x){return exp(-40*x*x);};
+	auto f2=[] __device__ (double x){
+		double x1=x-pi/2;
+		double x2=x+pi/2;
+		return exp(-40*x1*x1)-exp(-40*x2*x2);
+	};
 	cudaMap(f2, N, u+N, -pi, pi-2*pi/N);
 
 	cublasHandle_t cublasH;
@@ -123,13 +130,13 @@ void waveExample(int N){
 
 	uchar4 *rgba;
 	cudaMalloc((void**)&rgba, N*N*sizeof(uchar4));
-	double umin, umax;
-	minmax(&umin, &umax, N, u);
+	double umin=0, umax=2;
+	//minmax(&umin, &umax, N, u);
 	auto plot=[umin, umax] __device__ (double u){
-		return jet((float)((u-umin)/(umax-umin)));
+		return hot((float)((u-umin)/(umax-umin)));
 	};
 
-	double dt=1200.0/(N*N);
+	double dt=pi/N;
 	int nframes=N;
 	for(int i=0; i<nframes; i++){
 		wave.solve(dt);

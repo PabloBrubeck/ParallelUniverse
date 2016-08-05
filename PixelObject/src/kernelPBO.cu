@@ -160,8 +160,8 @@ void launch_kernel(int width, int height, uchar4* d_pixel){
 	static const dim3 grid(ceil(width, block.x), ceil(height, block.y));
 	static int nframes=0;
 	float time=nframes/100.0;
-	wavePDE(width, height, d_pixel, d_cmap, d_u, d_ul, d_lap, origin, axes, time);
-	//kerneld<<<grid, block>>>(width, height, d_pixel, d_cmap, origin, axes);
+	//wavePDE(width, height, d_pixel, d_cmap, d_u, d_ul, d_lap, origin, axes, time);
+	kerneld<<<grid, block>>>(width, height, d_pixel, d_cmap, origin, axes);
 	cudaThreadSynchronize();
 	checkCudaErrors(cudaGetLastError());
 	nframes++;

@@ -57,14 +57,14 @@ void runCuda(){
 }
 
 void zoom(int x, int y, double z){
-	axes[0]+=(1-z)*axes[2]*(poi.x+(double)(x*roi.x)/window.x)/width;
-	axes[1]+=(1-z)*axes[3]*(poi.y+(double)(y*roi.y)/window.y)/height;
+	axes[0]+=axes[2]*(1-z)*(poi.x+(x*roi.x)/(double)window.x)/width;
+	axes[1]+=axes[3]*(1-z)*(poi.y+(y*roi.y)/(double)window.y)/height;
 	axes[2]*=z;
 	axes[3]*=z;
 }
 void setROI(int x, int y, double z){
-	poi.x+=((1-z)*(x*roi.x))/window.x;
-	poi.y+=((1-z)*(y*roi.y))/window.y;
+	poi.x+=((1-z)*(x*roi.x))/(double)window.x;
+	poi.y+=((1-z)*(y*roi.y))/(double)window.y;
 	roi.x=clamp((int)(z*roi.x), 1, width);
 	roi.y=clamp((int)(z*roi.y), 1, height);
 	if(poi.x<0){
@@ -134,6 +134,9 @@ void fpsDisplay(){
 	}
 }
 void reshape(int w, int h){
+	axes[2]*=(w/(double)window.x);
+	axes[3]*=(h/(double)window.y);
+
 	window=make_int2(w,h);
 	glViewport(0, 0, w, h);
 	glMatrixMode(GL_PROJECTION);
@@ -213,15 +216,6 @@ void createPBO(GLuint* pbo, int size){
 		cudaGLRegisterBufferObject(*pbo);
 	}
 }
-void deletePBO(GLuint* pbo){
-	if(pbo){
-		// unregister this buffer object with CUDA
-		cudaGLUnregisterBufferObject(*pbo);
-		glBindBuffer(GL_ARRAY_BUFFER, *pbo);
-		glDeleteBuffers(1, pbo);
-		pbo=NULL;
-	}
-}
 void createTexture(GLuint* textureID, int width, int height){
 	// Enable Texturing
 	glEnable(GL_TEXTURE_RECTANGLE_ARB);
@@ -245,6 +239,15 @@ void createTexture(GLuint* textureID, int width, int height){
 	// GL_TEXTURE_2D for improved performance if linear interpolation is
 	// not desired. Replace GL_LINEAR with GL_NEAREST in the
 	// glTexParameteri() call
+}
+void deletePBO(GLuint* pbo){
+	if(pbo){
+		// unregister this buffer object with CUDA
+		cudaGLUnregisterBufferObject(*pbo);
+		glBindBuffer(GL_ARRAY_BUFFER, *pbo);
+		glDeleteBuffers(1, pbo);
+		pbo=NULL;
+	}
 }
 void deleteTexture(GLuint* tex){
 	glDeleteTextures(1, tex);
@@ -312,9 +315,15 @@ void animation(int argc, char** argv, int w, int h, void (*fun)(int, int, uchar4
 
 	axes[0]=axes[1]=-1;
 	axes[2]=axes[3]=2;
+	if(w>h){
+		axes[2]*=w/(double)h;
+	}else if(h>w){
+		axes[3]*=h/(double)w;
+	}
+
 	poi=make_int2(0,0);
 	roi=make_int2(w,h);
-	window=make_int2(720,720);
+	window=make_int2(clamp(w,720,1920), clamp(h,720,1080));
 
 	sdkCreateTimer(&timer);
 	if(!initGL(&argc, argv)){
