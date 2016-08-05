@@ -25,8 +25,7 @@ __global__ void diffFilter(double order, int n, cufftDoubleComplex *uhat){
 	if(gid<n){
 		int k=(2*gid<n)? gid : gid-n;
 		if(order==1){
-			uhat[gid].x=-k*uhat[gid].y/n;
-			uhat[gid].y= k*uhat[gid].x/n;
+			uhat[gid]=make_cuDoubleComplex(-k*uhat[gid].y/n, k*uhat[gid].x/n);
 		}else{
 			cuDoubleComplex ik=make_cuDoubleComplex(0, k);
 			uhat[gid]=pow(ik, order)*uhat[gid]/n;

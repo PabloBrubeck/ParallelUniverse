@@ -124,16 +124,15 @@ void waveExample(int N){
 	uchar4 *rgba;
 	cudaMalloc((void**)&rgba, N*N*sizeof(uchar4));
 	double umin, umax;
+	minmax(&umin, &umax, N, u);
+	auto plot=[umin, umax] __device__ (double u){
+		return jet((float)((u-umin)/(umax-umin)));
+	};
 
-
-	double dt=120.0/(N*N);
+	double dt=1200.0/(N*N);
 	int nframes=N;
 	for(int i=0; i<nframes; i++){
 		wave.solve(dt);
-		minmax(&umin, &umax, N, u);
-		auto plot=[umin, umax] __device__ (double u){
-			return jet((float)((u-umin)/(umax-umin)));
-		};
 		cudaMap(plot, N, u, rgba+i*N);
 	}
 	string path="/home/pbrubeck/ParallelUniverse/cuMatlab/data/wave.png";
@@ -146,7 +145,8 @@ void cufftExample(int N){
 	double *u;
 	cudaMallocManaged((void**)&u, N*sizeof(double));
 	auto f=[]__device__(double th)->double{return sin(th);};
-	cudaMap(f, N, u, -pi, pi-2*pi/(N-1));
+	double dx=2*pi/N;
+	cudaMap(f, N, u, dx, dx*N);
 
 	cufftHandle fftPlan, ifftPlan;
 	cufftPlan1d(&fftPlan,  N, CUFFT_D2Z, 1);
@@ -156,6 +156,7 @@ void cufftExample(int N){
 	cudaMalloc((void**)&uhat, N*sizeof(cufftDoubleComplex));
 
 	fftD(fftPlan, ifftPlan, N, 1, u, u, uhat);
+
 	cudaDeviceSynchronize();
 	disp(N, u);
 
