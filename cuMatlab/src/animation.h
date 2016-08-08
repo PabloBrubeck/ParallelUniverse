@@ -216,6 +216,16 @@ void createPBO(GLuint* pbo, int size){
 		cudaGLRegisterBufferObject(*pbo);
 	}
 }
+void deletePBO(GLuint* pbo){
+	if(pbo){
+		// unregister this buffer object with CUDA
+		cudaGLUnregisterBufferObject(*pbo);
+		glBindBuffer(GL_ARRAY_BUFFER, *pbo);
+		glDeleteBuffers(1, pbo);
+		pbo=NULL;
+		delete pbo;
+	}
+}
 void createTexture(GLuint* textureID, int width, int height){
 	// Enable Texturing
 	glEnable(GL_TEXTURE_RECTANGLE_ARB);
@@ -239,15 +249,6 @@ void createTexture(GLuint* textureID, int width, int height){
 	// GL_TEXTURE_2D for improved performance if linear interpolation is
 	// not desired. Replace GL_LINEAR with GL_NEAREST in the
 	// glTexParameteri() call
-}
-void deletePBO(GLuint* pbo){
-	if(pbo){
-		// unregister this buffer object with CUDA
-		cudaGLUnregisterBufferObject(*pbo);
-		glBindBuffer(GL_ARRAY_BUFFER, *pbo);
-		glDeleteBuffers(1, pbo);
-		pbo=NULL;
-	}
 }
 void deleteTexture(GLuint* tex){
 	glDeleteTextures(1, tex);
@@ -313,8 +314,8 @@ void animation(int argc, char** argv, int w, int h, void (*fun)(int, int, uchar4
 	height=h;
 	render=fun;
 
-	axes[0]=axes[1]=-1;
-	axes[2]=axes[3]=2;
+	axes[0]=axes[1]=-2;
+	axes[2]=axes[3]=4;
 	if(w>h){
 		axes[2]*=w/(double)h;
 	}else if(h>w){

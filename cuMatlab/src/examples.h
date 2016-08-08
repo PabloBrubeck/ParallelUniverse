@@ -91,6 +91,25 @@ void poisson(F f, double ua, double ub, int n){
 	cusolverDnDestroy(cusolverH);
 }
 
+void imageExample(const int w, const int h){
+	uchar4 *d_rgba;
+	cudaMalloc((void**)&d_rgba, w*h*sizeof(uchar4));
+
+	auto dcolor = [] __device__ (double x, double y){
+		cuDoubleComplex z=make_cuDoubleComplex(x, y);
+		cuDoubleComplex w=asin(z);
+		return hsv2rgb(angle(w)/(2*pi),1,1);
+	};
+
+	double L=3*pi;
+	double xmin=-L, xmax=L, ymin=-h*L/w, ymax=h*L/w;
+	cudaMap(dcolor, w, h, d_rgba, w, xmin, xmax, ymax, ymin);
+
+	string path="/home/pbrubeck/ParallelUniverse/cuMatlab/data/DomainColor.png";
+	imwrite(w,h,d_rgba,path);
+	cudaFree(d_rgba);
+}
+
 void waveD(int N, double *v, double *u, double ti){
 	static cufftHandle fftPlan, ifftPlan;
 	static cufftDoubleComplex *u_hat;
@@ -127,23 +146,24 @@ void waveExample(int N){
 	cublasHandle_t cublasH;
 	cublasCreate(&cublasH);
 	RungeKutta wave(cublasH, 2*N, u, 0.0, waveD);
+	double dt=pi/N;
+	int nframes=N;
 
 	uchar4 *rgba;
-	cudaMalloc((void**)&rgba, N*N*sizeof(uchar4));
+	cudaMalloc((void**)&rgba, N*nframes*sizeof(uchar4));
 	double umin=0, umax=2;
 	//minmax(&umin, &umax, N, u);
 	auto plot=[umin, umax] __device__ (double u){
 		return hot((float)((u-umin)/(umax-umin)));
 	};
 
-	double dt=pi/N;
-	int nframes=N;
+
 	for(int i=0; i<nframes; i++){
 		wave.solve(dt);
 		cudaMap(plot, N, u, rgba+i*N);
 	}
 	string path="/home/pbrubeck/ParallelUniverse/cuMatlab/data/wave.png";
-	imwrite(N, N, rgba, path);
+	imwrite(N, nframes, rgba, path);
 	cublasDestroy(cublasH);
 }
 
@@ -151,7 +171,7 @@ void cufftExample(int N){
 	// Computes first derivative of a periodic function f(x) on [-pi, pi]
 	double *u;
 	cudaMallocManaged((void**)&u, N*sizeof(double));
-	auto f=[]__device__(double th)->double{return sin(th);};
+	auto f=[]__device__(double th){return sin(th);};
 	double dx=2*pi/N;
 	cudaMap(f, N, u, dx, dx*N);
 

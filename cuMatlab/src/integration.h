@@ -31,10 +31,9 @@ void gauleg(int n, double *x, double *w, double a, double b){
 	double *D=new double[n];
 	double *E=new double[n];
 	double *W=new double[n*n];
-	for(int i=0; i<n; i++){
-		int k=i+1;
-		D[i]=0;
-		E[i]=k/sqrt(4*k*k-1);
+	for(int k=1; k<=n; k++){
+		D[k-1]=0;
+		E[k-1]=k/sqrt(4*k*k-1);
 	}
 	trideig(n, W, x, D, E);
 	double x0=(b+a)/2;
@@ -51,11 +50,10 @@ void gaujac(int n, double *x, double *w, double a, double b){
 	double *D=new double[n];
 	double *E=new double[n];
 	double *W=new double[n*n];
-	for(int i=0; i<n; i++){
-		int k=i+1;
-		double c=2*k+a+b;
-		D[i]=(b*b-a*a)/(c*(c-2)+(b*b==a*a));
-		E[i]=2/c*sqrt(k*(k+a)*(k+b)*(k+a+b)/(c*c-1));
+	for(int k=1; k<=n; k++){
+		double c=a+b+2*k;
+		D[k-1]=(b*b-a*a)/(c*(c-2)+(b*b==a*a));
+		E[k-1]=2/c*sqrt(k*(k+a)*(k+b)*(k+a+b)/(c*c-1));
 	}
 	trideig(n, W, x, D, E);
 	double w0=pow(2.0,a+b+1)*gamma(a+1)*gamma(b+1)/gamma(a+b+2);
@@ -70,9 +68,8 @@ void gaulag(int n, double *x, double *w){
 	double *E=new double[n];
 	double *W=new double[n*n];
 	for(int i=0; i<n; i++){
-		int k=i+1;
-		D[i]=2*k-1;
-		E[i]=k;
+		D[i]=2*i+1;
+		E[i]=i+1;
 	}
 	trideig(n, W, x, D, E);
 	for(int i=0; i<n; i++){

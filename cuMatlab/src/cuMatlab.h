@@ -135,63 +135,52 @@ void cudaMap(F fun, int m, int n, T1* A, int lda, T2 xmin, T2 xmax, T2 ymin, T2 
 }
 
 /*
- * Thrust helper functions (device)
+ * Thrust helper functions (host & device)
  */
 
-template<typename T> void zeros(int n, T* d_x){
-	thrust::device_ptr<T> t_x(d_x);
-	thrust::fill(t_x, t_x+n, (T)0);
+template<typename T> void zeros(int n, T* x){
+	thrust::fill(x, x+n, (T)0);
 }
 
-template<typename T> void ones(int n, T* d_x){
-	thrust::device_ptr<T> t_x(d_x);
-	thrust::fill(t_x, t_x+n, (T)1);
+template<typename T> void ones(int n, T* x){
+	thrust::fill(x, x+n, (T)1);
 }
 
-template<typename T> void fill(T val, int n, T* d_x){
-	thrust::device_ptr<T> t_x(d_x);
-	thrust::fill(t_x, t_x+n, val);
+template<typename T> void fill(T val, int n, T* x){
+	thrust::fill(x, x+n, val);
 }
 
-template<typename T> void sequence(int n, T* d_x){
-	thrust::device_ptr<T> t_x(d_x);
-	thrust::sequence(t_x, t_x+n);
+template<typename T> void sequence(int n, T* x){
+	thrust::sequence(x, x+n);
 }
 
-template<typename T> void linspace(T a, T b, int n, T* d_x){
-	thrust::device_ptr<T> t_x(d_x);
-	thrust::sequence(t_x, t_x+n, a, (b-a)/(n-1));
+template<typename T> void linspace(T a, T b, int n, T* x){
+	thrust::sequence(x, x+n, a, (b-a)/(n-1));
 }
 
-template<typename T> T sum(int n, T* d_x){
-	thrust::device_ptr<T> t_x(d_x);
-	return thrust::reduce(t_x, t_x+n, 0, thrust::plus<T>());
+template<typename T> T sum(int n, T* x){
+	return thrust::reduce(x, x+n, 0, thrust::plus<T>());
 }
 
-template<typename T> T prod(int n, T* d_x){
-	thrust::device_ptr<T> t_x(d_x);
-	return thrust::reduce(t_x, t_x+n, 1, thrust::multiplies<T>());
+template<typename T> T prod(int n, T* x){
+	return thrust::reduce(x, x+n, 1, thrust::multiplies<T>());
 }
 
-template<typename T> T mean(int n, T* d_x){
-	thrust::device_ptr<T> t_x(d_x);
-	return thrust::reduce(t_x, t_x+n, 0, thrust::plus<T>())/n;
+template<typename T> T mean(int n, T* x){
+	return thrust::reduce(x, x+n, 0, thrust::plus<T>())/n;
 }
 
-template<typename T> T max(int n, T* d_x){
-	thrust::device_ptr<T> t_x(d_x);
-	return thrust::reduce(t_x, t_x+n, numeric_limits<T>::min(), thrust::maximum<T>());
+template<typename T> T max(int n, T* x){
+	return thrust::reduce(x, x+n, numeric_limits<T>::min(), thrust::maximum<T>());
 }
 
-template<typename T> T min(int n, T* d_x){
-	thrust::device_ptr<T> t_x(d_x);
-	return thrust::reduce(t_x, t_x+n, numeric_limits<T>::max(), thrust::minimum<T>());
+template<typename T> T min(int n, T* x){
+	return thrust::reduce(x, x+n, numeric_limits<T>::max(), thrust::minimum<T>());
 }
 
-template<typename T> void minmax(T *minptr, T *maxptr, int n, T* d_x){
-	thrust::device_ptr<T> t_x(d_x);
-	*minptr=thrust::reduce(t_x, t_x+n, numeric_limits<T>::max(), thrust::minimum<T>());
-	*maxptr=thrust::reduce(t_x, t_x+n, numeric_limits<T>::min(), thrust::maximum<T>());
+template<typename T> void minmax(T *minptr, T *maxptr, int n, T* x){
+	*minptr=thrust::reduce(x, x+n, numeric_limits<T>::max(), thrust::minimum<T>());
+	*maxptr=thrust::reduce(x, x+n, numeric_limits<T>::min(), thrust::maximum<T>());
 }
 
 

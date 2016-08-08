@@ -16,24 +16,32 @@
 using namespace std;
 
 __host__ __device__ static __inline__
-uchar4 gray(float x){
-	unsigned char t=(unsigned char)(255*clamp(x,0.f,1.f));
-	return make_uchar4(t,t,t,255);
+uchar4 gray(float t){
+	unsigned char v=(unsigned char)(255*clamp(t, 0.f, 1.f));
+	return make_uchar4(v,v,v,255);
 }
 
 __host__ __device__ static __inline__
-uchar4 jet(float x){
-	unsigned char r=(unsigned char)(255*clamp(1.5f-fabsf(4*x-3),0.f,1.f));
-	unsigned char g=(unsigned char)(255*clamp(1.5f-fabsf(4*x-2),0.f,1.f));
-	unsigned char b=(unsigned char)(255*clamp(1.5f-fabsf(4*x-1),0.f,1.f));
+uchar4 jet(float t){
+	unsigned char r=(unsigned char)(255*clamp(1.5f-fabsf(4*t-3), 0.f, 1.f));
+	unsigned char g=(unsigned char)(255*clamp(1.5f-fabsf(4*t-2), 0.f, 1.f));
+	unsigned char b=(unsigned char)(255*clamp(1.5f-fabsf(4*t-1), 0.f, 1.f));
 	return make_uchar4(r,g,b,255);
 }
 
 __host__ __device__ static __inline__
-uchar4 hot(float x){
-	unsigned char r=(unsigned char)(255*clamp(8*x/3  , 0.f, 1.f));
-	unsigned char g=(unsigned char)(255*clamp(8*x/3-1, 0.f, 1.f));
-	unsigned char b=(unsigned char)(255*clamp(4*x-3  , 0.f, 1.f));
+uchar4 hot(float t){
+	unsigned char r=(unsigned char)(255*clamp(8*t/3  , 0.f, 1.f));
+	unsigned char g=(unsigned char)(255*clamp(8*t/3-1, 0.f, 1.f));
+	unsigned char b=(unsigned char)(255*clamp(4*t-3  , 0.f, 1.f));
+	return make_uchar4(r,g,b,255);
+}
+
+__host__ __device__ static __inline__
+uchar4 cold(float t){
+	unsigned char r=(unsigned char)(255*clamp(2.0f-fabsf(6*t-3), 0.f, 1.f));
+	unsigned char g=(unsigned char)(255*clamp(2.0f-fabsf(6*t-2), 0.f, 1.f));
+	unsigned char b=(unsigned char)(255*clamp(1.5f-fabsf(6*t-1), 0.f, 1.f));
 	return make_uchar4(r,g,b,255);
 }
 
@@ -60,10 +68,10 @@ void mat2gray(int m, int n, uchar4* rgba, T* A, int lda){
 	T minval, maxval;
 	minmax(&minval, &maxval, m*lda, A);
 	auto lambda = [minval, maxval] __device__ (T x){
-		unsigned char t=(unsigned char)(255*(x-minval)/(maxval-minval));
-		return make_uchar4(t, t, t, 255);
+		unsigned char v=(unsigned char)(255*(x-minval)/(maxval-minval));
+		return make_uchar4(v, v, v, 255);
 	};
-	cudaMap(lambda, m, n, A, lda, rgba, n);
+	cudaMap(lambda, m, n, A, lda, rgba, m);
 }
 
 void imwrite(int w, int h, uchar4* rgba, string path){
@@ -82,9 +90,9 @@ void imread(int* w, int* h, uchar4* rgba, string path){
 	PNG inPng(path);
 	*w=inPng.w;
 	*h=inPng.h;
-	int npixels=inPng.w*inPng.h;
-	cudaMalloc((void**)&rgba, npixels*sizeof(uchar4));
-	cudaMemcpy(rgba, &inPng.data[0], npixels*sizeof(uchar4), cudaMemcpyHostToDevice);
+	int size=inPng.w*inPng.h*sizeof(uchar4);
+	cudaMalloc((void**)&rgba, size);
+	cudaMemcpy(rgba, &inPng.data[0], size, cudaMemcpyHostToDevice);
 	inPng.Free();
 }
 
