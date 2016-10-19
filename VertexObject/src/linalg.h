@@ -106,7 +106,7 @@ __global__
 void frenet(float4* d_pos, float4* d_tan, float4* d_norm, float4* d_bin, int n){
 	int gid=blockIdx.x*blockDim.x+threadIdx.x;
 	if(gid<n){
-		d_norm[gid]=normalize(d_tan[gid+1]-d_tan[gid]);
+		d_norm[gid]=normalize(d_tan[(gid+1)%n]-d_tan[gid]);
 		d_bin[gid]=cross(d_tan[gid], d_norm[gid]);
 	}
 }

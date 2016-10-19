@@ -4,7 +4,8 @@
 
 #include "cuMatlab.h"
 #include "examples.h"
-#include "animation.h"
+#include "vertex.h"
+#include "geometry.h"
 
 using namespace std;
 
@@ -86,12 +87,28 @@ void complexGamma(int m, int n, uchar4* rgba, double x1, double x2, double y1, d
 	cudaDeviceSynchronize();
 }
 
+void makeSpheres(dim3 mesh, float4* vertex, float4* norm, uchar4* color, uint4* index){
+	static float4 *pos=NULL;
+	static dim3 grid1=grid(mesh.z);
+	static dim3 grid3, block3;
+	if(pos==NULL){
+		gridblock(grid3, block3, mesh);
+		cudaMalloc((void**)&pos, mesh.z*sizeof(float4));
+		circle<<< grid1, MAXTHREADS>>>(mesh.z, pos, 1.f);
+		spheres<<<grid3, block3>>>(mesh, pos, vertex, norm, 0.1f);
+		indexS2<<<grid3, block3>>>(mesh, index);
+		colorSurf<<<grid3, block3>>>(mesh, color);
+	}
+}
+
+
+
 int main(int argc, char **argv){
-	//animation(argc, argv, 720, 720, complexGamma);
+	dim3 mesh(1<<8, 1<<8, 1<<5);
+	vertex(argc, argv, mesh, makeSpheres);
+	//waveExample(1024);
 	//auto f=[] __device__ (double x){return sinpi(x);};
 	//poisson(f, -1, 1, 32);
-
-	waveExample(1024);
 
 	printf("Program terminated.\n");
 	return 0;

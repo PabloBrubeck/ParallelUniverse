@@ -25,6 +25,7 @@
 #include <thrust/functional.h>
 
 #include "kernel.h"
+#include "strided_range.h"
 #include "linalg.h"
 #include "integration.h"
 #include "complex_functions.h"
@@ -57,13 +58,6 @@ void disp(int m, int n, double* A, int lda){
 		printf("\n");
 	}
 	printf("\n");
-}
-
-void linspaceHost(double a, double b, int n, double* x){
-	double h=(b-a)/(n-1);
-	for(int i=0; i<n; i++){
-		x[i]=a+h*i;
-	}
 }
 
 template<typename F>

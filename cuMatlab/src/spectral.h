@@ -8,13 +8,20 @@
 #ifndef SPECTRAL_H_
 #define SPECTRAL_H_
 
-
 #include "kernel.h"
 #include "cufft.h"
-#include <thrust/iterator/permutation_iterator.h>
+
+#include "strided_range.h"
 #include <thrust/scan.h>
 
-__global__ void auxdst(int N, double *y, double *f){
+__global__ void timesi(int N, cuDoubleComplex *z){
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	if(i<N){
+		z[i]=make_cuDoubleComplex(-z[i].y, z[i].x);
+	}
+}
+
+__global__ void auxdst(int N, double *f, double *y){
 	int j=blockIdx.x*blockDim.x+threadIdx.x;
 	if(j<N){
 		int Nmj=(N-j)%N;
@@ -23,15 +30,21 @@ __global__ void auxdst(int N, double *y, double *f){
 }
 
 void dst(int N, double *f, double *F){
-	double *y;
-	cudaMalloc((void**)&y, N*sizeof(double));
-	auxdst<<<grid(N),MAXTHREADS>>>(N, y, f);
+	auxdst<<<grid(N),MAXTHREADS>>>(N, f, F);
 
 	cufftHandle fftPlan;
 	cufftPlan1d(&fftPlan, N, CUFFT_D2Z, 1);
-	cufftExecD2Z(fftPlan, y, (cufftDoubleComplex*)F);
+	cufftExecD2Z(fftPlan, F, (cufftDoubleComplex*)F);
+	timesi<<<grid(N/2),MAXTHREADS>>>(N/2, (cufftDoubleComplex*)F);
 
-	thrust::inclusive_scan(F, F+N, F);
+	double F1;
+	cudaMemcpy(&F1, F+1, sizeof(double), cudaMemcpyDeviceToHost);
+	F1*=0.5;
+	cudaMemcpy(F+1, &F1, sizeof(double), cudaMemcpyHostToDevice);
+
+	thrust::device_ptr<double> ptr(F);
+	strided_range<thrust::device_vector<double>::iterator>  odds(ptr+1, ptr+N, 2);
+	thrust::inclusive_scan(odds.begin(), odds.end(), odds.begin());
 }
 
 
@@ -75,15 +88,14 @@ void chebDelem(int n, double *D, double *x){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
 	if(i<n && j<n){
-		int gid=j*n+i;
 		if(i!=j){
 			int ci=(i==0 || i==n-1)?2:1;
 			int cj=(j==0 || j==n-1)?2:1;
-			D[gid]=((i+j)&1?-ci:ci)/(cj*(x[i]-x[j]));
+			D[j*n+i]=((i+j)&1?-ci:ci)/(cj*(x[i]-x[j]));
 		}else if(j>0 && j<n-1){
-			D[gid]=-x[j]/(2*(1-x[j]*x[j]));
+			D[j*n+i]=-x[j]/(2*(1-x[j]*x[j]));
 		}else{
-			D[gid]=(j==0?1:-1)*(2*(n-1)*(n-1)+1)/6.0;
+			D[j*n+i]=(j==0?1:-1)*(2*(n-1)*(n-1)+1)/6.0;
 		}
 	}
 }

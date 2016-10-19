@@ -327,6 +327,7 @@ void animation(int argc, char** argv, int w, int h, void (*fun)(int, int, uchar4
 	window=make_int2(clamp(w,720,1920), clamp(h,720,1080));
 
 	sdkCreateTimer(&timer);
+
 	if(!initGL(&argc, argv)){
 		exit(EXIT_FAILURE);
 	}
@@ -334,7 +335,7 @@ void animation(int argc, char** argv, int w, int h, void (*fun)(int, int, uchar4
 	initCuda(argc, argv);
 	SDK_CHECK_ERROR_GL();
 
-	// start rendering mainloop
+	// start rendering main loop
 	glutMainLoop();
 
 	// clean up

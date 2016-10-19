@@ -33,4 +33,13 @@ inline dim3 grid(int i, int j, int k){
 	return dim3(ceil(i,MAXTHREADS), j, k);
 }
 
+inline void gridblock(dim3 &grid, dim3 &block, dim3 mesh){
+	block.x=min(mesh.x, MAXTHREADS);
+	block.y=min(mesh.y, ceil(MAXTHREADS, block.x));
+	block.z=ceil(MAXTHREADS, block.x*block.y);
+	grid.x=ceil(mesh.x, block.x);
+	grid.y=ceil(mesh.y, block.y);
+	grid.z=ceil(mesh.z, block.z);
+}
+
 #endif /* KERNEL_H_ */
