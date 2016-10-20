@@ -43,14 +43,16 @@ using namespace std;
  * Helper functions (host)
  */
 
-void disp(int m, double* A){
+template<typename T>
+void disp(int m, T* A){
 	for(int i=0; i<m; i++){
 		printf("% .6e\n", A[i]);
 	}
 	printf("\n");
 }
 
-void disp(int m, int n, double* A, int lda){
+template<typename T>
+void disp(int m, int n, T* A, int lda){
 	for(int i=0; i<m; i++){
 		for(int j=0; j<n; j++){
 			printf("% .6e\t", A[j*lda+i]);
@@ -95,7 +97,9 @@ __global__ void apply(F fun, int m, int n, T1* X, int ldx, T2* Y, int ldy){
 
 template<typename F, typename T1, typename T2>
 void cudaMap(F fun, int m, int n, T1* X, int ldx, T2* Y, int ldy){
-	apply<<<grid(m,n), MAXTHREADS>>>(fun, m, n, X, ldx, Y, ldy);
+	dim3 grid, block;
+	gridblock(grid, block, dim3(m,n));
+	apply<<<grid, block>>>(fun, m, n, X, ldx, Y, ldy);
 }
 
 template<typename F, typename T1, typename T2>
@@ -125,7 +129,9 @@ __global__ void apply(F fun, int m, int n, T1* A, int lda, T2 xmin, T2 xmax, T2 
 
 template<typename F,typename T1, typename T2>
 void cudaMap(F fun, int m, int n, T1* A, int lda, T2 xmin, T2 xmax, T2 ymin, T2 ymax){
-	apply<<<grid(m,n), MAXTHREADS>>>(fun, m, n, A, lda, xmin, xmax, ymin, ymax);
+	dim3 grid, block;
+	gridblock(grid, block, dim3(m,n));
+	apply<<<grid, block>>>(fun, m, n, A, lda, xmin, xmax, ymin, ymax);
 }
 
 /*
@@ -140,7 +146,7 @@ template<typename T> void ones(int n, T* x){
 	thrust::fill(x, x+n, (T)1);
 }
 
-template<typename T> void fill(T val, int n, T* x){
+template<typename T> void fill(int n, T* x, T val){
 	thrust::fill(x, x+n, val);
 }
 
@@ -153,28 +159,28 @@ template<typename T> void linspace(T a, T b, int n, T* x){
 }
 
 template<typename T> T sum(int n, T* x){
-	return thrust::reduce(x, x+n, 0, thrust::plus<T>());
+	return thrust::reduce(x, x+n, (T)0, thrust::plus<T>());
 }
 
 template<typename T> T prod(int n, T* x){
-	return thrust::reduce(x, x+n, 1, thrust::multiplies<T>());
+	return thrust::reduce(x, x+n, (T)1, thrust::multiplies<T>());
 }
 
 template<typename T> T mean(int n, T* x){
-	return thrust::reduce(x, x+n, 0, thrust::plus<T>())/n;
+	return thrust::reduce(x, x+n, (T)0, thrust::plus<T>())/n;
 }
 
 template<typename T> T max(int n, T* x){
-	return thrust::reduce(x, x+n, numeric_limits<T>::min(), thrust::maximum<T>());
+	return thrust::reduce(x, x+n, -numeric_limits<T>::max(), thrust::maximum<T>());
 }
 
 template<typename T> T min(int n, T* x){
-	return thrust::reduce(x, x+n, numeric_limits<T>::max(), thrust::minimum<T>());
+	return thrust::reduce(x, x+n,  numeric_limits<T>::max(), thrust::minimum<T>());
 }
 
 template<typename T> void minmax(T *minptr, T *maxptr, int n, T* x){
-	*minptr=thrust::reduce(x, x+n, numeric_limits<T>::max(), thrust::minimum<T>());
-	*maxptr=thrust::reduce(x, x+n, numeric_limits<T>::min(), thrust::maximum<T>());
+	*minptr=thrust::reduce(x, x+n, -numeric_limits<T>::max(), thrust::minimum<T>());
+	*maxptr=thrust::reduce(x, x+n,  numeric_limits<T>::max(), thrust::maximum<T>());
 }
 
 

@@ -8,6 +8,8 @@
 #ifndef EXAMPLES_H_
 #define EXAMPLES_H_
 
+#include "animation.h"
+
 void mapExample(int n){
 	// Maps a function f(x) on the domain [0, pi]
 	double *x;
@@ -123,7 +125,6 @@ void waveD(int N, double *v, double *u, double ti){
 	fftD(fftPlan, ifftPlan, n, 1, v, u+n, u_hat);
 	fftD(fftPlan, ifftPlan, n, 1, v+n, u, u_hat);
 }
-
 void waveExample(int N){
 	// Solves the one-dimensional wave equation u_xx = u_tt, given initial u(x) and du/dt
 
@@ -192,5 +193,54 @@ void cufftExample(int N){
 }
 
 
+__global__ void mandelbrotd(int m, int n, uchar4* rgba, double x1, double x2, double y1, double y2){
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	int j=blockIdx.y*blockDim.y+threadIdx.y;
+	if(i<m && j<n){
+		double x=x1+i*(x2-x1)/(m-1);
+		double y=y1+j*(y2-y1)/(n-1);
+		cuDoubleComplex z=make_cuDoubleComplex(x,y);
+		cuDoubleComplex w=make_cuDoubleComplex(x,y);
+		int k=0;
+		while(k<64 && w.x*w.x+w.y*w.y<4){
+			w=cuCfma(w,w,z);
+			k++;
+		};
+		float t=k/64.f;
+		rgba[j*m+i]=cold(t);
+	}
+}
+void fractal(int w, int h, uchar4* d_rgba, double x1, double x2, double y1, double y2){
+	static const dim3 block(32, 16);
+	static const dim3 grid(ceil(w,block.x), ceil(h,block.y));
+	mandelbrotd<<<grid, block>>>(w, h, d_rgba, x1, x2, y2, y1);
+	cudaThreadSynchronize();
+	checkCudaErrors(cudaGetLastError());
+}
+void fractalExample(int argc, char **argv){
+	animation(argc, argv, 720, 720, fractal);
+}
+
+__global__ void complexPlotd(int m, int n, uchar4* rgba, float x1, float x2, float y1, float y2){
+	int i=blockIdx.x*blockDim.x+threadIdx.x;
+	int j=blockIdx.y*blockDim.y+threadIdx.y;
+	if(i<m && j<n){
+		double x=x1+i*(x2-x1)/(m-1);
+		double y=y1+j*(y2-y1)/(n-1);
+		cuDoubleComplex z=make_cuDoubleComplex(x,y);
+		cuDoubleComplex w=sin(z);
+		float h=angle(w)/(2*pi);
+		float v=abs(w); v=0.3+0.7*(v-floor(v));
+		rgba[j*m+i]=hsv2rgb(h, 1, v);
+	}
+}
+void complexPlot(int w, int h, uchar4* rgba, double x1, double x2, double y1, double y2){
+	complexPlotd<<<grid(w,h), MAXTHREADS>>>(w, h, rgba, x1, x2, y2, y1);
+	cudaThreadSynchronize();
+	checkCudaErrors(cudaGetLastError());
+}
+void plotExample(int argc, char **argv){
+	animation(argc, argv, 720, 720, complexPlot);
+}
 
 #endif /* EXAMPLES_H_ */

@@ -17,6 +17,22 @@ float4 cross(float4 &a, float4 &b){
 	return make_float4(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x, 0.f);
 }
 
+inline __host__ __device__  void cartesian(float3 &p, float x, float y, float z){
+	p.x=x;
+	p.y=y;
+	p.z=z;
+}
+inline __host__ __device__  void cylindrical(float3 &p, float s, float phi, float z){
+	p.x=s*cosf(phi);
+	p.y=s*sinf(phi);
+	p.z=z;
+}
+inline __host__ __device__ void spherical(float3 &p, float r, float theta, float phi){
+	float rho=r*sinf(theta);
+	p.x=rho*cosf(phi);
+	p.y=rho*sinf(phi);
+	p.z=r*cosf(theta);
+}
 inline __host__ __device__  void cartesian(float4 &p, float x, float y, float z){
 	p.x=x;
 	p.y=y;
@@ -54,7 +70,6 @@ __global__ void normalMapping(dim3 mesh,  float4 *vertex, float4 *norm){
 		norm[gid]=N;
 	}
 }
-
 __global__ void normalMapping(dim3 mesh, float4 *vertex, float4 *norm, uchar4 *color){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
@@ -96,8 +111,8 @@ __global__ void colorSurf(dim3 mesh, uchar4 *color){
 	}
 }
 
-
-__global__ void circle(int n, float4 *pos, float R){
+template<typename T>
+__global__ void circle(int n, T *pos, float R){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	if(i<n){
 		float phi=2*i*M_PI/n;
@@ -114,7 +129,6 @@ __global__ void torus(dim3 mesh, float4 *vertex, float c, float a){
 		cylindrical(vertex[i+mesh.x*j], c+a*cosf(v), u, a*sinf(v));
 	}
 }
-
 __global__ void indexT2(dim3 mesh, uint4* index){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
@@ -131,7 +145,7 @@ __global__ void indexT2(dim3 mesh, uint4* index){
 	}
 }
 
-__global__ void spheres(dim3 mesh, float4 *pos, float4 *vertex, float4 *norm, float R){
+__global__ void spheres(dim3 mesh, float3 *pos, float4 *vertex, float4 *norm, float R){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
 	int k=blockIdx.z*blockDim.z+threadIdx.z;
@@ -139,17 +153,15 @@ __global__ void spheres(dim3 mesh, float4 *pos, float4 *vertex, float4 *norm, fl
 		int gid=i+mesh.x*(j+mesh.y*k);
 		float u=(float)i/(mesh.x-1);
 		float v=(2*j*M_PI)/mesh.y;
-
 		float s=2.f*sqrtf(u*(1.f-u));
 		float z=2.f*u-1.f;
-
-		//spherical(norm[gid], 1.f, u, v);
 		cylindrical(norm[gid], s, v, z);
-		vertex[gid]=R*norm[gid]+pos[k];
+		vertex[gid].x=R*norm[gid].x+pos[k].x;
+		vertex[gid].y=R*norm[gid].y+pos[k].y;
+		vertex[gid].z=R*norm[gid].z+pos[k].z;
 		vertex[gid].w=1.f;
 	}
 }
-
 __global__ void indexS2(dim3 mesh, uint4 *index){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
@@ -164,7 +176,6 @@ __global__ void indexS2(dim3 mesh, uint4 *index){
 		index[gid].w=(k*mesh.y+jj)*mesh.x+i;
 	}
 }
-
 
 
 #endif /* GEOMETRY_H_ */

@@ -259,7 +259,7 @@ void mouseMotion(int x, int y){
 		n=cross(lastPos, curPos);
 		lastPos=curPos;
 
-		float w=sqrtf((1.f+sqrtf(1.f-dot(n,n)))/4.f); // I was dividing by 2 before
+		float w=sqrtf((1.f+sqrtf(1.f-dot(n,n)))/2.f); // I was dividing by 2 before
 		axis=make_float4(n/(2.f*w), w);
 		quat=normalize(quatMult(axis, quat));
 		updateMatrix();

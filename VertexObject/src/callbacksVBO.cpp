@@ -5,23 +5,9 @@
 #include <GL/freeglut.h>
 #include <stdlib.h>
 
-
-// constants
-const dim3 mesh(1<<10, 1<<10);
-
-struct mappedBuffer_t{
-  GLuint vbo;
-  GLuint typeSize;
-  cudaGraphicsResource *cudaResource;
-};
-
-void launch_kernel(float4* d_pos, float4* d_norm, uchar4* d_color, uint4* d_index, dim3 mesh, float time);
-
-// VBO variables
-mappedBuffer_t vertexVBO = {0, sizeof(float4), NULL};
-mappedBuffer_t normalVBO = {0, sizeof(float4), NULL};
-mappedBuffer_t colorVBO  = {0, sizeof(uchar4), NULL};
-mappedBuffer_t indexVBO  = {0, sizeof(uint4), NULL};
+// The user must create the following routines:
+extern void runCuda();
+extern void renderCuda(int);
 
 // keyboard controls
 int drawMode=GL_QUADS;
