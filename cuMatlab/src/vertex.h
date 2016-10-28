@@ -126,8 +126,9 @@ inline float4 quatMult(float4 a, float4 b){
 		a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z);
 }
 void trackball(int x, int y, int width, int height, float3 &v){
-	v.x=(2.f*x-width)/width;
-	v.y=(height-2.f*y)/height;
+	int s=min(width, height);
+	v.x=(2.f*x-width)/s;
+	v.y=(height-2.f*y)/s;
 	float r=v.x*v.x+v.y*v.y;
 	v.z=r<1? sqrtf(1-r): 0;
 	v=normalize(v);

@@ -35,7 +35,7 @@ inline dim3 grid(int i, int j, int k){
 
 inline void gridblock(dim3 &grid, dim3 &block, dim3 mesh){
 	block.x=min(mesh.x, MAXTHREADS);
-	block.y=min(mesh.y, ceil(MAXTHREADS, block.x));
+	block.y=min(mesh.y, MAXTHREADS/(block.x));
 	block.z=min(mesh.z, MAXTHREADS/(block.x*block.y));
 	grid.x=ceil(mesh.x, block.x);
 	grid.y=ceil(mesh.y, block.y);

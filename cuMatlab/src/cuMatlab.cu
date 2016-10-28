@@ -5,7 +5,6 @@
 
 #include "cuMatlab.h"
 #include "vertex.h"
-#include "geometry.h"
 #include "particle.h"
 
 
@@ -17,8 +16,8 @@ int main(int argc, char **argv){
 	//auto f=[] __device__ (double x){return sinpi(x);};
 	//poisson(f, -1, 1, 32);
 
-	dim3 mesh(1<<4, 1<<5, 1<<7);
-	vertex(argc, argv, mesh, particleExample);
+	dim3 mesh(1<<6, 1<<5, 1<<8);
+	vertex(argc, argv, mesh, particleShadder);
 
 	printf("Program terminated.\n");
 	return 0;

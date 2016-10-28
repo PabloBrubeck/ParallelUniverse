@@ -11,7 +11,6 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-
 inline __host__ __device__
 float4 cross(float4 &a, float4 &b){
 	return make_float4(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x, 0.f);
@@ -28,9 +27,9 @@ inline __host__ __device__  void cylindrical(float3 &p, float s, float phi, floa
 	p.z=z;
 }
 inline __host__ __device__ void spherical(float3 &p, float r, float theta, float phi){
-	float rho=r*sinf(theta);
-	p.x=rho*cosf(phi);
-	p.y=rho*sinf(phi);
+	float s=r*sinf(theta);
+	p.x=s*cosf(phi);
+	p.y=s*sinf(phi);
 	p.z=r*cosf(theta);
 }
 inline __host__ __device__  void cartesian(float4 &p, float x, float y, float z){
@@ -46,9 +45,9 @@ inline __host__ __device__  void cylindrical(float4 &p, float s, float phi, floa
 	p.w=1.f;
 }
 inline __host__ __device__ void spherical(float4 &p, float r, float theta, float phi){
-	float rho=r*sinf(theta);
-	p.x=rho*cosf(phi);
-	p.y=rho*sinf(phi);
+	float s=r*sinf(theta);
+	p.x=s*cosf(phi);
+	p.y=s*sinf(phi);
 	p.z=r*cosf(theta);
 	p.w=1.f;
 }
@@ -100,7 +99,7 @@ __global__ void normalMapping(dim3 mesh, float4 *vertex, float4 *norm, uchar4 *c
 	}
 }
 
-__global__ void colorSurf(dim3 mesh, uchar4 *color){
+__global__ void colorSpheres(dim3 mesh, uchar4 *color){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
 	int k=blockIdx.z*blockDim.z+threadIdx.z;
@@ -150,15 +149,17 @@ __global__ void spheres(dim3 mesh, float3 *pos, float4 *vertex, float4 *norm, fl
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
 	int k=blockIdx.z*blockDim.z+threadIdx.z;
 	if(i<mesh.x && j<mesh.y && k<mesh.z){
-		int gid=i+mesh.x*(j+mesh.y*k);
-		float u=(float)i/(mesh.x-1);
-		float v=(2*j*M_PI)/mesh.y;
+		int gid=(k*mesh.y+j)*mesh.x+i;
+		float u=(float)j/(mesh.y-1);
+		float v=(2*i*M_PI)/mesh.x;
 		float s=2.f*sqrtf(u*(1.f-u));
-		float z=2.f*u-1.f;
-		cylindrical(norm[gid], s, v, z);
-		vertex[gid].x=R*norm[gid].x+pos[k].x;
-		vertex[gid].y=R*norm[gid].y+pos[k].y;
-		vertex[gid].z=R*norm[gid].z+pos[k].z;
+		float z=1.f-2.f*u;
+		float4 normal;
+		cylindrical(normal, s, v, z);
+		norm[gid]=normal;
+		vertex[gid].x=R*normal.x+pos[k].x;
+		vertex[gid].y=R*normal.y+pos[k].y;
+		vertex[gid].z=R*normal.z+pos[k].z;
 		vertex[gid].w=1.f;
 	}
 }
@@ -167,13 +168,13 @@ __global__ void indexS2(dim3 mesh, uint4 *index){
 	int j=blockIdx.y*blockDim.y+threadIdx.y;
 	int k=blockIdx.z*blockDim.z+threadIdx.z;
 	if(i<mesh.x && j<mesh.y && k<mesh.z){
-		int gid=i+mesh.x*(j+mesh.y*k);
-		int ii=min(i+1, mesh.x-1);
-		int jj=(j+1)%mesh.y;
+		int gid=(k*mesh.y+j)*mesh.x+i;
+		int ii=(i+1)%mesh.x;
+		int jj=min(j+1, mesh.y-1);
 		index[gid].x=(k*mesh.y+j)*mesh.x+i;
-		index[gid].y=(k*mesh.y+j)*mesh.x+ii;
+		index[gid].y=(k*mesh.y+jj)*mesh.x+i;
 		index[gid].z=(k*mesh.y+jj)*mesh.x+ii;
-		index[gid].w=(k*mesh.y+jj)*mesh.x+i;
+		index[gid].w=(k*mesh.y+j)*mesh.x+ii;
 	}
 }
 
