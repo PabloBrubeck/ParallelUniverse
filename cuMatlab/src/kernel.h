@@ -10,6 +10,22 @@
 
 #define MAXTHREADS 512
 
+template<class T>
+struct SharedMemory
+{
+    __device__ inline operator       T *()
+    {
+        extern __shared__ int __smem[];
+        return (T *)__smem;
+    }
+
+    __device__ inline operator const T *() const
+    {
+        extern __shared__ int __smem[];
+        return (T *)__smem;
+    }
+};
+
 inline int nextPow2(int v){
 	v--;
 	v|=v>>1;

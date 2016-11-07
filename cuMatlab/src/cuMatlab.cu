@@ -16,7 +16,7 @@ int main(int argc, char **argv){
 	//auto f=[] __device__ (double x){return sinpi(x);};
 	//poisson(f, -1, 1, 32);
 
-	dim3 mesh(1<<6, 1<<5, 1<<8);
+	dim3 mesh(1<<6, 1<<5, 1<<10);
 	vertex(argc, argv, mesh, particleShadder);
 
 	printf("Program terminated.\n");

@@ -59,7 +59,7 @@
 									<listOptionValue builtIn="false" value="/usr/local/cuda/lib64"/>
 									<listOptionValue builtIn="false" value="/opt/intel/mkl/lib/intel64_lin"/>
 								</option>
-								<option id="com.nvidia.cuda.ide.build.linker.ccbin.1817546558" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.linker.ccbin" value="/usr/bin/g++-4.9" valueType="string"/>
+								<option id="com.nvidia.cuda.ide.build.linker.ccbin.1817546558" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.linker.ccbin" value="/opt/intel/bin/icc" valueType="string"/>
 								<option id="nvcc.linker.option.other.262181629" name="Other options (-Xlinker [option])" superClass="nvcc.linker.option.other"/>
 								<option id="nvcc.linker.option.userobjs.1296652799" name="Other objects" superClass="nvcc.linker.option.userobjs" valueType="userObjs">
 									<listOptionValue builtIn="false" value="/home/pbrubeck/ParallelUniverse/common/lib/linux64/libGLEW.a"/>
@@ -119,10 +119,14 @@
 								<option id="nvcc.compiler.option.level.1334348286" name="Generate host debug information (-g)" superClass="nvcc.compiler.option.level"/>
 								<option defaultValue="nvcc.compiler.optimization.level.most" id="nvcc.compiler.optimization.level.563488899" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.1563913903" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
-								<option id="com.nvidia.cuda.ide.build.option1.180830023" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="/opt/intel/bin/icc" valueType="string"/>
-								<option id="nvcc.compiler.compileroptions.1116546185" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions" valueType="stringList">
-									<listOptionValue builtIn="false" value="-mkl"/>
+								<option id="com.nvidia.cuda.ide.build.option1.180830023" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.option1" value="/usr/bin/g++-4.9" valueType="string"/>
+								<option id="nvcc.compiler.compileroptions.1116546185" name="Preprocessor options (-Xcompiler)" superClass="nvcc.compiler.compileroptions" valueType="stringList"/>
+								<option id="nvcc.compiler.include.paths.1744594343" name="Include paths (-I)" superClass="nvcc.compiler.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="../../common/inc"/>
+									<listOptionValue builtIn="false" value="/opt/intel/mkl/include"/>
 								</option>
+								<option id="nvcc.compiler.cpp11option.1874802557" name="Enable C++11 support (-std=c++11)" superClass="nvcc.compiler.cpp11option" value="true" valueType="boolean"/>
+								<option id="nvcc.compiler.optionsfile.348457431" name="Command line options file (-optf)" superClass="nvcc.compiler.optionsfile" value="/home/pbrubeck/ParallelUniverse/cuMatlab/options" valueType="string"/>
 								<inputType id="nvcc.compiler.input.cu.568571195" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.159798765" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.436592083" superClass="nvcc.compiler.input.c"/>
@@ -130,6 +134,7 @@
 							<tool id="nvcc.linker.base.168811777" name="NVCC Linker" superClass="nvcc.linker.base">
 								<option id="nvcc.linker.option.libs.1301775853" name="Libraries (-l)" superClass="nvcc.linker.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="cublas"/>
+									<listOptionValue builtIn="false" value="curand"/>
 									<listOptionValue builtIn="false" value="cusolver"/>
 									<listOptionValue builtIn="false" value="cufft"/>
 									<listOptionValue builtIn="false" value="gomp"/>
@@ -144,6 +149,10 @@
 								</option>
 								<option id="com.nvidia.cuda.ide.build.linker.ccbin.49164795" name="Compiler Path (-ccbin)" superClass="com.nvidia.cuda.ide.build.linker.ccbin" value="/opt/intel/bin/icc" valueType="string"/>
 								<option id="nvcc.linker.option.cudart.106515711" name="CUDA Runtime Library:" superClass="nvcc.linker.option.cudart" value="nvcc.linker.option.cudart.shared" valueType="enumerated"/>
+								<option id="nvcc.linker.option.linkgl.1233756446" name="Link with OpenGL libraries" superClass="nvcc.linker.option.linkgl" value="true" valueType="boolean"/>
+								<option id="nvcc.linker.option.userobjs.1886645747" name="Other objects" superClass="nvcc.linker.option.userobjs" valueType="userObjs">
+									<listOptionValue builtIn="false" value="/home/pbrubeck/ParallelUniverse/common/lib/linux64/libGLEW.a"/>
+								</option>
 								<inputType id="nvcc.linker.input.651949869" superClass="nvcc.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -177,6 +186,9 @@
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 	<storageModule moduleId="refreshScope" versionNumber="2">
 		<configuration configurationName="Release">
+			<resource resourceType="PROJECT" workspacePath="/cuMatlab"/>
+		</configuration>
+		<configuration configurationName="Multiple configurations">
 			<resource resourceType="PROJECT" workspacePath="/cuMatlab"/>
 		</configuration>
 		<configuration configurationName="Debug">

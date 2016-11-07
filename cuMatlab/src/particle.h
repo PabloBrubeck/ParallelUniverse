@@ -13,7 +13,7 @@
 class particle{
 public:
 	cublasHandle_t handle;
-	int nbody;
+	int nbody, p;
 	dim3 grid, block;
 	float t, fr, L, radius, dL, EPS;
 	float3 *x, *v, *f;
@@ -23,12 +23,12 @@ public:
     void verlet();
 };
 
-__global__ void recenter(int n, float3 *p, float L){
+__global__ void crystal(int n, float3 *p, float L){
 	int i=blockIdx.x*blockDim.x+threadIdx.x;
 	if(i<n){
-		p[i].x=L*(p[i].x-0.5f);
-		p[i].y=L*(p[i].y-0.5f);
-		p[i].z=L*(p[i].z-0.5f);
+		p[i].x=L*fmodf(i*powf(n,-3/3.f), 1.f)-L/2;
+		p[i].y=L*fmodf(i*powf(n,-2/3.f), 1.f)-L/2;
+		p[i].z=L*fmodf(i*powf(n,-1/3.f), 1.f)-L/2;
 	}
 }
 
@@ -75,30 +75,58 @@ __device__ float3 forceLJ(float3 xi, float3 xj, float EPS, float L){
 }
 
 __global__ void computePotential(int n, float3 *x, float *U, float EPS, float L){
-	int i=blockIdx.x*blockDim.x+threadIdx.x;
-	int j=blockIdx.y*blockDim.y+threadIdx.y;
-	if(i<n && j<n && i!=j){
-		float3 xj=x[j], xi=x[i];
-		float Ui=potentialLJ(xi,xj,EPS,L);
-		atomicAdd(U+i, Ui);
+	float3 *shared = SharedMemory<float3>();
+	int src=blockIdx.x*blockDim.x+threadIdx.x;
+	int dst=blockIdx.y*blockDim.x+threadIdx.x;
+	if(src<n){
+		shared[threadIdx.x]=x[src];
+	}
+	__syncthreads();
+	if(dst<n){
+		float3 xi=x[dst];
+		float Ui=0.f;
+		#pragma unroll 128
+		for(int k=0; k<blockDim.x; k++){
+			int j=blockIdx.x*blockDim.x+k;
+			if(j<n && j!=dst){
+				Ui+=potentialLJ(xi,shared[k],EPS,L);
+			}
+		}
+		atomicAdd(U+dst, Ui);
 	}
 }
 
 __global__ void computeForce(int n, float3 *x, float3 *f, float EPS, float L){
-	int i=blockIdx.x*blockDim.x+threadIdx.x;
-	int j=blockIdx.y*blockDim.y+threadIdx.y;
-	if(i<n && j<n && i!=j){
-		float3 xj=x[j], xi=x[i];
-		float3 fi=forceLJ(xi,xj,EPS,L);
-		atomicAdd(&(f[i].x), fi.x);
-		atomicAdd(&(f[i].y), fi.y);
-		atomicAdd(&(f[i].z), fi.z);
+	float3 *shared = SharedMemory<float3>();
+	int src=blockIdx.x*blockDim.x+threadIdx.x;
+	int dst=blockIdx.y*blockDim.x+threadIdx.x;
+	if(src<n){
+		shared[threadIdx.x]=x[src];
 	}
+	__syncthreads();
+	if(dst<n){
+		float3 xi=x[dst];
+		float3 fi=make_float3(0.f, 0.f, 0.f);
+		#pragma unroll 128
+		for(int k=0; k<blockDim.x; k++){
+			int j=blockIdx.x*blockDim.x+k;
+			if(j<n && j!=dst){
+				fi+=forceLJ(xi,shared[k],EPS,L);
+			}
+		}
+		atomicAdd(&(f[dst].x), fi.x);
+		atomicAdd(&(f[dst].y), fi.y);
+		atomicAdd(&(f[dst].z), fi.z);
+	}
+
 }
 
 particle::particle(cublasHandle_t h, int n, float3 *x0,  float3 *v0, float framerate)
 : handle(h), nbody(n), x(x0), v(v0), t(0), fr(framerate){
-	gridblock(grid, block, dim3(n,n,1));
+	p=1<<5;
+	block=dim3(p,1,1);
+	grid=dim3(ceil(n,p), ceil(n,p), 1);
+
 	L=4.f*powf(nbody, 1.f/3.f);
 	radius=powf(2.f,-5.f/6.f);
 	dL=radius/1e5;
@@ -108,29 +136,14 @@ particle::particle(cublasHandle_t h, int n, float3 *x0,  float3 *v0, float frame
 	cudaMallocManaged((void**)&f2, nbody*sizeof(float));
 	cudaMallocManaged((void**)&U, nbody*sizeof(float));
 
-	curandGenerator_t generator;
-	curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_DEFAULT);
-	curandSetPseudoRandomGeneratorSeed(generator, 1000000ULL);
-
-	float Ut=1;
-	while(Ut>0){
-		curandGenerateUniform(generator, (float*)x, 3*nbody);
-		recenter<<<(nbody+511)/512, 512>>>(nbody, x, L);
-
-		cudaMemset(U, 0, nbody*sizeof(float));
-		cudaMemset(v, 0, nbody*sizeof(float3));
-		cudaMemset(f, 0, nbody*sizeof(float3));
-
-		computePotential<<<grid, block>>>(nbody, x, U, EPS, L);
-		cudaThreadSynchronize();
-		Ut=sum(nbody, U)/2;
-		printf("%f\n", Ut);
-	}
+	crystal<<<(nbody+511)/512, 512>>>(nbody, x, L);
+	cudaMemset(v, 0, nbody*sizeof(float3));
+	cudaMemset(f, 0, nbody*sizeof(float3));
+	cudaMemset(U, 0, nbody*sizeof(float));
 }
 
 void particle::verlet(){
 	float delta=0;
-	float Lm=0.5*L;
 	float L0=L;
 	while(delta<1/fr){
 		cudaMap([=] __device__ (float3 f){return dot(f,f);}, nbody, f, f2);
@@ -142,9 +155,9 @@ void particle::verlet(){
 		cublasSaxpy(handle, 3*nbody, &alpha, (float*)f, 1, (float*)v, 1);
 		cublasSaxpy(handle, 3*nbody, &dt,    (float*)v, 1, (float*)x, 1);
 
-		cudaMap([L0,Lm] __device__ (float t){return fmodf(t+Lm+L0, L0)-Lm;}, 3*nbody, (float*)x, (float*)x);
+		cudaMap([L0] __device__ (float t){return fmodf(t+1.5f*L0, L0)-0.5f*L0;}, 3*nbody, (float*)x, (float*)x);
 		cudaMemset(f, 0, nbody*sizeof(float3));
-		computeForce<<<grid, block>>>(nbody, x, f, EPS, L);
+		computeForce<<<grid, block, p*sizeof(float3)>>>(nbody, x, f, EPS, L);
 
 		cublasSaxpy(handle, 3*nbody, &alpha, (float*)f, 1, (float*)v, 1);
 		delta+=dt;
