@@ -195,7 +195,7 @@ void reshape(int w, int h){
 	glViewport(0, 0, w, h);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(60.0, (float)w/(float)h, 0.01, 100.0);
+	gluPerspective(60.0, (float)w/(float)h, 0.01, 200.0);
 	updateMatrix();
 }
 void keyPressed(unsigned char key, int x, int y){
