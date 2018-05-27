@@ -31,6 +31,8 @@
 								<option id="nvcc.compiler.option.level.1440594393" name="Generate host debug information (-g)" superClass="nvcc.compiler.option.level" value="true" valueType="boolean"/>
 								<option defaultValue="nvcc.compiler.optimization.level.none" id="nvcc.compiler.optimization.level.297850961" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.169137820" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
+								<option id="nvcc.compiler.optionsfile.1412814106" name="Command line options file (-optf)" superClass="nvcc.compiler.optionsfile" value="/home/pbrubeck/ParallelUniverse/cuMatlab/options" valueType="string"/>
+								<option id="nvcc.compiler.cpp11option.1571764409" name="Enable C++11 support (-std=c++11)" superClass="nvcc.compiler.cpp11option" value="true" valueType="boolean"/>
 								<inputType id="nvcc.compiler.input.cu.218334858" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.728345446" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.1527717326" superClass="nvcc.compiler.input.c"/>
@@ -54,6 +56,7 @@
 									<listOptionValue builtIn="false" value="/usr/local/cuda/lib64"/>
 									<listOptionValue builtIn="false" value="/opt/intel/mkl/lib/intel64_lin"/>
 								</option>
+								<option id="nvcc.linker.option.linkgl.759181368" superClass="nvcc.linker.option.linkgl" value="true" valueType="boolean"/>
 								<inputType id="nvcc.linker.input.917993820" superClass="nvcc.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -137,7 +140,7 @@
 									<listOptionValue builtIn="false" value="/usr/local/cuda/lib64"/>
 									<listOptionValue builtIn="false" value="/opt/intel/mkl/lib/intel64_lin"/>
 								</option>
-								<option id="nvcc.linker.option.linkgl.1773702598" superClass="nvcc.linker.option.linkgl" value="true" valueType="boolean"/>
+								<option id="nvcc.linker.option.linkgl.1773702598" name="Link with OpenGL libraries" superClass="nvcc.linker.option.linkgl" value="true" valueType="boolean"/>
 								<inputType id="nvcc.linker.input.1105453358" superClass="nvcc.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -172,13 +175,13 @@
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 	<storageModule moduleId="refreshScope" versionNumber="2">
-		<configuration configurationName="Release">
-			<resource resourceType="PROJECT" workspacePath="/cuMatlab"/>
-		</configuration>
 		<configuration configurationName="Multiple configurations">
 			<resource resourceType="PROJECT" workspacePath="/cuMatlab"/>
 		</configuration>
 		<configuration configurationName="Debug">
+			<resource resourceType="PROJECT" workspacePath="/cuMatlab"/>
+		</configuration>
+		<configuration configurationName="Release">
 			<resource resourceType="PROJECT" workspacePath="/cuMatlab"/>
 		</configuration>
 	</storageModule>
